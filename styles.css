@@ -209,12 +209,24 @@ body{
 }
 .meta div{ margin-bottom:4px; }
 
-.album-concept{
-  font-size:14px;
-  opacity:.85;
-  margin:8px 0 12px;
-  font-style:italic;
-  line-height:1.5;
+.album-concept {
+  margin: 12px 0 16px;
+}
+
+.album-concept .ko {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #e1e1e6;     /* 밝은 회색 (가독성 UP) */
+  line-height: 1.5;
+}
+
+.album-concept .en {
+  margin: 0;
+  font-size: 13px;
+  color: #a1a1aa;     /* 조금 더 어두운 회색 (보조 설명 느낌) */
+  font-style: italic; /* 영문은 이탤릭체로 감성 더하기 */
+  line-height: 1.4;
 }
 
 .links{

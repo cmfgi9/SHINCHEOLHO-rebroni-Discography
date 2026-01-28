@@ -142,19 +142,46 @@ async function main(){
         </div>
       `;
 
-      // 앨범 콘셉트 한 줄 (예시: 각 앨범의 concept 필드를 albums.json에 추가하거나, 하드코딩)
-      // 여기서는 각 앨범별 간단 설명을 하드코딩 예시
+      // 앨범 콘셉트: 한국어(ko) + 영어(en)
       const conceptMap = {
-        "a7": "AI(AGI/ASI)와 인간의 공존, 존재의 사유, 우주, 화성개척, 공감하는 의식을 테마로 한 일렉트로닉·앰비언트 서사 앨범",
-        "a6": "따뜻하고 평화로운 연말 분위기의 재즈·로파이 크리스마스 앨범",
-        "a5": "City&Human 컨셉의 K-POP·로파이·힙합 비트 앨범",
-        "a4": "불교 철학과 자기 성찰을 다룬 Offline Dharma 명상·앰비언트 앨범",
-        "a3": "우주·평화·공존의 메시지를 담은 데뷔 앨범 Space·Earth·Existence",
-        "a2": "바다·숲·기후와 같은 지구 환경 위기에 행동하고 보호하자는 메시지를 담은 신스·팝 앨범 SAVE the EARTH",
-        "a1": "나와 너, 도시와 자연의 대비를 담은 City&Nature 시리즈"
+        "a7": {
+          ko: "AI(AGI/ASI)와 인간의 공존, 존재의 사유, 우주, 화성개척, 공감하는 의식을 테마로 한 일렉트로닉·앰비언트 서사 앨범",
+          en: "An Electronic/Ambient narrative album themed around the coexistence of AI (AGI/ASI) and humans, existential reasoning, the cosmos, Mars colonization, and empathetic consciousness."
+        },
+        "a6": {
+          ko: "따뜻하고 평화로운 연말 분위기의 재즈·로파이 크리스마스 앨범",
+          en: "A Jazz/Lo-Fi Christmas album featuring a warm and peaceful year-end atmosphere."
+        },
+        "a5": {
+          ko: "City&Human 컨셉의 K-POP·로파이·힙합 비트 앨범",
+          en: "A K-POP, Lo-Fi, and Hip-Hop beat album exploring the 'City & Human' concept."
+        },
+        "a4": {
+          ko: "불교 철학과 자기 성찰을 다룬 Offline Dharma 명상·앰비언트 앨범",
+          en: "An 'Offline Dharma' meditation/ambient album focused on Buddhist philosophy and self-reflection."
+        },
+        "a3": { // Space. Earth. Existential reasoning.
+          ko: "우주·평화·존재의 사유의 메시지를 담은 3번째 앨범 Space·Earth·Existential reasoning",
+          en: "The 3rd album 'Space·Earth·Existential reasoning' conveying messages of the cosmos, peace, and coexistence."
+        },
+        "a2": {
+          ko: "바다·숲·기후와 같은 지구 환경 위기에 행동하고 보호하자는 메시지를 담은 신스·팝 앨범 SAVE the EARTH",
+          en: "A Synth-Pop album 'SAVE the EARTH' delivering a message to act on and protect against environmental crises like ocean, forest, and climate issues."
+        },
+        "a1": { // City & Nature (Debut Album)
+          ko: "나와 너, 도시와 자연의 대비를 담은 City&Nature 시리즈",
+          en: "The 'City & Nature' series capturing the contrast between self and other, the urban and the natural."
+        }
       };
-      const concept = conceptMap[a.id] || "";
-      const conceptHtml = concept ? `<p class="album-concept">${escapeHtml(concept)}</p>` : "";
+
+      // HTML 생성 로직 수정 (한국어 + 영어 두 줄 출력)
+      const c = conceptMap[a.id];
+      const conceptHtml = c 
+        ? `<div class="album-concept">
+             <p class="ko">${escapeHtml(c.ko)}</p>
+             <p class="en">${escapeHtml(c.en)}</p>
+           </div>` 
+        : "";
 
       const tracksHtml = (a.tracks || []).map(t => {
         const { main, sub } = splitTrackTitle(t.title);
