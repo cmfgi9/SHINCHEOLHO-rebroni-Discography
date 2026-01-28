@@ -1,7 +1,6 @@
 /* Discography (albums.json split) + per-track links + album playlist player
-   - Track buttons: Spotify / Apple (external), YouTube (embedded player)
-   - Album "Play Album" uses youtube_album playlist link (embed videoseries)
-   - UX: playing track highlight, single open player at a time
+   - Sticky top nav with active album highlight
+   - Quick menu drawer (Albums button) for full album list
 */
 
 function escapeHtml(str){
@@ -13,10 +12,16 @@ function escapeHtml(str){
     .replaceAll("'","&#039;");
 }
 
+function getStickyOffset(){
+  const bar = document.getElementById("stickybar");
+  return bar ? (bar.getBoundingClientRect().height + 10) : 10;
+}
+
 function scrollToId(id){
   const el = document.getElementById(id);
   if (!el) return;
-  el.scrollIntoView({behavior:"smooth", block:"start"});
+  const y = el.getBoundingClientRect().top + window.pageYOffset - getStickyOffset();
+  window.scrollTo({top: Math.max(0, y), behavior:"smooth"});
 }
 
 function getYouTubeId(url){
@@ -173,6 +178,13 @@ async function main(){
     });
   }
 
+  function setActiveAlbum(id){
+    document.querySelectorAll(".navlink").forEach(l => l.classList.toggle("active", l.dataset.target === id));
+    if (quickLinks){
+      quickLinks.querySelectorAll("a[data-target]").forEach(l => l.classList.toggle("active", l.dataset.target === id));
+    }
+  }
+
   function bindNavClicks(){
     if (!nav) return;
     nav.addEventListener("click", (e) => {
@@ -183,6 +195,7 @@ async function main(){
       scrollToId(id);
       a.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
       history.replaceState(null, "", `#${id}`);
+      setActiveAlbum(id);
     });
   }
 
@@ -194,14 +207,15 @@ async function main(){
     const observer = new IntersectionObserver((entries) => {
       const visible = entries.filter(e => e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
       if (!visible) return;
-      links.forEach(l => l.classList.remove("active"));
+      setActiveAlbum(visible.target.id);
       const link = byId.get(visible.target.id);
-      if (link) link.classList.add("active");
+      if (link) link.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
     }, {threshold:[0.25,0.4,0.55]});
 
     document.querySelectorAll(".album").forEach(sec => observer.observe(sec));
   }
 
+  // Quick menu
   function openQuick(){
     if (!quickMenu || !quickBackdrop) return;
     quickMenu.classList.add("open");
@@ -239,9 +253,11 @@ async function main(){
       closeQuick();
       scrollToId(id);
       history.replaceState(null, "", `#${id}`);
+      setActiveAlbum(id);
     });
   }
 
+  // Album playlist player
   function bindAlbumPlayers(){
     document.addEventListener("click", (e) => {
       const btn = e.target.closest("button.yt-album-play");
@@ -301,6 +317,7 @@ async function main(){
     });
   }
 
+  // Track YouTube player
   function bindTrackPlayers(){
     document.addEventListener("click", (e) => {
       const btn = e.target.closest("button.yt-play");
@@ -356,15 +373,26 @@ async function main(){
 
   renderNav();
   renderAlbums();
+  renderQuickLinks();
+
   bindNavClicks();
   setupScrollSpy();
   bindQuick();
-  renderQuickLinks();
+
   bindAlbumPlayers();
   bindTrackPlayers();
 
   if (search) search.addEventListener("input", ()=>applySearch(search.value));
   applySearch("");
+
+  // If opened with a hash, align correctly with sticky offset
+  const hash = (location.hash || "").replace("#","");
+  if (hash){
+    setTimeout(()=>scrollToId(hash), 50);
+    setActiveAlbum(hash);
+  }else if (albums[0]?.id){
+    setActiveAlbum(albums[0].id);
+  }
 }
 
 main().catch(err => {
