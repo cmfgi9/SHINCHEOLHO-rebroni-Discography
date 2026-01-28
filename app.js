@@ -183,6 +183,13 @@ async function main(){
     if (quickLinks){
       quickLinks.querySelectorAll("a[data-target]").forEach(l => l.classList.toggle("active", l.dataset.target === id));
     }
+
+  function scrollNavToLink(link){
+    if (!link || !nav) return;
+    // Horizontal-only scrolling to avoid snapping the whole page back to top (sticky nav on GitHub Pages)
+    const left = link.offsetLeft - (nav.clientWidth / 2) + (link.offsetWidth / 2);
+    nav.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+  }
   }
 
   function bindNavClicks(){
@@ -193,7 +200,7 @@ async function main(){
       e.preventDefault();
       const id = a.dataset.target;
       scrollToId(id);
-      a.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
+            scrollNavToLink(a);
       history.replaceState(null, "", `#${id}`);
       setActiveAlbum(id);
     });
@@ -209,7 +216,7 @@ async function main(){
       if (!visible) return;
       setActiveAlbum(visible.target.id);
       const link = byId.get(visible.target.id);
-      if (link) link.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
+            if (link) scrollNavToLink(link);
     }, {threshold:[0.25,0.4,0.55]});
 
     document.querySelectorAll(".album").forEach(sec => observer.observe(sec));
