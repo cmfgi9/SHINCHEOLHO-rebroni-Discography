@@ -14,6 +14,7 @@ body{
   font-family: Arial, sans-serif;
   background:var(--bg);
   color:var(--fg);
+  padding-top: var(--stickybar-h, 0px);
 }
 
 /* Hero */
@@ -25,8 +26,10 @@ body{
 
 /* Sticky bar (always visible album nav + search) */
 .stickybar{
-  position:sticky;
+  position:fixed;
   top:0;
+  left:0;
+  right:0;
   z-index:1000;
   display:flex;
   align-items:center;
@@ -35,6 +38,7 @@ body{
   border-bottom:1px solid var(--line);
   background:linear-gradient(to bottom, rgba(14,14,17,.96), rgba(14,14,17,.86));
   backdrop-filter: blur(10px);
+  box-shadow: 0 8px 30px rgba(0,0,0,.35);
 }
 
 .album-nav{

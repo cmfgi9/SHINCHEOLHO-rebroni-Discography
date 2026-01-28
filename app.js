@@ -3,6 +3,15 @@
    - Quick menu drawer (Albums button) for full album list
 */
 
+
+function updateStickyBarHeight(){
+  const bar = document.getElementById("stickybar");
+  if (!bar) return;
+  // Set a CSS variable used for body padding-top so fixed nav doesn't cover content
+  const h = Math.ceil(bar.getBoundingClientRect().height);
+  document.documentElement.style.setProperty("--stickybar-h", h + "px");
+}
+
 function escapeHtml(str){
   return String(str)
     .replaceAll("&","&amp;")
@@ -14,7 +23,8 @@ function escapeHtml(str){
 
 function getStickyOffset(){
   const bar = document.getElementById("stickybar");
-  return bar ? (bar.getBoundingClientRect().height + 10) : 10;
+  if (!bar) return 10;
+  return Math.ceil(bar.getBoundingClientRect().height) + 10;
 }
 
 function scrollToId(id){
@@ -76,6 +86,11 @@ async function main(){
   const res = await fetch("albums.json", {cache:"no-store"});
   if (!res.ok) throw new Error("Failed to load albums.json");
   const albums = await res.json();
+
+  updateStickyBarHeight();
+  window.addEventListener('resize', () => {
+    updateStickyBarHeight();
+  });
 
   const nav = document.getElementById("album-nav");
   const albumsEl = document.getElementById("albums");
@@ -380,6 +395,8 @@ async function main(){
 
   renderNav();
   renderAlbums();
+  // In case fonts wrap on load
+  updateStickyBarHeight();
   renderQuickLinks();
 
   bindNavClicks();
