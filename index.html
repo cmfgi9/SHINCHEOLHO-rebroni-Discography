@@ -1,43 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SHINCHEOLHO-rebroni | Discography</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="description" content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music. Explore all albums and tracks with streaming links.">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
+  <!-- Sticky top bar: quick menu button + album nav + search -->
+  <div id="stickybar" class="stickybar">
+    <button id="quick-menu-btn" class="iconbtn" aria-label="Open albums menu">Albums</button>
+    <nav id="album-nav" class="album-nav" aria-label="Album navigation"></nav>
+    <div class="search-wrap">
+      <input type="search" id="search" placeholder="Search albums & tracks…" aria-label="Search">
+    </div>
+  </div>
+
+  <!-- Hero section -->
   <header class="hero">
     <h1>SHINCHEOLHO-rebroni</h1>
     <p>Official Discography · Rebroni Music</p>
   </header>
 
-  <!-- Sticky navigation -->
-  <div class="stickybar" id="stickybar">
-    <button class="iconbtn" id="quick-menu-btn" type="button" aria-label="Open albums menu">Albums</button>
-
-    <nav id="album-nav" class="album-nav" aria-label="Album navigation"></nav>
-
-    <div class="search-wrap">
-      <input id="search" placeholder="Search track title or ISRC" />
-    </div>
-  </div>
-
-  <!-- Quick menu drawer -->
-  <div id="quick-menu-backdrop" class="backdrop" aria-hidden="true"></div>
-  <aside id="quick-menu" class="drawer" aria-hidden="true">
-    <div class="drawer-head">
-      <div class="drawer-title">Albums</div>
-      <button class="iconbtn iconbtn-close" id="quick-menu-close" type="button" aria-label="Close albums menu">×</button>
-    </div>
-    <div class="drawer-sub">Go to album</div>
-    <nav id="quick-menu-links" class="drawer-links" aria-label="Albums list"></nav>
-  </aside>
-
+  <!-- Albums container (rendered by app.js) -->
   <main id="albums"></main>
 
-  <footer>© Rebroni Music · SHINCHEOLHO-rebroni</footer>
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2025–2026 SHINCHEOLHO-rebroni · Rebroni Music. All rights reserved.</p>
+  </footer>
+
+  <!-- Quick menu drawer -->
+  <div id="quick-menu-backdrop" class="backdrop"></div>
+  <aside id="quick-menu" class="drawer" role="dialog" aria-labelledby="quick-menu-title" aria-hidden="true">
+    <div class="drawer-head">
+      <h2 id="quick-menu-title" class="drawer-title">Albums</h2>
+      <button id="quick-menu-close" class="iconbtn iconbtn-close" aria-label="Close menu">✕</button>
+    </div>
+    <p class="drawer-sub">Jump to any album</p>
+    <nav id="quick-menu-links" class="drawer-links" aria-label="Album quick links"></nav>
+  </aside>
 
   <script src="app.js"></script>
 </body>
