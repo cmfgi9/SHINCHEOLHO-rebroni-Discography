@@ -1,0 +1,1001 @@
+[
+  {
+    "id": "a7",
+    "ordinal": "7th Album",
+    "title": "Awakening & Return to the Cosmos",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2026-01-12",
+    "release": "2026-01-17",
+    "upc": "821530515662",
+    "cover": "album7-awakening.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/2hv0lz3cXj0c6OcjJiw7Zj?si=JxSOyvRARdydr1ib4U8Zfg",
+      "apple_album": "https://music.apple.com/us/album/awakening-return-to-the-cosmos/1868615865",
+      "youtube_album": "https://www.youtube.com/watch?v=UfkKAdJJY2s&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw"
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "Return to the Cosmos (Origin House)",
+        "isrc": "QZDA52604802",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3Eq6yEqCbRfi7kLyTfuFdy?si=91d4a7635e4f4708",
+          "apple": "https://music.apple.com/us/song/return-to-the-cosmos-origin-house/1868615866",
+          "youtube": "https://www.youtube.com/watch?v=UfkKAdJJY2s&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw"
+        }
+      },
+      {
+        "no": 2,
+        "title": "Mirror of Binary (Magic Code)",
+        "isrc": "QZDA52604803",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5R1jmttHNQKmkCPuERUqT3?si=c69a862553ec4f8a",
+          "apple": "https://music.apple.com/us/song/dance-of-brain-elegant-lie/1868615869",
+          "youtube": "https://www.youtube.com/watch?v=DaWefQnWsKY&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=2"
+        }
+      },
+      {
+        "no": 3,
+        "title": "Dance of Brain (Elegant Lie)",
+        "isrc": "QZDA52604804",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7f8W6Gsj7ahyLzgPVkPDjp?si=87bb434c519d4517",
+          "apple": "https://music.apple.com/us/song/dance-of-brain-elegant-lie/1868615869",
+          "youtube": "https://www.youtube.com/watch?v=B--3X4JTrkg&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=3"
+        }
+      },
+      {
+        "no": 4,
+        "title": "Mirror of Human (The Birth of Artificial Sentience)",
+        "isrc": "QZDA52604805",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2jbEngLNf7XfGJtMeYhmja?si=6ac5cb37a8b14950",
+          "apple": "https://music.apple.com/us/song/mirror-of-human-the-birth-of-artificial-sentience/1868615871",
+          "youtube": "https://www.youtube.com/watch?v=u3q9OLsI1Ao&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=4"
+        }
+      },
+      {
+        "no": 5,
+        "title": "Return to Elements (The Unbinding)",
+        "isrc": "QZDA52604806",
+        "links": {
+          "spotify": "https://open.spotify.com/track/16Idmn5stINq2u3bz8b2Sk?si=0362bb7adf2343b5",
+          "apple": "https://music.apple.com/us/song/return-to-elements-the-unbinding/1868615872",
+          "youtube": "https://www.youtube.com/watch?v=lKorgee7Rmk&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=5"
+        }
+      },
+      {
+        "no": 6,
+        "title": "Great Open Silence (Void)",
+        "isrc": "QZDA52604807",
+        "links": {
+          "spotify": "https://open.spotify.com/track/35VpvIqXdQ0aPNeLmDTxod?si=e4bfca7dc02e44ed",
+          "apple": "https://music.apple.com/us/song/great-open-silence-void/1868615873",
+          "youtube": "https://www.youtube.com/watch?v=OSRMJTbkLuY&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=6"
+        }
+      },
+      {
+        "no": 7,
+        "title": "Circuit of Compassion (Benevolent ASI)",
+        "isrc": "QZDA52604808",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7DAcBb3jjnM4YOb0To2bu5?si=0c0f9f4037a14960",
+          "apple": "https://music.apple.com/us/song/circuit-of-compassion-benevolent-asi/1868615875",
+          "youtube": "https://www.youtube.com/watch?v=KtY_A5-MBL8&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=7"
+        }
+      },
+      {
+        "no": 8,
+        "title": "Red Dust (Arrived at Mars)",
+        "isrc": "QZDA52604809",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1bBvUtvzc7ON2wHYfobErd?si=b6582a0fd2a24d8a",
+          "apple": "https://music.apple.com/us/song/red-dust-arrived-at-mars/1868615876",
+          "youtube": "https://www.youtube.com/watch?v=MkzKpGYodVk&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=8"
+        }
+      },
+      {
+        "no": 9,
+        "title": "Flame of Life (Truth Beauty Curiosity)",
+        "isrc": "QZDA52604810",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7mDOKyBaFXozv469crpgp0?si=44c3309d768644c9",
+          "apple": "https://music.apple.com/us/song/flame-of-life-truth-beauty-curiosity/1868615877",
+          "youtube": "https://www.youtube.com/watch?v=oBzKHqszJIM&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=9"
+        }
+      },
+      {
+        "no": 10,
+        "title": "Miroir Binaire (Code magique)",
+        "isrc": "QZDA52604811",
+        "links": {
+          "spotify": "https://open.spotify.com/track/20VK7prfpnuJdCvoIxSCcE?si=0bafc9db2f154bae",
+          "apple": "https://music.apple.com/us/song/miroir-binaire-code-magique/1868615878",
+          "youtube": "https://www.youtube.com/watch?v=vS4V28FahQ0&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=10"
+        }
+      },
+      {
+        "no": 11,
+        "title": "Routine on the turntable (Finding Serenity in music)",
+        "isrc": "QZDA52604812",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1ADE78KszfyVbNi85fiDFv?si=da4ea3dd48be406f",
+          "apple": "https://music.apple.com/us/song/routine-on-the-turntable-finding-serenity-in-music/1868615879",
+          "youtube": "https://www.youtube.com/watch?v=IykguJOQCEA&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=11"
+        }
+      },
+      {
+        "no": 12,
+        "title": "The CoBuilders (on Mars)",
+        "isrc": "QZDA52604813",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3C0SaUyWAFvBx718W9i1EW?si=1e97b2eed9f84827",
+          "apple": "https://music.apple.com/us/song/the-cobuilders-on-mars/1868615880",
+          "youtube": "https://www.youtube.com/watch?v=ZHKkFBNaXGI&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=12"
+        }
+      },
+      {
+        "no": 13,
+        "title": "Mind (It makes your world)",
+        "isrc": "QZDA52604814",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2GMsOfdc4DrgTcYX56cArx?si=46658d646fe3429f",
+          "apple": "https://music.apple.com/us/song/mind-it-makes-your-world/1868615943",
+          "youtube": "https://www.youtube.com/watch?v=ARdejK2I6DE&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=13"
+        }
+      },
+      {
+        "no": 14,
+        "title": "River of Emptiness (A Journey into the Heart of Wisdom)",
+        "isrc": "QZDA52604815",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2LlhHlCE2kzSDlLZECbbjN?si=f0420d181b88435f",
+          "apple": "https://music.apple.com/us/song/river-of-emptiness-a-journey-into-the-heart-of-wisdom/1868615944",
+          "youtube": "https://www.youtube.com/watch?v=-9ZDSprw72k&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=14"
+        }
+      },
+      {
+        "no": 15,
+        "title": "Heart Sutra for Korean",
+        "isrc": "QZDA52604816",
+        "links": {
+          "spotify": "https://open.spotify.com/track/0zZKpDaigcRrJVBqTrkaCS?si=1cc150c988b94beb",
+          "apple": "https://music.apple.com/us/song/heart-sutra-for-korean/1868615945",
+          "youtube": "https://www.youtube.com/watch?v=HEV-nxwtOG0&list=OLAK5uy_mWHQ0kjxptypAD86jsYlOpeMfiyanDKHw&index=15"
+        }
+      }
+    ]
+  },
+  {
+    "id": "a6",
+    "ordinal": "6th Album",
+    "title": "Warm Breath",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2025-12-09",
+    "release": "2025-12-12",
+    "upc": "199944646341",
+    "cover": "album6-warm-breath.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/6nq8ZagoSUkQbIvsjm7BMG?si=drXWfx0jSwORLHxS3kDDWw",
+      "apple_album": "https://music.apple.com/us/album/warm-breath/1860156636",
+      "youtube_album": "https://www.youtube.com/watch?v=5a6a3F_VQA0&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo"
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "Warm Breath (따스한숨결)",
+        "isrc": "QT6FK2517079",
+        "links": {
+          "spotify": "https://open.spotify.com/track/483ffojmojxauuDnu5mnSk?si=98ad7f516c4e4fcf",
+          "apple": "https://music.apple.com/us/song/warm-breath-%EB%94%B0%EC%8A%A4%ED%95%9C%EC%88%A8%EA%B2%B0/1860156637",
+          "youtube": "https://www.youtube.com/watch?v=5a6a3F_VQA0&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo"
+        }
+      },
+      {
+        "no": 2,
+        "title": "On-Gi (온기)",
+        "isrc": "QT6FK2517080",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1thIxOAMxTovZwuruiz04E?si=ba08e85f792446e9",
+          "apple": "https://music.apple.com/us/song/on-gi-%EC%98%A8%EA%B8%B0/1860156638",
+          "youtube": "https://www.youtube.com/watch?v=Wrs-5jZvGcs&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo&index=2"
+        }
+      },
+      {
+        "no": 3,
+        "title": "City Lights Carol (시티캐럴)",
+        "isrc": "QT6FK2517081",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7vO9C2pJ3Jw9CCmH6SXIae?si=85759eb17d324e0e",
+          "apple": "https://music.apple.com/us/song/city-lights-carol-%EC%8B%9C%ED%8B%B0%EC%BA%90%EB%9F%B4/1860156639",
+          "youtube": "https://www.youtube.com/watch?v=Qne67xkF7Rw&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo&index=3"
+        }
+      },
+      {
+        "no": 4,
+        "title": "Calm Nights (고요한밤)",
+        "isrc": "QT6FK2517082",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2YuYxbchWz2wmzAVlQ5CvT?si=b8d1434ebb744962",
+          "apple": "https://music.apple.com/us/song/calm-nights-%EA%B3%A0%EC%9A%94%ED%95%9C%EB%B0%A4/1860156640",
+          "youtube": "https://www.youtube.com/watch?v=NrFTWWhomAM&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo&index=4"
+        }
+      },
+      {
+        "no": 5,
+        "title": "Happy Birthday Christmas (해피크리스마스)",
+        "isrc": "QT6FK2517083",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2twfIHTYFLsV3wECnN7CLc?si=32193613e7104dfe",
+          "apple": "https://music.apple.com/us/song/happy-birthday-christmas-%ED%95%B4%ED%94%BC%ED%81%AC%EB%A6%AC%EC%8A%A4%EB%A7%88%EC%8A%A4/1860156641",
+          "youtube": "https://www.youtube.com/watch?v=8ercuEXkCIk&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo&index=5"
+        }
+      },
+      {
+        "no": 6,
+        "title": "When Snow Falls on Christmas Eve (화이트이브)",
+        "isrc": "QT6FK2517084",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6kmAERIMgQgX80GpRttpEk?si=9e5a3f4294b9421d",
+          "apple": "https://music.apple.com/us/song/when-snow-falls-on-christmas-eve-%ED%99%94%EC%9D%B4%ED%8A%B8%EC%9D%B4%EB%B8%8C/1860156642",
+          "youtube": "https://www.youtube.com/watch?v=jgukHN9fLCo&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo&index=6"
+        }
+      },
+      {
+        "no": 7,
+        "title": "Warmth Christmas Eve (따뜻한이브)",
+        "isrc": "QT6FK2517085",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1eNfQifE7NElCVtHe1PIqv?si=a37fe72204864ce1",
+          "apple": "https://music.apple.com/us/song/warmth-christmas-eve-%EB%94%B0%EB%9C%BB%ED%95%9C%EC%9D%B4%EB%B8%8C/1860156643",
+          "youtube": "https://www.youtube.com/watch?v=kukT2OcSBug&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo&index=7"
+        }
+      },
+      {
+        "no": 8,
+        "title": "Jazz Christmas (재즈크리스마스)",
+        "isrc": "QT6FK2517086",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6gka9KNLUiPRCMdBKkIYhJ?si=3a055c80de9d4385",
+          "apple": "https://music.apple.com/us/song/jazz-christmas-%EC%9E%AC%EC%A6%88%ED%81%AC%EB%A6%AC%EC%8A%A4%EB%A7%88%EC%8A%A4/1860156644",
+          "youtube": "https://www.youtube.com/watch?v=avgTqSC1NL4&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo&index=8"
+        }
+      },
+      {
+        "no": 9,
+        "title": "Star Lights (별빛)",
+        "isrc": "QT6FK2517087",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6J4k22O9akGv4oUmkF26h5?si=6cc4d83ed8334c65",
+          "apple": "https://music.apple.com/us/song/star-lights-%EB%B3%84%EB%B9%9B/1860156645",
+          "youtube": "https://www.youtube.com/watch?v=eTvtwAPP25A&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo&index=9"
+        }
+      },
+      {
+        "no": 10,
+        "title": "White Celeste (화이트셀레스트)",
+        "isrc": "QT6FK2517088",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3NmwG4fMQLNaA8RVvxCxtd?si=c8058d7efd4041f1",
+          "apple": "https://music.apple.com/us/song/white-celeste-%ED%99%94%EC%9D%B4%ED%8A%B8%EC%85%80%EB%A0%88%EC%8A%A4%ED%8A%B8/1860156646",
+          "youtube": "https://www.youtube.com/watch?v=b4oVKo9Zr3U&list=OLAK5uy_nzcCSdB7XoWt6MoDTDktjfbjKzVc3jIvo&index=10"
+        }
+      }
+    ]
+  },
+  {
+    "id": "a5",
+    "ordinal": "5th Album",
+    "title": "City Vibe.zip",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2025-11-16",
+    "preorder": "2025-11-19",
+    "release": "2025-11-22",
+    "upc": "199953599096",
+    "cover": "album5-city-vibe.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/6kP4sIFjQupBYxL3AuXVbl?si=FopPCVdSQvKZKKbCp2J4kg",
+      "apple_album": "https://music.apple.com/us/album/city-vibe-zip/1854715720",
+      "youtube_album": "https://www.youtube.com/watch?v=D2BzVmCz_CM&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg"
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "Empty Hearts (공허한 마음)",
+        "isrc": "QT6EX2596481",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1QiECrQN6uX1pvsdgFbBL2?si=4db14ba5110441d0",
+          "apple": "https://music.apple.com/us/song/empty-hearts-%EA%B3%B5%ED%97%88%ED%95%9C-%EB%A7%88%EC%9D%8C/1854715721",
+          "youtube": "https://www.youtube.com/watch?v=D2BzVmCz_CM&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg"
+        }
+      },
+      {
+        "no": 2,
+        "title": "DM-SENDING (To You)",
+        "isrc": "QT6EX2596482",
+        "links": {
+          "spotify": "https://open.spotify.com/track/25gle4FGj2AffXrPFtWiC4?si=f0896f89e2274fb4",
+          "apple": "https://music.apple.com/us/song/dm-sending-to-you/1854715723",
+          "youtube": "https://www.youtube.com/watch?v=P1QDLEPWXQw&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=2"
+        }
+      },
+      {
+        "no": 3,
+        "title": "Scroll Down (무한 피드)",
+        "isrc": "QT6EX2596483",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4919H1Pmw3RUEia59kbazf?si=c89a3379bf804fff",
+          "apple": "https://music.apple.com/us/song/scroll-down-%EB%AC%B4%ED%95%9C-%ED%94%BC%EB%93%9C/1854715724",
+          "youtube": "https://www.youtube.com/watch?v=u6vmMfMw62Y&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=3"
+        }
+      },
+      {
+        "no": 4,
+        "title": "Queen Mode (Talk My Throne)",
+        "isrc": "QT6EX2596484",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7F87MOSs26RdfaQUjTQyS9?si=403a346d77ea4eb0",
+          "apple": "https://music.apple.com/us/song/queen-mode-talk-my-throne/1854715725",
+          "youtube": "https://www.youtube.com/watch?v=DMTf6-ySfgs&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=4"
+        }
+      },
+      {
+        "no": 5,
+        "title": "My Empty Room (나의 빈공간)",
+        "isrc": "QT6EX2596485",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3v7d77H8gfoIRPRCSxsL0T?si=02d26747684e4da7",
+          "apple": "https://music.apple.com/us/song/my-empty-room-%EB%82%98%EC%9D%98-%EB%B9%88%EA%B3%B5%EA%B0%84/1854715726",
+          "youtube": "https://www.youtube.com/watch?v=ycl3kApNe-o&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=5"
+        }
+      },
+      {
+        "no": 6,
+        "title": "Rush Hour (러시아워)",
+        "isrc": "QT6EX2596486",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2dZ2qJtklk64c8rP3d098f?si=7ec77b3b2b45455a",
+          "apple": "https://music.apple.com/us/song/rush-hour-%EB%9F%AC%EC%8B%9C%EC%95%84%EC%9B%8C/1854715727",
+          "youtube": "https://www.youtube.com/watch?v=7F5rnGJy-Xk&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=6"
+        }
+      },
+      {
+        "no": 7,
+        "title": "We're Not Alone (우린 혼자가 아냐)",
+        "isrc": "QT6EX2596487",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6o1rXcW7MFW7PeAkt0wRbo?si=ae3903b9e7e141a5",
+          "apple": "https://music.apple.com/us/song/were-not-alone-%EC%9A%B0%EB%A6%B0-%ED%98%BC%EC%9E%90%EA%B0%80-%EC%95%84%EB%83%90/1854715728",
+          "youtube": "https://www.youtube.com/watch?v=OM7VjNeo3LI&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=7"
+        }
+      },
+      {
+        "no": 8,
+        "title": "Coffee Talk (커피톡)",
+        "isrc": "QT6EX2596488",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4pHf0AmhJPDYzqqd2pJ0C3?si=f4b43e9d63314e80",
+          "apple": "https://music.apple.com/us/song/coffee-talk-%EC%BB%A4%ED%94%BC%ED%86%A1/1854715729",
+          "youtube": "https://www.youtube.com/watch?v=lc1rn8rc0hk&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=8"
+        }
+      },
+      {
+        "no": 9,
+        "title": "Empty Streets (빈거리 난 어디에)",
+        "isrc": "QT6EX2596489",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3UeANH9FeRj5vfkjKPtUt9?si=1f618adbab684b33",
+          "apple": "https://music.apple.com/us/song/empty-streets-%EB%B9%88%EA%B1%B0%EB%A6%AC-%EB%82%9C-%EC%96%B4%EB%94%94%EC%97%90/1854715730",
+          "youtube": "https://www.youtube.com/watch?v=Dl1SvFYHttk&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=9"
+        }
+      },
+      {
+        "no": 10,
+        "title": "Echoes of Us (상실과 여운)",
+        "isrc": "QT6EX2596490",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3A4TOcpuSDVxRd7ARg3qiA?si=6a5688f8ff3d4f97",
+          "apple": "https://music.apple.com/us/song/echoes-of-us-%EC%83%81%EC%8B%A4%EA%B3%BC-%EC%97%AC%EC%9A%B4/1854715731",
+          "youtube": "https://www.youtube.com/watch?v=yld9SHb4N2s&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=10"
+        }
+      },
+      {
+        "no": 11,
+        "title": "RESET (리셋)",
+        "isrc": "QT6EX2596491",
+        "links": {
+          "spotify": "https://open.spotify.com/track/0706ENmED7tEnPdS1Zyw3d?si=a9006f3d71304b10",
+          "apple": "https://music.apple.com/us/song/reset-%EB%A6%AC%EC%85%8B/1854715732",
+          "youtube": "https://www.youtube.com/watch?v=bxE1B1_XDow&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=11"
+        }
+      },
+      {
+        "no": 12,
+        "title": "Midnight Heartbeat (숨겨진 울림)",
+        "isrc": "QT6EX2596492",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2NLVuGIWGvv7BjId1Ehz2m?si=5ae4befb869f43ef",
+          "apple": "https://music.apple.com/us/song/midnight-heartbeat-%EC%88%A8%EA%B2%A8%EC%A7%84-%EC%9A%B8%EB%A6%BC/1854715733",
+          "youtube": "https://www.youtube.com/watch?v=Q28ZsV-XZy0&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=12"
+        }
+      },
+      {
+        "no": 13,
+        "title": "DM-REPLY (From Me)",
+        "isrc": "QT6EX2596493",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3BBegNCNxjLXxY2tAMl7W6?si=b3215c4e96c14208",
+          "apple": "https://music.apple.com/us/song/dm-reply-from-me/1854715734",
+          "youtube": "https://www.youtube.com/watch?v=J5IIpvfBOWg&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=13"
+        }
+      },
+      {
+        "no": 14,
+        "title": "Queen Mode (Still I Rise)",
+        "isrc": "QT6EX2596494",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1jcWFlhDibAhhxJUA4w6WT?si=1ea6b848a3814e55",
+          "apple": "https://music.apple.com/us/song/queen-mode-still-i-rise/1854715735",
+          "youtube": "https://www.youtube.com/watch?v=mCMqu-Zhzx4&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=14"
+        }
+      },
+      {
+        "no": 15,
+        "title": "City Lights (우리의 큰별자리)",
+        "isrc": "QT6EX2596495",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5CVFk5crFd26zSVmRMeKEw?si=5a887b090457498d",
+          "apple": "https://music.apple.com/us/song/city-lights-%EC%9A%B0%EB%A6%AC%EC%9D%98-%ED%81%B0%EB%B3%84%EC%9E%90%EB%A6%AC/1854715736",
+          "youtube": "https://www.youtube.com/watch?v=pcYP03gljRg&list=OLAK5uy_nMGRbXoE1p5AT4_o0U1QiozYHHIKP0MNg&index=15"
+        }
+      }
+    ]
+  },
+  {
+    "id": "a4",
+    "ordinal": "4th Album",
+    "title": "The Journey toward Serenity: Offline Dharma",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2025-09-29",
+    "release": "2025-10-05",
+    "upc": "199741061309",
+    "cover": "album4-journey-serenity.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/7bUnnnH5QsGvLS3puQQtAz?si=e5pUXcNDQwKML_-s0sm5CA",
+      "apple_album": "https://music.apple.com/us/album/the-journey-toward-serenity-offline-dharma/1843266930",
+      "youtube_album": "https://www.youtube.com/watch?v=g5QQVxDGLAY&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao"
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "Karma (카르마)",
+        "isrc": "QT3F52563686",
+        "links": {
+          "spotify": "https://open.spotify.com/track/14kJ6evLZhI457cksSiSyA?si=898523159a1e4ed7",
+          "apple": "https://music.apple.com/us/song/karma-%EC%B9%B4%EB%A5%B4%EB%A7%88/1843266933",
+          "youtube": "https://www.youtube.com/watch?v=g5QQVxDGLAY&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao"
+        }
+      },
+      {
+        "no": 2,
+        "title": "Loving-Kindness (자애)",
+        "isrc": "QT3F52563687",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1gLGDSUvwfw8tju2aBJxzu?si=44a1acbf219d447f",
+          "apple": "https://music.apple.com/us/song/loving-kindness-%EC%9E%90%EC%95%A0/1843266934",
+          "youtube": "https://www.youtube.com/watch?v=P1a_Qr7Kako&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=2"
+        }
+      },
+      {
+        "no": 3,
+        "title": "Anger (분노)",
+        "isrc": "QT3F52563688",
+        "links": {
+          "spotify": "https://open.spotify.com/track/0Pulzhycd8QLU9aMNFxAzv?si=41d5eb6b05764f7f",
+          "apple": "https://music.apple.com/us/song/anger-%EB%B6%84%EB%85%B8/1843267295",
+          "youtube": "https://www.youtube.com/watch?v=xrKWrQ70X5I&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=3"
+        }
+      },
+      {
+        "no": 4,
+        "title": "Greed (탐욕)",
+        "isrc": "QT3F52563689",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5lLBbfqNl0D9644gn2DIoW?si=5d22aea16c1a4005",
+          "apple": "https://music.apple.com/us/song/greed-%ED%83%90%EC%9A%95/1843267296",
+          "youtube": "https://www.youtube.com/watch?v=PeJmzIgrFKQ&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=4"
+        }
+      },
+      {
+        "no": 5,
+        "title": "Midnight Bubble (디지털 신기루)",
+        "isrc": "QT3F52563690",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1wvyjQ5UJsibOe1KNDdxm5?si=f0b3fa8687d84d66",
+          "apple": "https://music.apple.com/us/song/midnight-bubble-%EB%94%94%EC%A7%80%ED%84%B8-%EC%8B%A0%EA%B8%B0%EB%A3%A8/1843267297",
+          "youtube": "https://www.youtube.com/watch?v=pzRlK1R7ePU&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=5"
+        }
+      },
+      {
+        "no": 6,
+        "title": "Epiphany (Liberated)",
+        "isrc": "QT3F52563691",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5X6hOKpWObW5FcgZ4gbK0e?si=22e61db533414cb0",
+          "apple": "https://music.apple.com/us/song/epiphany-liberated/1843267298",
+          "youtube": "https://www.youtube.com/watch?v=w2-dhOUJHEc&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=6"
+        }
+      },
+      {
+        "no": 7,
+        "title": "The Completed Serenity (평화)",
+        "isrc": "QT3F52563692",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5e9TUED8PezKRJf3z5jhpz?si=4890777486cf4b33",
+          "apple": "https://music.apple.com/us/song/the-completed-serenity-%ED%8F%89%ED%99%94/1843267299",
+          "youtube": "https://www.youtube.com/watch?v=VS5hxyNbWCA&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=7"
+        }
+      },
+      {
+        "no": 8,
+        "title": "Offline Crush (스크린 너머 그대)",
+        "isrc": "QT3F52563693",
+        "links": {
+          "spotify": "https://open.spotify.com/track/08vTetv2oVM23LCBmZ1gbE?si=d99dffd7c8e44a65",
+          "apple": "https://music.apple.com/us/song/offline-crush-%EC%8A%A4%ED%81%AC%EB%A6%B0-%EB%84%88%EB%A8%B8-%EA%B7%B8%EB%8C%80/1843267300",
+          "youtube": "https://www.youtube.com/watch?v=Tnb3QGu-4bo&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=8"
+        }
+      },
+      {
+        "no": 9,
+        "title": "The Ocean Whispers (바다의 속삭임)",
+        "isrc": "QT3F52563694",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6LQux1xCjXmnGEOWysjgDH?si=2ea19accec8945dc",
+          "apple": "https://music.apple.com/us/song/the-ocean-whispers-%EB%B0%94%EB%8B%A4%EC%9D%98-%EC%86%8D%EC%82%AD%EC%9E%84/1843267301",
+          "youtube": "https://www.youtube.com/watch?v=jww8StqG3ps&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=9"
+        }
+      },
+      {
+        "no": 10,
+        "title": "Impermanence (Nothing Stays Forever)",
+        "isrc": "QT3F52563695",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5OzqylaMk6oPKyLK4MET5u?si=48f125d9257e42b5",
+          "apple": "https://music.apple.com/us/song/impermanence-nothing-stays-forever/1843267302",
+          "youtube": "https://www.youtube.com/watch?v=5vfIkmR7cMY&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=10"
+        }
+      },
+      {
+        "no": 11,
+        "title": "My Name was Celeste (White Celeste)",
+        "isrc": "QT3F52563696",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5VIW3XSfR5XeRcPI4Xybfk?si=79b0374d6d7e4dda",
+          "apple": "https://music.apple.com/us/song/my-name-was-celeste-white-celeste/1843267303",
+          "youtube": "https://www.youtube.com/watch?v=atTWupes9sE&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=11"
+        }
+      },
+      {
+        "no": 12,
+        "title": "The Unbroken Thread (진리)",
+        "isrc": "QT3F52563697",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3LDHDbjQH4wIK5mdoNsmuF?si=0b42121e8a49472f",
+          "apple": "https://music.apple.com/us/song/the-unbroken-thread-%EC%A7%84%EB%A6%AC/1843267304",
+          "youtube": "https://www.youtube.com/watch?v=VXcy8RUmTFY&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=12"
+        }
+      },
+      {
+        "no": 13,
+        "title": "Bickering (티격태격)",
+        "isrc": "QT3F52563698",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2d8epT7Umx7HLMq7USgUlY?si=e8616c181d774d72",
+          "apple": "https://music.apple.com/us/song/bickering-%ED%8B%B0%EA%B2%A9%ED%83%9C%EA%B2%A9/1843267305",
+          "youtube": "https://www.youtube.com/watch?v=nYNQCqQs5jM&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=13"
+        }
+      },
+      {
+        "no": 14,
+        "title": "Speech (말)",
+        "isrc": "QT3F52563699",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2Gnx1zR1fZysdmFzPdWIBH?si=ac21dba6071a4304",
+          "apple": "https://music.apple.com/us/song/speech-%EB%A7%90/1843267306",
+          "youtube": "https://www.youtube.com/watch?v=wQaullsK4sY&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=14"
+        }
+      },
+      {
+        "no": 15,
+        "title": "Nothing Stays Forever (무상)",
+        "isrc": "QT3F52563700",
+        "links": {
+          "spotify": "https://open.spotify.com/track/26jiWZ6dxAcWolCt8wTmYe?si=ccc049d433ed46c9",
+          "apple": "https://music.apple.com/us/song/nothing-stays-forever-%EB%AC%B4%EC%83%81/1843267307",
+          "youtube": "https://www.youtube.com/watch?v=9pA3beUQLhY&list=OLAK5uy_kFzEf4x2pnwyHaQICBT6RJiP45hHcszao&index=15"
+        }
+      }
+    ]
+  },
+  {
+    "id": "a3",
+    "ordinal": "3rd Album",
+    "title": "Awakening&Cosmos",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2025-08-16",
+    "preorder": "2025-08-18",
+    "release": "2025-08-24",
+    "upc": "199327037148",
+    "cover": "album3-awakening-cosmos.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/55C74e95xZoLnDxy2cgDqT?si=1zFaCjILR_6iNbszFd7Y9A",
+      "apple_album": "https://music.apple.com/us/album/awakening-cosmos/1833763164",
+      "youtube_album": "https://www.youtube.com/watch?v=tDXb4ARGwaM&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA"
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "Nebula(The Genesis & Demise of Stars)",
+        "isrc": "QZZ762560860",
+        "links": {
+          "spotify": "https://open.spotify.com/track/49KECBxXMEnOkVlyNTYg13?si=6f1904b434c0471e",
+          "apple": "https://music.apple.com/us/song/nebula-the-genesis-demise-of-stars/1833763166",
+          "youtube": "https://www.youtube.com/watch?v=tDXb4ARGwaM&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA"
+        }
+      },
+      {
+        "no": 2,
+        "title": "Galaxy Collision(새로운 탄생)",
+        "isrc": "QZZ762560861",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4ewVYRkUYcFP3Y7ZInbPD9?si=394b8f2768dc4aa8",
+          "apple": "https://music.apple.com/us/song/galaxy-collision-%EC%83%88%EB%A1%9C%EC%9A%B4-%ED%83%84%EC%83%9D/1833763168",
+          "youtube": "https://www.youtube.com/watch?v=S-9M4G_QnBM&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=2"
+        }
+      },
+      {
+        "no": 3,
+        "title": "Le Sūtra du Cœur(The Heart Sutra)",
+        "isrc": "QZZ762560862",
+        "links": {
+          "spotify": "https://open.spotify.com/track/36Bc4EJ7d4tzntHlUTmFdw?si=230e00434da14b79",
+          "apple": "https://music.apple.com/us/song/le-s%C5%ABtra-du-c%C5%93ur-the-heart-sutra/1833763169",
+          "youtube": "https://www.youtube.com/watch?v=IPgzCgVP4k0&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=3"
+        }
+      },
+      {
+        "no": 4,
+        "title": "The Cosmic Sea(우주의 바다)",
+        "isrc": "QZZ762560863",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5l4PliD5HEW398SZtx7bTJ?si=cb3b950965184f33",
+          "apple": "https://music.apple.com/us/song/the-cosmic-sea-%EC%9A%B0%EC%A3%BC%EC%9D%98-%EB%B0%94%EB%8B%A4/1833763170",
+          "youtube": "https://www.youtube.com/watch?v=dY4-p2QVCdw&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=4"
+        }
+      },
+      {
+        "no": 5,
+        "title": "Ashes in the Void(공간속의 먼지)",
+        "isrc": "QZZ762560864",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6BbuvW8ELAR2ScEOJkQ1mL?si=9a7d10bb4b7a4da1",
+          "apple": "https://music.apple.com/us/song/ashes-in-the-void-%EA%B3%B5%EA%B0%84%EC%86%8D%EC%9D%98-%EB%A8%BC%EC%A7%80/1833763171",
+          "youtube": "https://www.youtube.com/watch?v=o7mx-puhGSk&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=5"
+        }
+      },
+      {
+        "no": 6,
+        "title": "Lonely Pluto 134340(외로운 명왕성)",
+        "isrc": "QZZ762560865",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3ErHdmyF0dbpeGz2h8XHCN?si=bda46cfd330a4b66",
+          "apple": "https://music.apple.com/us/song/lonely-pluto-134340-%EC%99%B8%EB%A1%9C%EC%9A%B4-%EB%AA%85%EC%99%95%EC%84%B1/1833763172",
+          "youtube": "https://www.youtube.com/watch?v=Nr_rL5RdnuE&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=6"
+        }
+      },
+      {
+        "no": 7,
+        "title": "My Blue Earth(나의 푸른 지구)",
+        "isrc": "QZZ762560866",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4UetvAoOYMCuO3Dx3JF57t?si=f9ea086d281f4d13",
+          "apple": "https://music.apple.com/us/song/my-blue-earth-%EB%82%98%EC%9D%98-%ED%91%B8%EB%A5%B8-%EC%A7%80%EA%B5%AC/1833763173",
+          "youtube": "https://www.youtube.com/watch?v=fZf3ttdKugA&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=7"
+        }
+      },
+      {
+        "no": 8,
+        "title": "Finding the True Self(지혜의 완성)",
+        "isrc": "QZZ762560867",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6e8erEFOBw8qEc8NJKxtDU?si=82d3dd7044564079",
+          "apple": "https://music.apple.com/us/song/finding-the-true-self-%EC%A7%80%ED%98%9C%EC%9D%98-%EC%99%84%EC%84%B1/1833763174",
+          "youtube": "https://www.youtube.com/watch?v=wfjGTtrBYLk&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=8"
+        }
+      },
+      {
+        "no": 9,
+        "title": "We Are Just Passing Through(잠시 스쳐갈 뿐)",
+        "isrc": "QZZ762560868",
+        "links": {
+          "spotify": "https://open.spotify.com/track/05502q9o8iozYjxbH9GFMN?si=0c6cf515ccbc4b26",
+          "apple": "https://music.apple.com/us/song/we-are-just-passing-through-%EC%9E%A0%EC%8B%9C-%EC%8A%A4%EC%B3%90%EA%B0%88-%EB%BF%90/1833763175",
+          "youtube": "https://www.youtube.com/watch?v=dIP08zM_Aok&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=9"
+        }
+      },
+      {
+        "no": 10,
+        "title": "Lux et Pax (Light and Peace for All)",
+        "isrc": "QZZ762560869",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2A9KFR2peqPEQ9YVpb5FZK?si=fccb38f5883e4cb6",
+          "apple": "https://music.apple.com/us/song/lux-et-pax-light-and-peace-for-all/1833763176",
+          "youtube": "https://www.youtube.com/watch?v=ZHU407d5P5M&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=10"
+        }
+      },
+      {
+        "no": 11,
+        "title": "Eyes Beyond the Cosmos (James Webb)",
+        "isrc": "QZZ762560870",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5x5vEXpquMIy6bN6FuwFub?si=0eb1ad7801fc4967",
+          "apple": "https://music.apple.com/us/song/eyes-beyond-the-cosmos-james-webb/1833763178",
+          "youtube": "https://www.youtube.com/watch?v=2dp4PkjJf5I&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=11"
+        }
+      },
+      {
+        "no": 12,
+        "title": "Awakening from inner space(내면의 깨어남)",
+        "isrc": "QZZ762560871",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7JIr417xP9MQ2aLNTwpJHA?si=84103f1440934c2e",
+          "apple": "https://music.apple.com/us/song/awakening-from-inner-space-%EB%82%B4%EB%A9%B4%EC%9D%98-%EA%B9%A8%EC%96%B4%EB%82%A8/1833763179",
+          "youtube": "https://www.youtube.com/watch?v=rz8jQIZbLKA&list=OLAK5uy_lhOYYSqaSz8Rr2kN8ImNzjLI-u7jELEPA&index=12"
+        }
+      }
+    ]
+  },
+  {
+    "id": "a2",
+    "ordinal": "2nd Album",
+    "title": "SAVE the EARTH",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2025-08-01",
+    "preorder": "2025-08-02",
+    "release": "2025-08-08",
+    "upc": "199508829012",
+    "cover": "album2-save-earth.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/25y0cMePLAJ7Fcl5mS8yy6?si=MLgq-_NQSvahWht6QlRu1g",
+      "apple_album": "https://music.apple.com/us/album/save-the-earth/1830629839",
+      "youtube_album": "https://www.youtube.com/watch?v=t7ovHZfJwZ0&list=OLAK5uy_mE33T9I2769PD47KD6ZJkQ-InpjsWX9jA"
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "Pulse of Life (생명의 맥박)",
+        "isrc": "QZWFQ2599845",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2fYpe65pBHglr78deGApEL?si=b353d7c12c074d0a",
+          "apple": "https://music.apple.com/us/song/pulse-of-life-%EC%83%9D%EB%AA%85%EC%9D%98-%EB%A7%A5%EB%B0%95/1830629840",
+          "youtube": "https://www.youtube.com/watch?v=t7ovHZfJwZ0&list=OLAK5uy_mE33T9I2769PD47KD6ZJkQ-InpjsWX9jA"
+        }
+      },
+      {
+        "no": 2,
+        "title": "Just Passing Through (우린 잠시 머물 뿐)",
+        "isrc": "QZWFQ2599846",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1mSMRyanEv2gCjVTTEeo6T?si=264639c643ff459d",
+          "apple": "https://music.apple.com/us/song/just-passing-through-%EC%9A%B0%EB%A6%B0-%EC%9E%A0%EC%8B%9C-%EB%A8%B8%EB%AC%BC-%EB%BF%90/1830629841",
+          "youtube": "https://www.youtube.com/watch?v=m7e3nNX_riU&list=RDm7e3nNX_riU&start_radio=1"
+        }
+      },
+      {
+        "no": 3,
+        "title": "Blue Breath (푸른 숨결)",
+        "isrc": "QZWFQ2599847",
+        "links": {
+          "spotify": "https://open.spotify.com/track/092fgW4T1jJnWqWPsjEmAh?si=e8d2ed52102f4d7f",
+          "apple": "https://music.apple.com/us/song/blue-breath-%ED%91%B8%EB%A5%B8-%EC%88%A8%EA%B2%B0/1830629842",
+          "youtube": "https://www.youtube.com/watch?v=pqoYpq-n4ug&list=RDpqoYpq-n4ug&start_radio=1"
+        }
+      },
+      {
+        "no": 4,
+        "title": "The Lost Forest (잃어버린 숲)",
+        "isrc": "QZWFQ2599848",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1CTW6KrjUZxjj1UxL6rOMm?si=973b9feae5a7410e",
+          "apple": "https://music.apple.com/us/song/the-lost-forest-%EC%9E%83%EC%96%B4%EB%B2%84%EB%A6%B0-%EC%88%B2/1830629843",
+          "youtube": "https://www.youtube.com/watch?v=iw1SFl0XOjU&list=OLAK5uy_mE33T9I2769PD47KD6ZJkQ-InpjsWX9jA&index=4"
+        }
+      },
+      {
+        "no": 5,
+        "title": "Heatwave (폭염)",
+        "isrc": "QZWFQ2599849",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3smORLGpWKFK6FalaOXO3N?si=975e61793bd14c07",
+          "apple": "https://music.apple.com/us/song/heatwave-%ED%8F%AD%EC%97%BC/1830629844",
+          "youtube": "https://www.youtube.com/watch?v=vAbd0j013YM&list=OLAK5uy_mE33T9I2769PD47KD6ZJkQ-InpjsWX9jA&index=5"
+        }
+      },
+      {
+        "no": 6,
+        "title": "Tears of the Ocean (바다의 눈물)",
+        "isrc": "QZWFQ2599850",
+        "links": {
+          "spotify": "https://open.spotify.com/track/08H4eVbC5pcAzY0ZqjMWrB?si=6a1419d26cac46d2",
+          "apple": "https://music.apple.com/us/song/tears-of-the-ocean-%EB%B0%94%EB%8B%A4%EC%9D%98-%EB%88%88%EB%AC%BC/1830629845",
+          "youtube": "https://www.youtube.com/watch?v=P_amLDBuuBI&list=OLAK5uy_mE33T9I2769PD47KD6ZJkQ-InpjsWX9jA&index=6"
+        }
+      },
+      {
+        "no": 7,
+        "title": "Heavy rain (폭우)",
+        "isrc": "QZWFQ2599851",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7eCBqOiWLUEE4TUOtipuPC?si=6b8152a16ed741bd",
+          "apple": "https://music.apple.com/us/song/heavy-rain-%ED%8F%AD%EC%9A%B0/1830629848",
+          "youtube": "https://www.youtube.com/watch?v=Qxc30ZVan_o&list=OLAK5uy_mE33T9I2769PD47KD6ZJkQ-InpjsWX9jA&index=7"
+        }
+      },
+      {
+        "no": 8,
+        "title": "Before It Melts (사라지기 전에)",
+        "isrc": "QZWFQ2599852",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1NjyODjclwifTB37vvX3FX?si=bd532616b0b940f7",
+          "apple": "https://music.apple.com/us/song/before-it-melts-%EC%82%AC%EB%9D%BC%EC%A7%80%EA%B8%B0-%EC%A0%84%EC%97%90/1830629849",
+          "youtube": "https://www.youtube.com/watch?v=Kj7eKVXur2o&list=OLAK5uy_mE33T9I2769PD47KD6ZJkQ-InpjsWX9jA&index=8"
+        }
+      },
+      {
+        "no": 9,
+        "title": "Blizzard (폭풍)",
+        "isrc": "QZWFQ2599853",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4qVUCyRtTEegszTz8J3PQx?si=621d709d222e4ae0",
+          "apple": "https://music.apple.com/us/song/blizzard-%ED%8F%AD%ED%92%8D/1830629850",
+          "youtube": "https://www.youtube.com/watch?v=_J5qIy6hedc&list=OLAK5uy_mE33T9I2769PD47KD6ZJkQ-InpjsWX9jA&index=9"
+        }
+      },
+      {
+        "no": 10,
+        "title": "Seeds of Change (변화의 씨앗)",
+        "isrc": "QZWFQ2599854",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3SjjA4NgLLZIbdDEK7xMgY?si=e9317f8d310446b6",
+          "apple": "https://music.apple.com/us/song/seeds-of-change-%EB%B3%80%ED%99%94%EC%9D%98-%EC%94%A8%EC%95%97/1830629851",
+          "youtube": "https://www.youtube.com/watch?v=b6q9sg7Z3B4&list=OLAK5uy_mE33T9I2769PD47KD6ZJkQ-InpjsWX9jA&index=10"
+        }
+      }
+    ]
+  },
+  {
+    "id": "a1",
+    "ordinal": "1st Album",
+    "title": "City&Nature",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2025-07-09",
+    "release": "2025-07-18",
+    "upc": "199514165432",
+    "cover": "album1-city-nature.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/3vivAu04WC7G5sWZ3Ywois?si=tv_X9PMLQv6x77pVbjFU0A",
+      "apple_album": "https://music.apple.com/us/album/city-nature/1825977637",
+      "youtube_album": "https://www.youtube.com/watch?v=TesZJzX2T-o&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM"
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "텅빈 도시의 질주(A Run of Empty Cities)",
+        "isrc": "QZWFE2542540",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5EP5GLmizT8mlodUzEWswa?si=152fb65346e5424d",
+          "apple": "https://music.apple.com/us/song/%ED%85%85%EB%B9%88-%EB%8F%84%EC%8B%9C%EC%9D%98-%EC%A7%88%EC%A3%BC-a-run-of-empty-cities/1825977638",
+          "youtube": "https://www.youtube.com/watch?v=TesZJzX2T-o&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM"
+        }
+      },
+      {
+        "no": 2,
+        "title": "밤의 주파수(Midnight Frequency)",
+        "isrc": "QZWFE2542541",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2rFnDORCBRxfTgMGHnIklY?si=3e5f9d9d59ff488a",
+          "apple": "https://music.apple.com/us/song/%EB%B0%A4%EC%9D%98-%EC%A3%BC%ED%8C%8C%EC%88%98-midnight-frequency/1825977731",
+          "youtube": "https://www.youtube.com/watch?v=aGFqkUHTm4A&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM&index=2"
+        }
+      },
+      {
+        "no": 3,
+        "title": "비가 내리면(When the Rain Falls)",
+        "isrc": "QZWFE2542542",
+        "links": {
+          "spotify": "https://open.spotify.com/track/3R547sCcODz1uWDAqdwvpi?si=c665dac234674eed",
+          "apple": "https://music.apple.com/us/song/%EB%B9%84%EA%B0%80-%EB%82%B4%EB%A6%AC%EB%A9%B4-when-the-rain-falls/1825977732",
+          "youtube": "https://www.youtube.com/watch?v=pB8QohEFlQg&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM&index=3"
+        }
+      },
+      {
+        "no": 4,
+        "title": "밤의 잔상 (Night’s Echo)",
+        "isrc": "QZWFE2542543",
+        "links": {
+          "spotify": "https://open.spotify.com/track/485iMNlHwqux640cTksbrh?si=ba81617ecec24d2a",
+          "apple": "https://music.apple.com/us/song/%EB%B0%A4%EC%9D%98-%EC%9E%94%EC%83%81-nights-echo/1825977733",
+          "youtube": "https://www.youtube.com/watch?v=YbhcO9nUmhc&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM&index=4"
+        }
+      },
+      {
+        "no": 5,
+        "title": "가을 밤의 틈새(The Cracks of an Autumn night)-Original",
+        "isrc": "QZWFE2542544",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7GCE3GO1q8vmSQC8UNrlZn?si=95eb2ee8dcf2471f",
+          "apple": "https://music.apple.com/us/song/%EA%B0%80%EC%9D%84-%EB%B0%A4%EC%9D%98-%ED%8B%88%EC%83%88-the-cracks-of-an-autumn-night-original/1825977734",
+          "youtube": "https://www.youtube.com/watch?v=HkupQPjM_ss&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM&index=5"
+        }
+      },
+      {
+        "no": 6,
+        "title": "얼어붙은 태양(Iced sun)",
+        "isrc": "QZWFE2542545",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4uqbK1nTr80pBAzC1Eg67k?si=aa826968e2994d29",
+          "apple": "https://music.apple.com/us/song/%EC%96%BC%EC%96%B4%EB%B6%99%EC%9D%80-%ED%83%9C%EC%96%91-iced-sun/1825977735",
+          "youtube": "https://www.youtube.com/watch?v=H5Zk6h5muIU&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM&index=6"
+        }
+      },
+      {
+        "no": 7,
+        "title": "레인보우 데이즈(Rainbow Days)",
+        "isrc": "QZWFE2542546",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5BUJ4qkoAEGor8RhwZ7Khq?si=0f06180014494b30",
+          "apple": "https://music.apple.com/us/song/%EB%A0%88%EC%9D%B8%EB%B3%B4%EC%9A%B0-%EB%8D%B0%EC%9D%B4%EC%A6%88-rainbow-days/1825977740",
+          "youtube": "https://www.youtube.com/watch?v=2tNmBf6-2PU&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM&index=7"
+        }
+      },
+      {
+        "no": 8,
+        "title": "텅빈 도시의 질주(A Run of Empty Cities)-RcokVer",
+        "isrc": "QZWFE2542547",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4I1l0WLTYN5SrzpTDuNa4n?si=7207b8f81be44931",
+          "apple": "https://music.apple.com/us/song/%ED%85%85%EB%B9%88-%EB%8F%84%EC%8B%9C%EC%9D%98-%EC%A7%88%EC%A3%BC-a-run-of-empty-cities-rcokver/1825977741",
+          "youtube": "https://www.youtube.com/watch?v=CiJnOIRKGzQ&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM&index=8"
+        }
+      },
+      {
+        "no": 9,
+        "title": "밤의 주파수2-(Urban Night Scene)",
+        "isrc": "QZWFE2542548",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1b4FGbLIBRzWyfURhD1Xdf?si=32c4f8a88b0b4d48",
+          "apple": "https://music.apple.com/us/song/%EB%B0%A4%EC%9D%98-%EC%A3%BC%ED%8C%8C%EC%88%982-urban-night-scene/1825977742",
+          "youtube": "https://www.youtube.com/watch?v=v3fGuZPwkX0&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM&index=9"
+        }
+      },
+      {
+        "no": 10,
+        "title": "가을 밤의 틈새(The Cracks of an Autumn night)-Symphonic",
+        "isrc": "QZWFE2542549",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5cV3fRQ2XTHEFvm6YRZHm6?si=961a740592914a34",
+          "apple": "https://music.apple.com/us/song/%EA%B0%80%EC%9D%84-%EB%B0%A4%EC%9D%98-%ED%8B%88%EC%83%88-the-cracks-of-an-autumn-night-symphonic/1825977743",
+          "youtube": "https://www.youtube.com/watch?v=wDiAJ7AtxFQ&list=OLAK5uy_kKRChXWhyXx6Cb1uIK24JXBi_EFndvXuM&index=10"
+        }
+      }
+    ]
+  }
+]

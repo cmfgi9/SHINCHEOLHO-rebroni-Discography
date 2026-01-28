@@ -1,0 +1,86 @@
+body{margin:0;font-family:Arial,sans-serif;background:#0e0e11;color:#f5f5f7}
+.hero{text-align:center;padding:56px 16px;background:radial-gradient(circle at top,#2b2f77,#0e0e11 70%)}
+.album-nav{display:flex;gap:8px;overflow-x:auto;padding:12px;border-bottom:1px solid #333}
+.album-nav a{color:#fff;text-decoration:none;padding:6px 12px;border:1px solid #555;border-radius:999px;font-size:13px}
+.toolbar{text-align:center;padding:12px}
+#search{width:92%;max-width:520px;padding:10px;border-radius:8px;border:1px solid #444;background:#15151c;color:#fff}
+.album{max-width:1000px;margin:0 auto;padding:28px 16px 40px;border-bottom:1px solid #333}
+.meta{font-size:13px;opacity:.75;margin-bottom:12px}
+.links a{display:inline-block;margin-right:8px;margin-bottom:6px;padding:6px 10px;border-radius:8px;background:#1b1b26;color:#fff;text-decoration:none;font-size:12px}
+.track{display:grid;grid-template-columns:36px 1fr auto;gap:10px;padding:6px 0;border-bottom:1px dashed #333;font-size:14px}
+.track .no{opacity:.6}
+.track .isrc{font-family:monospace;opacity:.65;font-size:12px}
+footer{text-align:center;padding:32px 16px;font-size:12px;opacity:.6}
+
+
+/* === UI polish: unified buttons + playing highlight === */
+.tbtn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.14);
+  color:#fff;
+  text-decoration:none;
+  font-size:12px;
+  cursor:pointer;
+  user-select:none;
+}
+.tbtn:hover{ background:rgba(255,255,255,.10); }
+.tbtn:active{ transform: translateY(1px); }
+.tbtn-secondary{ background:rgba(255,255,255,.02); }
+
+.track{
+  position:relative;
+  padding:10px 0;
+}
+.track-links{
+  grid-column: 1 / -1;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:8px 0 2px;
+}
+.track.playing{
+  background:rgba(255,255,255,.04);
+  border-radius:12px;
+  padding-left:10px;
+  padding-right:10px;
+}
+.track.playing::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:10px;
+  bottom:10px;
+  width:3px;
+  border-radius:99px;
+  background:rgba(255,255,255,.85);
+}
+
+.album-player, .track-player{
+  padding:10px 0 16px;
+  border-bottom:1px dashed #333;
+}
+.player-inner{
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:14px;
+  padding:10px;
+}
+.player-inner iframe{
+  width:100%;
+  aspect-ratio:16/9;
+  border-radius:12px;
+}
+.player-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.album.playing h2{ text-decoration: underline; text-underline-offset: 6px; }
