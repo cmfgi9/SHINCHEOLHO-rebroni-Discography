@@ -340,7 +340,7 @@ async function main(){
       playerDiv.className = "album-player";
       playerDiv.innerHTML = `
         <div class="player-inner">
-          <iframe src="https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(plId)}&autoplay=1" 
+          <iframe src="https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(plId)}&autoplay=0" 
                   frameborder="0" allow="autoplay; encrypted-media" allowfullscreen 
                   title="Album playlist player"></iframe>
           <div class="player-actions">
@@ -364,7 +364,7 @@ async function main(){
       playerDiv.className = "track-player";
       playerDiv.innerHTML = `
         <div class="player-inner">
-          <iframe src="https://www.youtube.com/embed/${encodeURIComponent(ytId)}?autoplay=1" 
+          <iframe src="https://www.youtube.com/embed/${encodeURIComponent(ytId)}?autoplay=0" 
                   frameborder="0" allow="autoplay; encrypted-media" allowfullscreen 
                   title="Track player"></iframe>
           <div class="player-actions">
