@@ -191,8 +191,11 @@ async function main(){
           ? `<button class="tbtn tbtn-secondary yt-play" data-track="${a.id}-${t.no}" data-ytid="${escapeHtml(ytId)}" aria-expanded="false">Play</button>`
           : "";
 
+        // 🔽 검색용 데이터 준비 (앨범명 + 곡명 + ISRC)
+        const trackText = `${a.title} ${a.ordinal} ${t.title} ${t.isrc}`.toLowerCase();
+
         return `
-          <div class="track" id="${a.id}-${t.no}">
+          <div class="track" id="${a.id}-${t.no}" data-album="${a.id}" data-searchtext="${escapeHtml(trackText)}">
             <div class="track-main">
               <span class="no">${t.no}.</span>
               <span class="title">${escapeHtml(main)}</span>
@@ -260,9 +263,34 @@ async function main(){
 
   function filterAlbums(){
     const q = (search?.value || "").toLowerCase().trim();
+
+    // 검색어 없으면 모두 표시
+    if (!q){
+      document.querySelectorAll(".album").forEach(albumEl => {
+        albumEl.style.display = "";
+        albumEl.querySelectorAll(".track").forEach(trackEl => {
+          trackEl.style.display = "";
+        });
+      });
+      return;
+    }
+
+    // 각 앨범을 순회하며 곡 단위 필터링
     document.querySelectorAll(".album").forEach(albumEl => {
-      const text = albumEl.textContent.toLowerCase();
-      albumEl.style.display = text.includes(q) ? "" : "none";
+      let hasVisibleTrack = false;
+
+      albumEl.querySelectorAll(".track").forEach(trackEl => {
+        const searchText = trackEl.getAttribute("data-searchtext") || "";
+        if (searchText.includes(q)){
+          trackEl.style.display = "";  // 매칭된 곡 보이기
+          hasVisibleTrack = true;
+        } else {
+          trackEl.style.display = "none";  // 매칭 안 된 곡 숨기기
+        }
+      });
+
+      // 앨범은 최소 하나라도 매칭된 곡이 있으면 표시
+      albumEl.style.display = hasVisibleTrack ? "" : "none";
     });
   }
 
