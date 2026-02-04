@@ -82,15 +82,6 @@ function splitTrackTitle(title){
 }
 
 async function main(){
-  const res = await fetch("albums.json", {cache:"no-store"});
-  if (!res.ok) throw new Error("Failed to load albums.json");
-  const albums = await res.json();
-
-  updateStickyBarHeight();
-  window.addEventListener('resize', () => {
-    updateStickyBarHeight();
-  });
-
   const nav = document.getElementById("album-nav");
   const albumsEl = document.getElementById("albums");
   const search = document.getElementById("search");
@@ -99,6 +90,24 @@ async function main(){
   const quickClose = document.getElementById("quick-menu-close");
   const quickLinks = document.getElementById("quick-menu-links");
   const quickBackdrop = document.getElementById("quick-menu-backdrop");
+
+  if (albumsEl) {
+    albumsEl.innerHTML = '<div style="text-align:center;padding:40px;opacity:.6">Loading albums...</div>';
+  }
+
+  const res = await fetch("albums.json", {
+    cache: "default",
+    headers: {
+      "Cache-Control": "max-age=3600"
+    }
+  });
+
+  if (!res.ok) throw new Error("Failed to load albums.json");
+  const albums = await res.json();
+
+  updateStickyBarHeight();
+  window.addEventListener("resize", updateStickyBarHeight);
+
 
   function renderNav(){
     if (!nav) return;
@@ -124,7 +133,10 @@ async function main(){
       const line2 = line2Parts.join(" · ");
 
       const coverHtml = a.cover
-        ? `<img src="${escapeHtml(a.cover)}" alt="${escapeHtml(a.title)} cover" class="cover">`
+        ? `<img src="${escapeHtml(a.cover)}"
+                 alt="${escapeHtml(a.title)} cover"
+                 class="cover"
+                 loading="lazy">`
         : "";
 
       const links = a.links || {};
@@ -262,8 +274,12 @@ async function main(){
   }
 
   function filterAlbums(){
-    const q = (search?.value || "").toLowerCase().trim();
-
+    const q = (search?.value || "").toLowerCase().trim();	
+  function highlightSearchTerm(text, query) {
+    if (!query) return text;
+    const regex = new RegExp(`(${query})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+  }
     // 검색어 없으면 모두 표시
     if (!q){
       document.querySelectorAll(".album").forEach(albumEl => {
@@ -403,6 +419,11 @@ async function main(){
       trackEl.after(playerDiv);
       playerDiv.querySelector(".close-player")?.addEventListener("click", closeAllPlayers);
     }
+  });
+  
+  // ESC 키로 플레이어 닫기
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeAllPlayers();
   });
 
   // Hash navigation on load
