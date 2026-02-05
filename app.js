@@ -1,39 +1,39 @@
 /* Discography site with improved layout & 2-line track structure */
 
-function updateStickyBarHeight(){
+function updateStickyBarHeight() {
   const bar = document.getElementById("stickybar");
   if (!bar) return;
   const h = Math.ceil(bar.getBoundingClientRect().height);
   document.documentElement.style.setProperty("--stickybar-h", h + "px");
 }
 
-function escapeHtml(str){
+function escapeHtml(str) {
   return String(str)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#39;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
-function getStickyOffset(){
+function getStickyOffset() {
   const bar = document.getElementById("stickybar");
   if (!bar) return 10;
   return Math.ceil(bar.getBoundingClientRect().height) + 10;
 }
 
-function scrollToId(id){
+function scrollToId(id) {
   const el = document.getElementById(id);
   if (!el) return;
   const y = el.getBoundingClientRect().top + window.pageYOffset - getStickyOffset();
-  window.scrollTo({top: Math.max(0, y), behavior:"smooth"});
+  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
 }
 
-function getYouTubeId(url){
+function getYouTubeId(url) {
   if (!url) return null;
-  try{
+  try {
     const u = new URL(url);
-    if (u.hostname.includes("youtu.be")){
+    if (u.hostname.includes("youtu.be")) {
       const id = u.pathname.split("/").filter(Boolean)[0];
       return id || null;
     }
@@ -42,32 +42,32 @@ function getYouTubeId(url){
     const m = u.pathname.match(/\/embed\/([^\/\?]+)/);
     if (m) return m[1];
     return null;
-  }catch(e){
+  } catch (e) {
     const m = String(url).match(/[?&]v=([^&]+)/);
     return m ? m[1] : null;
   }
 }
 
-function getYouTubePlaylistId(url){
+function getYouTubePlaylistId(url) {
   if (!url) return null;
-  try{
+  try {
     const u = new URL(url);
     const list = u.searchParams.get("list");
     return list || null;
-  }catch(e){
+  } catch (e) {
     const m = String(url).match(/[?&]list=([^&]+)/);
     return m ? m[1] : null;
   }
 }
 
-function closeAllPlayers(){
+function closeAllPlayers() {
   document.querySelectorAll(".track-player, .album-player").forEach(p => p.remove());
   document.querySelectorAll(".yt-play").forEach(b => {
-    b.setAttribute("aria-expanded","false");
+    b.setAttribute("aria-expanded", "false");
     b.textContent = "Play";
   });
   document.querySelectorAll(".yt-album-play").forEach(b => {
-    b.setAttribute("aria-expanded","false");
+    b.setAttribute("aria-expanded", "false");
     b.textContent = "Play Album";
   });
   document.querySelectorAll(".track.playing").forEach(t => t.classList.remove("playing"));
@@ -75,13 +75,13 @@ function closeAllPlayers(){
 }
 
 // 트랙 제목을 메인/서브로 분리하는 헬퍼 (괄호 기준)
-function splitTrackTitle(title){
+function splitTrackTitle(title) {
   const m = title.match(/^(.+?)\s*\((.+)\)\s*$/);
   if (m) return { main: m[1].trim(), sub: m[2].trim() };
   return { main: title.trim(), sub: "" };
 }
 
-async function main(){
+async function main() {
   const nav = document.getElementById("album-nav");
   const albumsEl = document.getElementById("albums");
   const search = document.getElementById("search");
@@ -92,7 +92,21 @@ async function main(){
   const quickBackdrop = document.getElementById("quick-menu-backdrop");
 
   if (albumsEl) {
-    albumsEl.innerHTML = '<div style="text-align:center;padding:40px;opacity:.6">Loading albums...</div>';
+    // Skeleton Loading
+    albumsEl.innerHTML = Array(3).fill(0).map(() => `
+      <div class="album skeleton-pulse" style="padding:32px 16px; border-bottom:1px solid rgba(255,255,255,.1);">
+        <div class="album-grid">
+          <div class="cover-col">
+            <div style="width:100%; aspect-ratio:1; background:rgba(255,255,255,.05); border-radius:14px;"></div>
+          </div>
+          <div class="info-col" style="flex:1;">
+            <div style="height:32px; width:60%; background:rgba(255,255,255,.05); margin-bottom:16px; border-radius:4px;"></div>
+            <div style="height:16px; width:40%; background:rgba(255,255,255,.05); margin-bottom:8px; border-radius:4px;"></div>
+            <div style="height:16px; width:30%; background:rgba(255,255,255,.05); border-radius:4px;"></div>
+          </div>
+        </div>
+      </div>
+    `).join("");
   }
 
   const res = await fetch("albums.json", {
@@ -109,15 +123,15 @@ async function main(){
   window.addEventListener("resize", updateStickyBarHeight);
 
 
-  function renderNav(){
+  function renderNav() {
     if (!nav) return;
     nav.innerHTML = albums.map(a => {
-      const label = (a.ordinal || "").replace(" Album","");
+      const label = (a.ordinal || "").replace(" Album", "");
       return `<a href="#${a.id}" data-album="${a.id}">${escapeHtml(label)}</a>`;
     }).join("");
   }
 
-  function renderAlbums(){
+  function renderAlbums() {
     if (!albumsEl) return;
     albumsEl.innerHTML = albums.map(a => {
       // 메타 정보 두 줄로 분리
@@ -155,44 +169,12 @@ async function main(){
       `;
 
       // 앨범 콘셉트: 한국어(ko) + 영어(en)
-      const conceptMap = {
-        "a7": {
-          ko: "AI(AGI/ASI)와 인간의 공존, 존재의 사유, 우주, 화성개척, 공감하는 의식을 테마로 한 일렉트로닉·앰비언트 서사 앨범",
-          en: "An Electronic/Ambient narrative album themed around the coexistence of AI (AGI/ASI) and humans, existential reasoning, the cosmos, Mars colonization, and empathetic consciousness."
-        },
-        "a6": {
-          ko: "따뜻하고 평화로운 연말 분위기의 재즈·로파이 크리스마스 앨범",
-          en: "A Jazz/Lo-Fi Christmas album featuring a warm and peaceful year-end atmosphere."
-        },
-        "a5": {
-          ko: "City&Human 컨셉의 K-POP·로파이·힙합 비트 앨범",
-          en: "A K-POP, Lo-Fi, and Hip-Hop beat album exploring the 'City & Human' concept."
-        },
-        "a4": {
-          ko: "불교 철학과 자기 성찰을 다룬 Offline Dharma 명상·앰비언트 앨범",
-          en: "An 'Offline Dharma' meditation/ambient album focused on Buddhist philosophy and self-reflection."
-        },
-        "a3": { // Space. Earth. Existential reasoning.
-          ko: "우주·평화·존재의 사유의 메시지를 담은 3번째 앨범 Space·Earth·Existential reasoning",
-          en: "The 3rd album 'Space·Earth·Existential reasoning' conveying messages of the cosmos, peace, and coexistence."
-        },
-        "a2": {
-          ko: "바다·숲·기후와 같은 지구 환경 위기에 행동하고 보호하자는 메시지를 담은 신스·팝 앨범 SAVE the EARTH",
-          en: "A Synth-Pop album 'SAVE the EARTH' delivering a message to act on and protect against environmental crises like ocean, forest, and climate issues."
-        },
-        "a1": { // City & Nature (Debut Album)
-          ko: "나와 너, 도시와 자연의 대비를 담은 City&Nature 시리즈",
-          en: "The 'City & Nature' series capturing the contrast between self and other, the urban and the natural."
-        }
-      };
-
-      // HTML 생성 로직 수정 (한국어 + 영어 두 줄 출력)
-      const c = conceptMap[a.id];
-      const conceptHtml = c 
+      const c = a.concept;
+      const conceptHtml = c
         ? `<div class="album-concept">
              <p class="ko">${escapeHtml(c.ko)}</p>
              <p class="en">${escapeHtml(c.en)}</p>
-           </div>` 
+           </div>`
         : "";
 
       const tracksHtml = (a.tracks || []).map(t => {
@@ -251,14 +233,14 @@ async function main(){
     }).join("");
   }
 
-  function renderQuickLinks(){
+  function renderQuickLinks() {
     if (!quickLinks) return;
     quickLinks.innerHTML = albums.map(a => {
       return `<a href="#${a.id}" data-album="${a.id}">${escapeHtml(a.ordinal)}: ${escapeHtml(a.title)}</a>`;
     }).join("");
   }
 
-  function updateActiveAlbum(){
+  function updateActiveAlbum() {
     const scrollY = window.pageYOffset + getStickyOffset() + 40;
     let currentId = "";
     albums.forEach(a => {
@@ -273,15 +255,19 @@ async function main(){
     });
   }
 
-  function filterAlbums(){
-    const q = (search?.value || "").toLowerCase().trim();	
-  function highlightSearchTerm(text, query) {
-    if (!query) return text;
-    const regex = new RegExp(`(${query})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
-  }
+  function filterAlbums() {
+    const q = (search?.value || "").toLowerCase().trim();
+
+    function highlightSearchTerm(text, query) {
+      if (!query) return escapeHtml(text);
+      // 단순 텍스트 매칭 하이라이트 (대소문자 무시)
+      const escapedText = escapeHtml(text);
+      const escapedQuery = escapeHtml(query);
+      const regex = new RegExp(`(${escapedQuery})`, 'gi');
+      return escapedText.replace(regex, '<mark>$1</mark>');
+    }
     // 검색어 없으면 모두 표시
-    if (!q){
+    if (!q) {
       document.querySelectorAll(".album").forEach(albumEl => {
         albumEl.style.display = "";
         albumEl.querySelectorAll(".track").forEach(trackEl => {
@@ -291,15 +277,34 @@ async function main(){
       return;
     }
 
-    // 각 앨범을 순회하며 곡 단위 필터링
+    // 각 앨범을 순회하며 곡 단위 필터링 및 하이라이트 적용
     document.querySelectorAll(".album").forEach(albumEl => {
       let hasVisibleTrack = false;
+      const albumId = albumEl.id;
+      const albumData = albums.find(a => a.id === albumId);
+
+      // 앨범 제목/아티스트도 검색 대상에 포함되어 있다면 하이라이트 가능
+      // 여기서는 트랙 리스트 필터링 시각화에 집중
 
       albumEl.querySelectorAll(".track").forEach(trackEl => {
         const searchText = trackEl.getAttribute("data-searchtext") || "";
-        if (searchText.includes(q)){
+        const trackNo = trackEl.getAttribute("id").split("-")[1]; // e.g. a7-1 -> 1
+        const trackData = albumData?.tracks.find(t => String(t.no) === trackNo);
+
+        if (searchText.includes(q)) {
           trackEl.style.display = "";  // 매칭된 곡 보이기
           hasVisibleTrack = true;
+
+          // 하이라이트 적용 (DOM 업데이트)
+          if (trackData) {
+            const { main, sub } = splitTrackTitle(trackData.title);
+            const mainEl = trackEl.querySelector(".track-main .title");
+            const subEl = trackEl.querySelector(".track-main .subtitle");
+
+            if (mainEl) mainEl.innerHTML = highlightSearchTerm(main, q);
+            if (subEl && sub) subEl.innerHTML = `(${highlightSearchTerm(sub, q)})`;
+          }
+
         } else {
           trackEl.style.display = "none";  // 매칭 안 된 곡 숨기기
         }
@@ -336,23 +341,41 @@ async function main(){
   }
 
   // Event: quick menu
-  function openQuickMenu(){
+  function openQuickMenu() {
     if (quickMenu && quickBackdrop) {
       quickMenu.classList.add("open");
       quickBackdrop.classList.add("open");
-      quickMenu.setAttribute("aria-hidden","false");
+      quickMenu.setAttribute("aria-hidden", "false");
     }
   }
-  function closeQuickMenu(){
+  function closeQuickMenu() {
     if (quickMenu && quickBackdrop) {
       quickMenu.classList.remove("open");
       quickBackdrop.classList.remove("open");
-      quickMenu.setAttribute("aria-hidden","true");
+      quickMenu.setAttribute("aria-hidden", "true");
     }
   }
   if (quickBtn) quickBtn.addEventListener("click", openQuickMenu);
   if (quickClose) quickClose.addEventListener("click", closeQuickMenu);
   if (quickBackdrop) quickBackdrop.addEventListener("click", closeQuickMenu);
+
+  // Event: QR Modal
+  const qrBtn = document.getElementById("qr-btn");
+  const qrModal = document.getElementById("qr-modal");
+
+  if (qrBtn && qrModal) {
+    qrBtn.addEventListener("click", () => {
+      qrModal.classList.add("open");
+    });
+    qrModal.addEventListener("click", (e) => {
+      // 배경 클릭 시 닫기 (이미지 클릭 시 닫히지 않게 하려면 e.target check 필요하지만, 
+      // 요청사항이 "다른 영역(배경)을 누르면 사라지게" 이므로 이미지 제외 처리가 정석.
+      // 그러나 간단한 UX를 위해 전체 닫기도 허용하거나, 이미지 클릭 제외 로직 추가.
+      if (e.target === qrModal) {
+        qrModal.classList.remove("open");
+      }
+    });
+  }
 
   // Event: album & track play buttons
   document.addEventListener("click", e => {
@@ -363,15 +386,15 @@ async function main(){
     closeAllPlayers();
 
     if (isExpanded) {
-      btn.setAttribute("aria-expanded","false");
+      btn.setAttribute("aria-expanded", "false");
       if (btn.classList.contains("yt-album-play")) btn.textContent = "Play Album";
       else btn.textContent = "Play";
       return;
     }
 
-    btn.setAttribute("aria-expanded","true");
+    btn.setAttribute("aria-expanded", "true");
 
-    if (btn.classList.contains("yt-album-play")){
+    if (btn.classList.contains("yt-album-play")) {
       const albumId = btn.getAttribute("data-album");
       const plId = btn.getAttribute("data-ytpl");
       if (!plId) return;
@@ -395,7 +418,7 @@ async function main(){
       btn.closest(".album").querySelector(".tracklist")?.before(playerDiv);
       playerDiv.querySelector(".close-player")?.addEventListener("click", closeAllPlayers);
 
-    } else if (btn.classList.contains("yt-play")){
+    } else if (btn.classList.contains("yt-play")) {
       const trackId = btn.getAttribute("data-track");
       const ytId = btn.getAttribute("data-ytid");
       if (!ytId) return;
@@ -420,15 +443,31 @@ async function main(){
       playerDiv.querySelector(".close-player")?.addEventListener("click", closeAllPlayers);
     }
   });
-  
+
   // ESC 키로 플레이어 닫기
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") closeAllPlayers();
   });
 
+  // Floating Top Button Logic
+  const topBtn = document.getElementById("btn-back-to-top");
+  if (topBtn) {
+    window.addEventListener("scroll", () => {
+      if (window.pageYOffset > 500) {
+        topBtn.classList.add("show");
+      } else {
+        topBtn.classList.remove("show");
+      }
+    }, { passive: true });
+
+    topBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
   // Hash navigation on load
   if (window.location.hash) {
-    setTimeout(() => scrollToId(window.location.hash.slice(1)), 100);
+    setTimeout(() => scrollToId(window.location.hash.slice(1)), 500); // 딜레이 약간 늘림 (데이터 로딩 고려)
   }
 }
 

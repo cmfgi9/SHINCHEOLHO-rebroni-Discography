@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SHINCHEOLHO-rebroni | Discography</title>
-  <meta name="description" content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music. Explore all albums and tracks with streaming links.">
+  <meta name="description"
+    content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music. Explore all albums and tracks with streaming links.">
   <link rel="stylesheet" href="styles.css">
-  
+
   <meta property="og:title" content="SHINCHEOLHO-rebroni | Discography">
   <meta property="og:description" content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music">
   <meta property="og:image" content="https://music.rebroni.com/album7-awakening.jpg">
@@ -16,21 +18,23 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="SHINCHEOLHO-rebroni | Discography">
 </head>
+
 <body>
 
   <!-- Sticky top bar: quick menu button + album nav + search -->
   <div id="stickybar" class="stickybar">
     <button id="quick-menu-btn" class="iconbtn" aria-label="Open albums menu">Albums</button>
+    <button id="qr-btn" class="iconbtn" aria-label="Open QR Code" style="margin-left:8px;">QR</button>
     <nav id="album-nav" class="album-nav" aria-label="Album navigation"></nav>
-	
-	<div class="sns-links">
-    <!-- 링크(href)만 준비된 주소로 바꾸세요 -->
-		<a href="https://instagram.com/cmfgi9cmfgi8" target="_blank" aria-label="Instagram" class="sns-btn">Instagram</a>
-		<a href="https://x.com/nowncom1" target="_blank" aria-label="X (Twitter)" class="sns-btn">X</a>
-		<a href="https://youtube.com/@Rebroni" target="_blank" aria-label="YouTube" class="sns-btn">YouTube</a>
-		<a href="https://facebook.com/charlieshin75" target="_blank" aria-label="Facebook" class="sns-btn">Facebook</a>
-	</div>
-  
+
+    <div class="sns-links">
+      <!-- 링크(href)만 준비된 주소로 바꾸세요 -->
+      <a href="https://instagram.com/cmfgi9cmfgi8" target="_blank" aria-label="Instagram" class="sns-btn">Instagram</a>
+      <a href="https://x.com/nowncom1" target="_blank" aria-label="X (Twitter)" class="sns-btn">X</a>
+      <a href="https://youtube.com/@Rebroni" target="_blank" aria-label="YouTube" class="sns-btn">YouTube</a>
+      <a href="https://facebook.com/charlieshin75" target="_blank" aria-label="Facebook" class="sns-btn">Facebook</a>
+    </div>
+
     <div class="search-wrap">
       <input type="search" id="search" placeholder="Search albums & tracks…" aria-label="Search">
     </div>
@@ -61,6 +65,15 @@
     <nav id="quick-menu-links" class="drawer-links" aria-label="Album quick links"></nav>
   </aside>
 
+  <!-- QR Code Modal -->
+  <div id="qr-modal" class="backdrop" style="display:flex;align-items:center;justify-content:center;z-index:1300;">
+    <img src="QRcode-music.rebroni.com.jpg" alt="QR Code"
+      style="max-width:80vw; max-height:80vh; border-radius:16px; box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+  </div>
+
+  <button id="btn-back-to-top" class="btn-back-to-top" aria-label="Back to top">↑</button>
+
   <script src="app.js"></script>
 </body>
+
 </html>
