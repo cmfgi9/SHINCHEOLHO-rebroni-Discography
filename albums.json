@@ -1,5 +1,421 @@
 [
   {
+    "id": "ep1",
+    "ordinal": "1st EP",
+    "title": "Beyond the Golden Gate: for You & Me",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2026-04-19",
+    "release": "2026-04-22",
+    "upc": "825393174943",
+    "cover": "ep1-beyondgoldengate.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/6DS8FDyFNtaQFrBSCJWD1C?si=OUMutb1oRKCEoInIU6oEYQ",
+      "apple_album": "https://music.apple.com/us/album/beyond-the-golden-gate-for-you-me-ep/1895176540",
+      "youtube_album": "https://youtube.com/playlist?list=OLAK5uy_m6cp23jHW7PiMnWtB3OxD9iY7mW9XQjOI&si=JMw5jqqFodzPlWNa"
+    },
+    "concept": {
+      "ko": "눈물과 위로가 흐르는 영원으로의 여정. 갑작스러운 이별의 슬픔을 넘어, 이 스토리텔링 앨범은 여섯 곡을 매끄럽게 엮어 떠나간 영혼을 평화로운 새로운 세계로 인도합니다.",
+      "en": "A Journey of Tears and Comfort Toward EternityMoving beyond the sudden sorrow of parting, this storytelling album seamlessly weaves six tracks together, guiding the departed soul on a peaceful journey toward a tranquil new realm."
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "Beyond the Golden Gate (영원으로 가는 문)",
+        "isrc": "QZWFK2662029",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6AhFCi79MCSkUkrF1MDQyt?si=ba35a1c21b6e4cfe",
+          "apple": "https://music.apple.com/us/song/beyond-the-golden-gate-%EC%98%81%EC%9B%90%EC%9C%BC%EB%A1%9C-%EA%B0%80%EB%8A%94-%EB%AC%B8/6763132887",
+          "youtube": "https://youtu.be/4gM9SKXk8A0?si=27cR_N3d5htfySiC"
+        }
+      },
+      {
+        "no": 2,
+        "title": "Home in My Heart (내 마음의 안식처)",
+        "isrc": "QZWFK2662030",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2XWyL0O9fXgPSolYOQlFpH?si=bd72f3b944764998",
+          "apple": "https://music.apple.com/us/song/home-in-my-heart-%EB%82%B4-%EB%A7%88%EC%9D%8C%EC%9D%98-%EC%95%88%EC%8B%9D%EC%B2%98/6763132888",
+          "youtube": "https://youtu.be/CZ9tTna7GDs?si=lMMeYmieIHTusyJE"
+        }
+      },
+      {
+        "no": 3,
+        "title": "Twenty Summers (스무 개의 여름)",
+        "isrc": "QZWFK2662031",
+        "links": {
+          "spotify": "https://open.spotify.com/track/73YrvtarXFbTjucthupoci?si=6aac3b7b41c748e2",
+          "apple": "https://music.apple.com/us/song/twenty-summers-%EC%8A%A4%EB%AC%B4-%EA%B0%9C%EC%9D%98-%EC%97%AC%EB%A6%84/6763132889",
+          "youtube": "https://youtu.be/FbE2sHZ7NTU?si=S4-kmkcx3cfEsc9Z"
+        }
+      },
+      {
+        "no": 4,
+        "title": "Je suis libre, My name was Celeste",
+        "isrc": "QZWFK2662032",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2vHXUw5AWKCLNORlExXJmo?si=e024ed4a4d084891",
+          "apple": "https://music.apple.com/us/song/je-suis-libre-my-name-was-celeste/6763132891",
+          "youtube": "https://youtu.be/72vmoisrLmY?si=S-pkdo3xgU0H9fsg"
+        }
+      },
+      {
+        "no": 5,
+        "title": "An Unfinished Goodbye (서투른 안녕)",
+        "isrc": "QZWFK2662033",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1FtpeBgVz2VBNAbIeIVzn3?si=b1aaeace601a4fe1",
+          "apple": "https://music.apple.com/us/song/an-unfinished-goodbye-%EC%84%9C%ED%88%AC%EB%A5%B8-%EC%95%88%EB%85%95/6763132892",
+          "youtube": "https://youtu.be/0aqOT_yzeyw?si=JOP_nBkwxve1y47d"
+        }
+      },
+      {
+        "no": 6,
+        "title": "Liberated White Celeste (자유로운 영혼)",
+        "isrc": "QZWFK2662034",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4h4zYxyzgpW7AI2qVkohqc?si=ebbe6e7dba824ba0",
+          "apple": "https://music.apple.com/us/song/liberated-white-celeste-%EC%9E%90%EC%9C%A0%EB%A1%9C%EC%9A%B4-%EC%98%81%ED%98%BC/6763132893",
+          "youtube": "https://youtu.be/ZFCttsLE3uo?si=H0L7Yw5fRYnwpEpb"
+        }
+      }
+    ]
+  },
+  {
+    "id": "a9",
+    "ordinal": "9th Album",
+    "title": "90s SEOUL CITY YEOUIDO SUNSET STORIES",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2026-03-25",
+    "release": "2026-03-30",
+    "upc": "825682428658",
+    "cover": "album9-seoulyeouidosunset.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/363QzvLfMuhiLVHl4TFj0z?si=Mnlz437QQB-PtYSBwSvDhg",
+      "apple_album": "https://music.apple.com/us/album/90s-seoul-city-yeouido-sunset-stories/1888047758",
+      "youtube_album": "https://youtube.com/playlist?list=OLAK5uy_kTnGXeKKJ6HavojETBdeVH-r6ZOISDMNI&si=XQrbfJ7MehkOrvCk"
+    },
+    "concept": {
+      "ko": "90년대 서울 여의도의 도시 감성을 시티팝과 하우스 음악으로 재현하여 이제는 다시 돌아갈 수 없는 그 시절을 떠오르게 하는 추억의 스토리텔링 앨범입니다.",
+      "en": "This is a nostalgic storytelling album that recreates the urban vibe of Yeouido, Seoul in the 90s through city pop and house music, evoking memories of those days that can no longer be returned to."
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "Seoul Yeouido Arirang (여의도 아리랑)",
+        "isrc": "QZTAY2669283",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5DzobO6lMLaS8p6ZG7gp7g?si=76fabba0308e4a8d",
+          "apple": "https://music.apple.com/us/song/seoul-yeouido-arirang-%EC%97%AC%EC%9D%98%EB%8F%84-%EC%95%84%EB%A6%AC%EB%9E%91/1888047759",
+          "youtube": "https://youtu.be/XQyXvDzL5yY?si=byWWi_tXRmb8KATe"
+        }
+      },
+      {
+        "no": 2,
+        "title": "Purple Line Yeouido (보라색 여의도역)",
+        "isrc": "QZTAY2669284",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6ozDyj6LbA5DgAA9glyWri?si=4b45af48503048ae",
+          "apple": "https://music.apple.com/us/song/purple-line-yeouido-%EB%B3%B4%EB%9D%BC%EC%83%89-%EC%97%AC%EC%9D%98%EB%8F%84%EC%97%AD/1888047760",
+          "youtube": "https://youtu.be/H3-UgoMJ5PE?si=tGpV1I9FPUAMGlPR"
+        }
+      },
+      {
+        "no": 3,
+        "title": "Taxi to Mapo Bridge (마포대교 택시 안)",
+        "isrc": "QZTAY2669285",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4aFRXKethdjeBhuy6FJPbG?si=10f0e8412cf74d06",
+          "apple": "https://music.apple.com/us/song/taxi-to-mapo-bridge-%EB%A7%88%ED%8F%AC%EB%8C%80%EA%B5%90-%ED%83%9D%EC%8B%9C-%EC%95%88/1888047761",
+          "youtube": "https://youtu.be/tfVPOmNRIf8?si=DQqhl5gyfpva0NF5"
+        }
+      },
+      {
+        "no": 4,
+        "title": "Walkman Summer (워커맨 써머)",
+        "isrc": "QZTAY2669286",
+        "links": {
+          "spotify": "https://open.spotify.com/track/04GVebsgs2hTglSXmOJCHQ?si=9a370dc42e2046bb",
+          "apple": "https://music.apple.com/us/song/walkman-summer-%EC%9B%8C%EC%BB%A4%EB%A7%A8-%EC%8D%A8%EB%A8%B8/1888047762",
+          "youtube": "https://youtu.be/ONVCHxSgNOw?si=8-q-vDo5TlrgNKGD"
+        }
+      },
+      {
+        "no": 5,
+        "title": "Faded Arcade Lights (여의도 종합상가)",
+        "isrc": "QZTAY2669287",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2klms8pfMXMHxXiTsfjCZq?si=71cc3bd62aea4d5e",
+          "apple": "https://music.apple.com/us/song/faded-arcade-lights-%EC%97%AC%EC%9D%98%EB%8F%84-%EC%A2%85%ED%95%A9%EC%83%81%EA%B0%80/1888047764",
+          "youtube": "https://youtu.be/Y3xef_kJy2E?si=Vs5MVCqkH8GWE_oj"
+        }
+      },
+      {
+        "no": 6,
+        "title": "Bus Stop Romance (버스 정류장 로맨스)",
+        "isrc": "QZTAY2669288",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4vOqdX7hrUIcLUBE12kiB8?si=bf82425019674e18",
+          "apple": "https://music.apple.com/us/song/bus-stop-romance-%EB%B2%84%EC%8A%A4-%EC%A0%95%EB%A5%98%EC%9E%A5-%EB%A1%9C%EB%A7%A8%EC%8A%A4/1888047765",
+          "youtube": "https://youtu.be/zTGA4Bnmx8U?si=ogxFRvmzMVcAnpNb"
+        }
+      },
+      {
+        "no": 7,
+        "title": "90s Seoul Yeouido Sunset (여의도 해질녘)",
+        "isrc": "QZTAY2669289",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7f976UZsQyKhfuLqjnPrrm?si=d53ee5e3649a4c27",
+          "apple": "https://music.apple.com/us/song/90s-seoul-yeouido-sunset-%EC%97%AC%EC%9D%98%EB%8F%84-%ED%95%B4%EC%A7%88%EB%85%98/1888047766",
+          "youtube": "https://youtu.be/dtqwCXBx7ew?si=B124FQ5TPMovW_c3"
+        }
+      },
+      {
+        "no": 8,
+        "title": "Last Train Yeouido (마지막 지하철)",
+        "isrc": "QZTAY2669290",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2l8y4rz06Pe8eEUlZYu0hD?si=85ed55d6fbcb467b",
+          "apple": "https://music.apple.com/us/song/last-train-yeouido-%EB%A7%88%EC%A7%80%EB%A7%89-%EC%A7%80%ED%95%98%EC%B2%A0/1888047767",
+          "youtube": "https://youtu.be/Kc05wrcMC70?si=krCFg0GlfAZrEKkq"
+        }
+      },
+      {
+        "no": 9,
+        "title": "Phone Booth Silence (폰부스 망설임)",
+        "isrc": "QZTAY2669291",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4BTXuXSJ2emBNxmkBpPnqd?si=e5730aba73634079",
+          "apple": "https://music.apple.com/us/song/phone-booth-silence-%ED%8F%B0%EB%B6%80%EC%8A%A4-%EB%A7%9D%EC%84%A4%EC%9E%84/1888047918",
+          "youtube": "https://youtu.be/FrPTR37aLLA?si=mju1FoKN3kJhSzV4"
+        }
+      },
+      {
+        "no": 10,
+        "title": "Midnight Han River (한강 미드나잇)",
+        "isrc": "QZTAY2669292",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7weBTs9fmZg7ckeDOETwzA?si=9cd995955fc24358",
+          "apple": "https://music.apple.com/us/song/midnight-han-river-%ED%95%9C%EA%B0%95-%EB%AF%B8%EB%93%9C%EB%82%98%EC%9E%87/1888047919",
+          "youtube": "https://youtu.be/0_bkJdPQAik?si=topHV9cG3SmXmcbE"
+        }
+      },
+      {
+        "no": 11,
+        "title": "Rain on Yeouido Street (여의도 빗길)",
+        "isrc": "QZTAY2669293",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2rMWoEF3RoZEixZzaZ4fPI?si=c8927061c79242b4",
+          "apple": "https://music.apple.com/us/song/rain-on-yeouido-street-%EC%97%AC%EC%9D%98%EB%8F%84-%EB%B9%97%EA%B8%B8/1888047920",
+          "youtube": "https://youtu.be/5bhUf6vho-g?si=gGV6AxSVmi6wjrJU"
+        }
+      },
+      {
+        "no": 12,
+        "title": "Summer We Left Behind (우리가 남겨 둔 여름날)",
+        "isrc": "QZTAY2669294",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4EuNkGap5leWjO0G5b3j8a?si=b72831d13ef44d29",
+          "apple": "https://music.apple.com/us/song/summer-we-left-behind-%EC%9A%B0%EB%A6%AC%EA%B0%80-%EB%82%A8%EA%B2%A8-%EB%91%94-%EC%97%AC%EB%A6%84%EB%82%A0/1888047921",
+          "youtube": "https://youtu.be/Vy2-_0hJRiM?si=lvNIUnJTz447_DCf"
+        }
+      },
+      {
+        "no": 13,
+        "title": "Seoul Sunset Reprise (서울 낙조(落照) 재현)",
+        "isrc": "QZTAY2669295",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5tSuodMIoZ7POfT2ZtjJmn?si=546f2efcacd94b9d",
+          "apple": "https://music.apple.com/us/song/seoul-sunset-reprise-%EC%84%9C%EC%9A%B8-%EB%82%99%EC%A1%B0-%E8%90%BD%E7%85%A7-%EC%9E%AC%ED%98%84/1888047922",
+          "youtube": "https://youtu.be/PfqlJckA8Sg?si=vlNo1jdPlffYrZAX"
+        }
+      },
+      {
+        "no": 14,
+        "title": "After Hours in Yeouido (네온 아리랑)",
+        "isrc": "QZTAY2669296",
+        "links": {
+          "spotify": "https://open.spotify.com/track/6NbMASSNa0uD1Kvefk4oxY?si=d98abcc0439d4ce1",
+          "apple": "https://music.apple.com/us/song/after-hours-in-yeouido-%EB%84%A4%EC%98%A8-%EC%95%84%EB%A6%AC%EB%9E%91/1888047923",
+          "youtube": "https://youtu.be/irXV3HziMk8?si=uRE3RTSFLFxw90Im"
+        }
+      }
+    ]
+  },
+  {
+    "id": "a8",
+    "ordinal": "8th Album",
+    "title": "EARTH STILL CRIES: The Last Duty",
+    "artist": "SHINCHEOLHO-rebroni",
+    "label": "Rebroni Music",
+    "upload": "2026-02-15",
+    "release": "2026-02-21",
+    "upc": "821406692107",
+    "cover": "album8-earthstillcries.jpg",
+    "links": {
+      "spotify_album": "https://open.spotify.com/album/3W8yeMpgZ8mtm4TDeMyO5m?si=tYeiQBAJTumdFVFgUMHN0Q",
+      "apple_album": "https://music.apple.com/kr/album/earth-still-cries-the-last-duty/1878204113",
+      "youtube_album": "https://youtube.com/playlist?list=PLgUtXiMs2oxWobn9WD4UaTpVnpcR-HR7B&si=N6Z1Fz3d5en-6ERE"
+    },
+    "concept": {
+      "ko": "환경 오염과 기후 변화로 인해 신음하는 지구의 비극을 시네마틱하고 웅장한 에픽 사운드로 담아낸 콘셉트 앨범입니다.이 앨범은 단순한 절망에 그치지 않고 인간의 냉철한 성찰과 각성을 촉구하며, 마지막 트랙 'The Earth Is Not Dying (이것이 끝이 아니라, 다시 처음이다)'를 통해 지구와 인류가 함께 맞이할 새로운 시작과 희망의 메시지를 묵직한 오케스트레이션으로 전합니다. 대자연의 울분과 감동적인 서사를 음악으로 느껴보세요.",
+      "en": "SHINCHEOLHO-rebroni's 8th studio album, EARTH STILL CRIES: The Last Duty, is a powerful, cinematic epic concept album that captures the tragedy of a planet groaning under the weight of environmental pollution and climate change.Moving beyond mere despair, it calls for deep human reflection and awakening. The journey culminates in the final masterpiece, 'The Earth Is Not Dying,' delivering a heavy yet hopeful message of rebirth and renewal through magnificent orchestration. Experience the profound voice of our planet and a cinematic journey of a lifetime."
+    },
+    "tracks": [
+      {
+        "no": 1,
+        "title": "Four Twenty-Five PPM Singularity (425PPM 생명의 특이점)",
+        "isrc": "QZK6J2612903",
+        "links": {
+          "spotify": "https://open.spotify.com/track/37PRvXD6bkbv3KO0So4SPI?si=611dbbd898da4e37",
+          "apple": "https://music.apple.com/us/song/four-twenty-five-ppm-singularity-425ppm-%EC%83%9D%EB%AA%85%EC%9D%98-%ED%8A%B9%EC%9D%B4%EC%A0%90/1878204114",
+          "youtube": "https://youtu.be/l7zU0n3xHlU?si=fAB3_fv08uLXYwdG"
+        }
+      },
+      {
+        "no": 2,
+        "title": "After It Melts (사라진 북극)",
+        "isrc": "QZK6J2612904",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5kT5j2Vl8rKLCKVoZmJ4dU?si=65e984458ba1431b",
+          "apple": "https://music.apple.com/us/song/after-it-melts-%EC%82%AC%EB%9D%BC%EC%A7%84-%EB%B6%81%EA%B7%B9/1878204115",
+          "youtube": "https://youtu.be/FJ2CM5aV0do?si=OlA4Q-QRgqWQKiwp"
+        }
+      },
+      {
+        "no": 3,
+        "title": "Black Tears (숲의 종말)",
+        "isrc": "QZK6J2612905",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5ANzZyEE1KjJmqljGBRNRF?si=18d3e209b3cc449f",
+          "apple": "https://music.apple.com/us/song/black-tears-%EC%88%B2%EC%9D%98-%EC%A2%85%EB%A7%90/1878204116",
+          "youtube": "https://youtu.be/BbUXKPK-y9A?si=48ixw-ksCH7Q-bqB"
+        }
+      },
+      {
+        "no": 4,
+        "title": "Shattered Blue (부서진 푸른빛)",
+        "isrc": "QZK6J2612906",
+        "links": {
+          "spotify": "https://open.spotify.com/track/0oFHLNS4T3g9MohCEKXK2P?si=4919616101cd4f1d",
+          "apple": "https://music.apple.com/us/song/shattered-blue-%EB%B6%80%EC%84%9C%EC%A7%84-%ED%91%B8%EB%A5%B8%EB%B9%9B/1878204117",
+          "youtube": "https://youtu.be/G9aIDJ6we0E?si=62r4ZCJILzZPFDtT"
+        }
+      },
+      {
+        "no": 5,
+        "title": "The Crying of the Ocean (마지막 바다)",
+        "isrc": "QZK6J2612907",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4gy74LUwyCFnCXnLHkcY7q?si=5f1d614a99704111",
+          "apple": "https://music.apple.com/us/song/the-crying-of-the-ocean-%EB%A7%88%EC%A7%80%EB%A7%89-%EB%B0%94%EB%8B%A4/1878204118",
+          "youtube": "https://youtu.be/q7yCjHeXcYM?si=4Pi9I42A5Bcl6dpI"
+        }
+      },
+      {
+        "no": 6,
+        "title": "The Sorrow of \"Before It Melts\" (북극의 슬픔)",
+        "isrc": "QZK6J2612908",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5E6wlfkm34SsbLQJTpXd8o?si=3179363d20e844a7",
+          "apple": "https://music.apple.com/us/song/the-sorrow-of-before-it-melts-%EB%B6%81%EA%B7%B9%EC%9D%98-%EC%8A%AC%ED%94%94/1878204119",
+          "youtube": "https://youtu.be/dm5O_4HMMUw?si=m0rZ--hlCaXaHpw-"
+        }
+      },
+      {
+        "no": 7,
+        "title": "The Silence of the Wounded Forest (상처입은 숲의 침묵)",
+        "isrc": "QZK6J2612909",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5wESPxHR9XrhpwOOAP0gfe?si=f884b8aa2a53497c",
+          "apple": "https://music.apple.com/us/song/the-silence-of-the-wounded-forest-%EC%83%81%EC%B2%98%EC%9E%85%EC%9D%80-%EC%88%B2%EC%9D%98-%EC%B9%A8%EB%AC%B5/1878204120",
+          "youtube": "https://youtu.be/QyDBY2p-Fq4?si=KcUN6dXnWLK8EVwB"
+        }
+      },
+      {
+        "no": 8,
+        "title": "The Lament of the Ocean (바다의 비애)",
+        "isrc": "QZK6J2612910",
+        "links": {
+          "spotify": "https://open.spotify.com/track/5Nb2ysUkVJapeEgsNrjY2B?si=50dd55bcc2ff48d9",
+          "apple": "https://music.apple.com/us/song/the-lament-of-the-ocean-%EB%B0%94%EB%8B%A4%EC%9D%98-%EB%B9%84%EC%95%A0/1878204122",
+          "youtube": "https://youtu.be/SbMJ3xoIORk?si=FB6LtWqavYSDv6lv"
+        }
+      },
+      {
+        "no": 9,
+        "title": "Four Twenty-Five PPM (Deadline Reprise)",
+        "isrc": "QZK6J2612911",
+        "links": {
+          "spotify": "https://open.spotify.com/track/12XeiLjiCidlMpAhfeVwCL?si=b1dda212679a4800",
+          "apple": "https://music.apple.com/us/song/four-twenty-five-ppm-deadline-reprise/1878204123",
+          "youtube": "https://youtu.be/MLRbx3xZhvU?si=YLUxCEn90LskaVk0"
+        }
+      },
+      {
+        "no": 10,
+        "title": "The Logical Verdict (냉철한 심판)",
+        "isrc": "QZK6J2612912",
+        "links": {
+          "spotify": "https://open.spotify.com/track/0d95RZbqwT2XOFcNSVs1LG?si=f41758a343c9429c",
+          "apple": "https://music.apple.com/us/song/the-logical-verdict-%EB%83%89%EC%B2%A0%ED%95%9C-%EC%8B%AC%ED%8C%90/1878204124",
+          "youtube": "https://youtu.be/aIWvQeKouyI?si=VQg1Tz4b3q261Gwd"
+        }
+      },
+      {
+        "no": 11,
+        "title": "The Fury of Gaia's Guardian (가이아의 분노)",
+        "isrc": "QZK6J2612913",
+        "links": {
+          "spotify": "https://open.spotify.com/track/7pzNV69Y34rkr3lQ8rTn7U?si=52beaae461b54cec",
+          "apple": "https://music.apple.com/us/song/the-fury-of-gaias-guardian-%EA%B0%80%EC%9D%B4%EC%95%84%EC%9D%98-%EB%B6%84%EB%85%B8/1878204125",
+          "youtube": "https://youtu.be/pajfUqu3cWg?si=l7WYBcRKMLTjUzUc"
+        }
+      },
+      {
+        "no": 12,
+        "title": "The Strike of Awakening (쿵쿵쿵 각성)",
+        "isrc": "QZK6J2612914",
+        "links": {
+          "spotify": "https://open.spotify.com/track/1UD8zifyVvH3Ff1EXlPg3W?si=9eac9cd9bbf84895",
+          "apple": "https://music.apple.com/us/song/the-strike-of-awakening-%EC%BF%B5%EC%BF%B5%EC%BF%B5-%EA%B0%81%EC%84%B1/1878204126",
+          "youtube": "https://youtu.be/M9sE0Ryf0Fc?si=m_XC9C5cG1XvB43l"
+        }
+      },
+      {
+        "no": 13,
+        "title": "The Sonic Thunderbolt (소리의 벼락)",
+        "isrc": "QZK6J2612915",
+        "links": {
+          "spotify": "https://open.spotify.com/track/2pxmluJDu4CCPtHs0LMpHZ?si=6583efed28e54100",
+          "apple": "https://music.apple.com/us/song/the-sonic-thunderbolt-%EC%86%8C%EB%A6%AC%EC%9D%98-%EB%B2%BC%EB%9D%BD/1878204247",
+          "youtube": "https://youtu.be/lb116Z6SaJs?si=n078NkXuSDabKyG_"
+        }
+      },
+      {
+        "no": 14,
+        "title": "The Last Ray (먼지속의 약속)",
+        "isrc": "QZK6J2612916",
+        "links": {
+          "spotify": "https://open.spotify.com/track/4un9oOEVk4Z695dc57ajvW?si=0970afd8dc8f447a",
+          "apple": "https://music.apple.com/us/song/the-last-ray-%EB%A8%BC%EC%A7%80%EC%86%8D%EC%9D%98-%EC%95%BD%EC%86%8D/1878204248",
+          "youtube": "https://youtu.be/dL2PZ6qrr7s?si=YogV4KCqX93y6ih6"
+        }
+      },
+      {
+        "no": 15,
+        "title": "The Earth Is Not Dying (이것이 끝이 아니라, 다시 처음이다)",
+        "isrc": "QZK6J2612917",
+        "links": {
+          "spotify": "https://open.spotify.com/track/0kZYpTmXikNBzEuIMMqHvg?si=d766d3023c7148f8",
+          "apple": "https://music.apple.com/us/song/the-earth-is-not-dying-%EC%9D%B4%EA%B2%83%EC%9D%B4-%EB%81%9D%EC%9D%B4-%EC%95%84%EB%8B%88%EB%9D%BC-%EB%8B%A4%EC%8B%9C-%EC%B2%98%EC%9D%8C%EC%9D%B4%EB%8B%A4/1878204249",
+          "youtube": "https://youtu.be/7CB85xoX8zs?si=sZJcJQpX6n1_rKX3"
+        }
+      }
+    ]
+  },
+  {
     "id": "a7",
     "ordinal": "7th Album",
     "title": "Awakening & Return to the Cosmos",
