@@ -12,7 +12,8 @@
     try { document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "dark"); }
     catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
   </script>
-  <link rel="stylesheet" href="styles.css">
+  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
+  <link rel="stylesheet" href="styles.css?v=2">
 
   <meta property="og:title" content="SHINCHEOLHO-rebroni | Discography">
   <meta property="og:description" content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music">
@@ -122,8 +123,8 @@
 
   <button id="btn-back-to-top" class="btn-back-to-top" aria-label="Back to top">↑</button>
 
-  <script type="module" src="app.js"></script>
-  <script type="module" src="community.js"></script>
+  <script type="module" src="app.js?v=2"></script>
+  <script type="module" src="community.js?v=2"></script>
 </body>
 
 </html>
