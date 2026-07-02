@@ -615,6 +615,432 @@ footer p {
   }
 }
 
+/* ========== Phase2: 공통 유틸 ========== */
+.hidden {
+  display: none !important;
+}
+
+body {
+  transition: background .3s ease, color .3s ease;
+}
+
+/* ========== Phase2: Behind the Tracks (세계관/스토리) ========== */
+.album-story {
+  margin: 4px 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel2);
+}
+
+.album-story summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  user-select: none;
+  list-style: none;
+}
+
+.album-story summary::before {
+  content: "✦ ";
+  opacity: .7;
+}
+
+.album-story summary::-webkit-details-marker {
+  display: none;
+}
+
+.album-story[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.story-body {
+  padding: 12px 16px 16px;
+}
+
+.story-body .ko {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.story-body .en {
+  margin: 0;
+  font-size: 13px;
+  opacity: .75;
+  font-style: italic;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ========== Phase2: 가사 모달 ========== */
+.lyrics-panel {
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  margin: auto;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#lyrics-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lyrics-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lyrics-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.lyrics-body {
+  overflow: auto;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.lyrics-body.single {
+  grid-template-columns: 1fr;
+}
+
+.lyrics-col h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: .08em;
+  opacity: .6;
+  text-transform: uppercase;
+}
+
+.lyrics-col pre {
+  margin: 0;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
+@media (max-width: 640px) {
+  .lyrics-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========== Phase2: 커뮤니티 (구독 + 방명록) ========== */
+.community {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 16px 8px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.community-box {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  background: var(--panel2);
+}
+
+.community-box h2 {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+}
+
+.community-sub {
+  margin: 0 0 16px;
+  font-size: 13px;
+  opacity: .8;
+}
+
+.community-sub .en-sub {
+  font-style: italic;
+  opacity: .7;
+  font-size: 12px;
+}
+
+.subscribe-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.subscribe-form input,
+.gb-form input,
+.gb-form textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.subscribe-form input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.subscribe-form input:focus,
+.gb-form input:focus,
+.gb-form textarea:focus {
+  outline: none;
+  border-color: rgba(128, 160, 255, .6);
+}
+
+.gb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.gb-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.gb-row input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.gb-form textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+}
+
+.community-status {
+  font-size: 13px;
+  min-height: 18px;
+  margin: 8px 0 0;
+}
+
+.community-status.ok {
+  color: #4ade80;
+}
+
+.community-status.err {
+  color: #f87171;
+}
+
+.gb-list {
+  margin-top: 16px;
+}
+
+.gb-item {
+  padding: 12px 0;
+  border-top: 1px dashed var(--line);
+  font-size: 14px;
+}
+
+.gb-item .gb-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.gb-item .gb-nick {
+  font-weight: 600;
+}
+
+.gb-item .gb-date {
+  font-size: 11px;
+  opacity: .55;
+}
+
+.gb-item .gb-del {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: .5;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.gb-item .gb-del:hover {
+  opacity: .9;
+  text-decoration: underline;
+}
+
+.gb-item .gb-msg {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+/* ========== Phase2: Nature Green 라이트 테마 ========== */
+[data-theme="nature"] {
+  --bg: #f3f7f1;
+  --fg: #1d2b21;
+  --line: rgba(24, 68, 40, .18);
+  --panel: rgba(34, 96, 56, .07);
+  --panel2: rgba(34, 96, 56, .04);
+}
+
+[data-theme="nature"] body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+[data-theme="nature"] .hero {
+  background: radial-gradient(circle at top, #cde7cf, #f3f7f1 70%);
+}
+
+[data-theme="nature"] .stickybar {
+  background: linear-gradient(to bottom, rgba(243, 247, 241, .97), rgba(243, 247, 241, .88));
+  box-shadow: 0 8px 30px rgba(30, 70, 45, .12);
+  border-bottom-color: var(--line);
+}
+
+[data-theme="nature"] .sns-btn,
+[data-theme="nature"] .iconbtn,
+[data-theme="nature"] .album-nav a,
+[data-theme="nature"] .tbtn,
+[data-theme="nature"] .drawer-links a,
+[data-theme="nature"] .back-top a {
+  color: var(--fg);
+  background: rgba(34, 96, 56, .06);
+  border-color: rgba(24, 68, 40, .25);
+}
+
+[data-theme="nature"] .sns-btn:hover,
+[data-theme="nature"] .iconbtn:hover,
+[data-theme="nature"] .album-nav a:hover,
+[data-theme="nature"] .tbtn:hover,
+[data-theme="nature"] .drawer-links a:hover {
+  background: rgba(34, 96, 56, .14);
+}
+
+[data-theme="nature"] .album-nav a.active,
+[data-theme="nature"] .drawer-links a.active {
+  border-color: rgba(24, 68, 40, .6);
+  background: rgba(34, 96, 56, .18);
+}
+
+[data-theme="nature"] .tbtn:focus,
+[data-theme="nature"] .sns-btn:focus {
+  outline-color: #1d2b21;
+  box-shadow: 0 0 10px rgba(34, 96, 56, .4);
+}
+
+[data-theme="nature"] #search {
+  background: #ffffff;
+  color: var(--fg);
+  border-color: rgba(24, 68, 40, .3);
+}
+
+[data-theme="nature"] #search:focus {
+  border-color: rgba(24, 68, 40, .55);
+}
+
+[data-theme="nature"] mark {
+  background: rgba(46, 125, 79, .25);
+  color: inherit;
+}
+
+[data-theme="nature"] .drawer {
+  background: rgba(250, 253, 249, .98);
+  border-color: var(--line);
+  box-shadow: 0 20px 60px rgba(30, 70, 45, .25);
+}
+
+[data-theme="nature"] .cover {
+  border-color: var(--line);
+  background: rgba(34, 96, 56, .04);
+}
+
+[data-theme="nature"] .album {
+  border-bottom-color: var(--line);
+}
+
+[data-theme="nature"] .album-concept .ko {
+  color: #24382b;
+}
+
+[data-theme="nature"] .album-concept .en {
+  color: #56705f;
+}
+
+[data-theme="nature"] .track {
+  border-bottom-color: rgba(24, 68, 40, .22);
+}
+
+[data-theme="nature"] .track.playing {
+  background: rgba(34, 96, 56, .1);
+}
+
+[data-theme="nature"] .track.playing::before {
+  background: #2e7d4f;
+}
+
+[data-theme="nature"] .album-player,
+[data-theme="nature"] .track-player {
+  border-bottom-color: rgba(24, 68, 40, .22);
+}
+
+[data-theme="nature"] .player-inner {
+  background: rgba(34, 96, 56, .05);
+  border-color: var(--line);
+}
+
+[data-theme="nature"] .btn-back-to-top {
+  background: rgba(34, 96, 56, .12);
+  border-color: rgba(24, 68, 40, .3);
+  color: var(--fg);
+  box-shadow: 0 4px 12px rgba(30, 70, 45, .2);
+}
+
+[data-theme="nature"] .btn-back-to-top:hover {
+  background: rgba(34, 96, 56, .2);
+}
+
+[data-theme="nature"] .lyrics-panel {
+  box-shadow: 0 20px 60px rgba(30, 70, 45, .3);
+}
+
+[data-theme="nature"] .community-status.ok {
+  color: #15803d;
+}
+
+[data-theme="nature"] .community-status.err {
+  color: #b91c1c;
+}
+
+[data-theme="nature"] .subscribe-form input:focus,
+[data-theme="nature"] .gb-form input:focus,
+[data-theme="nature"] .gb-form textarea:focus {
+  border-color: rgba(46, 125, 79, .7);
+}
+
+/* Responsive */
 @media (max-width: 520px) {
   .stickybar {
     flex-wrap: wrap;

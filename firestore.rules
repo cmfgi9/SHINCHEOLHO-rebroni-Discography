@@ -20,7 +20,45 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // 향후 확장 예약 (Phase2+):
+    // 방명록 (Fan Wall): 누구나 읽기/작성. 삭제는 비밀번호 해시 일치(soft delete) 또는 관리자
+    match /guestbook/{entryId} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly(['name', 'message', 'pwHash', 'createdAt', 'deleted'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 20
+        && request.resource.data.message is string
+        && request.resource.data.message.size() >= 1
+        && request.resource.data.message.size() <= 500
+        && request.resource.data.pwHash is string
+        && request.resource.data.pwHash.size() == 64
+        && request.resource.data.createdAt is string
+        && request.resource.data.deleted == false;
+
+      // 방문자 셀프 삭제: 제출한 pwHash가 저장된 값과 일치할 때만 deleted 플래그 변경 허용
+      allow update: if (
+          request.resource.data.pwHash == resource.data.pwHash
+          && request.resource.data.deleted == true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted'])
+        ) || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // 뉴스레터 구독자: 누구나 신규 등록만 가능(문서 ID = 이메일 → 중복 등록 차단), 열람은 관리자만
+    match /subscribers/{email} {
+      allow create: if request.resource.data.keys().hasOnly(['email', 'createdAt'])
+        && request.resource.data.email == email
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 150
+        && request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$')
+        && request.resource.data.createdAt is string;
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+
+    // 향후 확장 예약 (커머스):
     // match /products/{productId} { allow read: if true; allow write: if isAdmin(); }
     // match /orders/{orderId} { ... 구매자 본인 + 관리자만 ... }
 

@@ -7,6 +7,11 @@
   <title>SHINCHEOLHO-rebroni | Discography</title>
   <meta name="description"
     content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music. Explore all albums and tracks with streaming links.">
+  <!-- 테마를 CSS 로드 전에 적용해 깜빡임 방지 -->
+  <script>
+    try { document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "dark"); }
+    catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
+  </script>
   <link rel="stylesheet" href="styles.css">
 
   <meta property="og:title" content="SHINCHEOLHO-rebroni | Discography">
@@ -25,6 +30,7 @@
   <div id="stickybar" class="stickybar">
     <button id="quick-menu-btn" class="iconbtn" aria-label="Open albums menu">Albums</button>
     <button id="qr-btn" class="iconbtn" aria-label="Open QR Code" style="margin-left:8px;">QR</button>
+    <button id="theme-btn" class="iconbtn" aria-label="Switch theme" title="테마 전환" style="margin-left:8px;">🌿</button>
     <nav id="album-nav" class="album-nav" aria-label="Album navigation"></nav>
 
     <div class="sns-links">
@@ -49,10 +55,53 @@
   <!-- Albums container (rendered by app.js) -->
   <main id="albums"></main>
 
+  <!-- Community: Newsletter + Fan Wall (rendered/controlled by community.js) -->
+  <section class="community hidden" id="community">
+
+    <div class="community-box" id="subscribe-box">
+      <h2>Stay Tuned</h2>
+      <p class="community-sub">rebroni의 다음 우주 여정(새 앨범 소식)을 이메일로 받아보세요.<br>
+        <span class="en-sub">Get notified when a new album drops.</span></p>
+      <form id="subscribe-form" class="subscribe-form">
+        <input type="email" id="subscribe-email" placeholder="your@email.com" maxlength="150" required>
+        <button class="tbtn" type="submit">Subscribe</button>
+      </form>
+      <p class="community-status" id="subscribe-status"></p>
+    </div>
+
+    <div class="community-box" id="guestbook">
+      <h2>Fan Wall</h2>
+      <p class="community-sub">응원 한마디를 남겨주세요. 닉네임과 비밀번호만 있으면 됩니다.<br>
+        <span class="en-sub">Leave a message — just a nickname and a password.</span></p>
+      <form id="gb-form" class="gb-form">
+        <div class="gb-row">
+          <input type="text" id="gb-name" placeholder="닉네임 (Nickname)" maxlength="20" required>
+          <input type="password" id="gb-pw" placeholder="비밀번호 (삭제용)" maxlength="30" required>
+        </div>
+        <textarea id="gb-message" placeholder="응원 메시지 (최대 500자)" maxlength="500" required></textarea>
+        <button class="tbtn" type="submit">남기기 (Post)</button>
+      </form>
+      <p class="community-status" id="gb-status"></p>
+      <div id="gb-list" class="gb-list"></div>
+    </div>
+
+  </section>
+
   <!-- Footer -->
   <footer>
     <p>&copy; 2025–2026 SHINCHEOLHO-rebroni · Rebroni Music. All rights reserved.</p>
   </footer>
+
+  <!-- Lyrics Modal -->
+  <div id="lyrics-modal" class="backdrop" style="z-index:1300;">
+    <div class="lyrics-panel" role="dialog" aria-labelledby="lyrics-title">
+      <div class="lyrics-head">
+        <h3 id="lyrics-title"></h3>
+        <button id="lyrics-close" class="iconbtn iconbtn-close" aria-label="Close lyrics">✕</button>
+      </div>
+      <div class="lyrics-body" id="lyrics-body"></div>
+    </div>
+  </div>
 
   <!-- Quick menu drawer -->
   <div id="quick-menu-backdrop" class="backdrop"></div>
@@ -74,6 +123,7 @@
   <button id="btn-back-to-top" class="btn-back-to-top" aria-label="Back to top">↑</button>
 
   <script type="module" src="app.js"></script>
+  <script type="module" src="community.js"></script>
 </body>
 
 </html>

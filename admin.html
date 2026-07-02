@@ -172,6 +172,25 @@
       <p class="muted">albums.json 가져오기: 기존 정적 데이터를 Firestore로 일괄 등록합니다 (같은 ID는 덮어씀).</p>
       <div id="album-list"></div>
       <div class="status" id="list-status"></div>
+
+      <fieldset>
+        <legend>방명록 관리</legend>
+        <div style="margin-top:10px;">
+          <button class="btn small" id="btn-load-gb">방명록 불러오기</button>
+        </div>
+        <div id="admin-gb-list"></div>
+        <div class="status" id="gb-admin-status"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>뉴스레터 구독자</legend>
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn small" id="btn-load-subs">구독자 불러오기</button>
+          <button class="btn small" id="btn-copy-subs" disabled>이메일 목록 복사</button>
+        </div>
+        <div id="admin-subs-list"></div>
+        <div class="status" id="subs-admin-status"></div>
+      </fieldset>
     </section>
 
     <!-- 4) 앨범 편집 폼 -->
@@ -244,6 +263,14 @@
         <textarea id="f-concept-ko"></textarea>
         <label>English</label>
         <textarea id="f-concept-en"></textarea>
+      </fieldset>
+
+      <fieldset>
+        <legend>Behind the Tracks (세계관/스토리 — 선택)</legend>
+        <label>한국어</label>
+        <textarea id="f-story-ko" style="min-height:120px;" placeholder="앨범의 영감, 세계관, 배경 스토리…"></textarea>
+        <label>English</label>
+        <textarea id="f-story-en" style="min-height:120px;"></textarea>
       </fieldset>
 
       <fieldset>

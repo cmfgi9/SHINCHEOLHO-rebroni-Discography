@@ -5,7 +5,7 @@ const VER = "10.12.2";
 const { initializeApp, getApps } = await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-app.js`);
 const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } =
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-auth.js`);
-const { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch } =
+const { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy, limit } =
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-firestore.js`);
 const { getStorage, ref, uploadBytes, getDownloadURL } =
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-storage.js`);
@@ -168,7 +168,8 @@ function openEdit(albumId) {
 
 function clearForm() {
   ["f-id", "f-ordinal", "f-upc", "f-title", "f-upload", "f-release", "f-cover",
-    "f-spotify-album", "f-apple-album", "f-youtube-album", "f-concept-ko", "f-concept-en"]
+    "f-spotify-album", "f-apple-album", "f-youtube-album", "f-concept-ko", "f-concept-en",
+    "f-story-ko", "f-story-en"]
     .forEach(id => $(id).value = "");
   $("f-artist").value = "SHINCHEOLHO-rebroni";
   $("f-label").value = "Rebroni Music";
@@ -192,6 +193,8 @@ function fillForm(a) {
   $("f-youtube-album").value = a.links?.youtube_album || "";
   $("f-concept-ko").value = a.concept?.ko || "";
   $("f-concept-en").value = a.concept?.en || "";
+  $("f-story-ko").value = a.story?.ko || "";
+  $("f-story-en").value = a.story?.en || "";
   $("tracks").innerHTML = "";
   (a.tracks || []).forEach(t => addTrackRow(t));
   renumberTracks();
@@ -224,6 +227,10 @@ function addTrackRow(t = {}) {
     <input type="url" class="t-apple" value="${escAttr(t.links?.apple || "")}">
     <label>YouTube</label>
     <input type="url" class="t-youtube" value="${escAttr(t.links?.youtube || "")}">
+    <label>가사 — 한국어 (선택)</label>
+    <textarea class="t-lyrics-ko" placeholder="가사를 입력하면 사이트에 [Lyrics] 버튼이 생깁니다">${esc(t.lyrics?.ko || "")}</textarea>
+    <label>가사 — English (선택)</label>
+    <textarea class="t-lyrics-en">${esc(t.lyrics?.en || "")}</textarea>
   `;
   div.querySelector(".t-del").addEventListener("click", e => {
     e.preventDefault();
@@ -275,6 +282,9 @@ function collectForm() {
     if (s) t.links.spotify = s;
     if (a) t.links.apple = a;
     if (y) t.links.youtube = y;
+    const lko = el.querySelector(".t-lyrics-ko").value.trim();
+    const len = el.querySelector(".t-lyrics-en").value.trim();
+    if (lko || len) t.lyrics = { ko: lko, en: len };
     return t;
   }).filter(t => t.title);
 
@@ -299,6 +309,10 @@ function collectForm() {
     concept: {
       ko: $("f-concept-ko").value.trim(),
       en: $("f-concept-en").value.trim()
+    },
+    story: {
+      ko: $("f-story-ko").value.trim(),
+      en: $("f-story-en").value.trim()
     },
     tracks
     // 향후 커머스 연동 시: productId: "prod_xxx" 필드를 여기에 추가
@@ -340,6 +354,86 @@ $("btn-delete").addEventListener("click", async () => {
     editingId = null;
   } catch (e) {
     setStatus("edit-status", "삭제 실패: " + e.message, "err");
+  }
+});
+
+// ---------- 방명록 관리 ----------
+$("btn-load-gb").addEventListener("click", loadGuestbookAdmin);
+
+async function loadGuestbookAdmin() {
+  const listEl = $("admin-gb-list");
+  listEl.innerHTML = '<p class="muted">불러오는 중…</p>';
+  try {
+    const q = query(collection(db, "guestbook"), orderBy("createdAt", "desc"), limit(200));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      listEl.innerHTML = '<p class="muted">방명록이 비어 있습니다.</p>';
+      return;
+    }
+    listEl.innerHTML = "";
+    snap.docs.forEach(d => {
+      const x = d.data();
+      const row = document.createElement("div");
+      row.className = "album-row";
+      row.innerHTML = `
+        <div class="t">
+          <strong>${esc(x.name || "")}</strong>
+          ${x.deleted ? '<span style="color:var(--danger); font-size:12px;"> (작성자 삭제됨)</span>' : ""}
+          <small>${esc((x.createdAt || "").slice(0, 16).replace("T", " "))} — ${esc(x.message || "")}</small>
+        </div>
+        <button class="btn small danger" data-gbdel="${esc(d.id)}">삭제</button>
+      `;
+      listEl.appendChild(row);
+    });
+    listEl.querySelectorAll("[data-gbdel]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("이 메시지를 영구 삭제할까요?")) return;
+        try {
+          await deleteDoc(doc(db, "guestbook", btn.getAttribute("data-gbdel")));
+          setStatus("gb-admin-status", "삭제 완료.", "ok");
+          await loadGuestbookAdmin();
+        } catch (e) {
+          setStatus("gb-admin-status", "삭제 실패: " + e.message, "err");
+        }
+      });
+    });
+  } catch (e) {
+    listEl.innerHTML = "";
+    setStatus("gb-admin-status", "로드 실패: " + e.message, "err");
+  }
+}
+
+// ---------- 구독자 관리 ----------
+let subscriberEmails = [];
+
+$("btn-load-subs").addEventListener("click", async () => {
+  const listEl = $("admin-subs-list");
+  listEl.innerHTML = '<p class="muted">불러오는 중…</p>';
+  try {
+    const snap = await getDocs(query(collection(db, "subscribers"), orderBy("createdAt", "desc")));
+    subscriberEmails = snap.docs.map(d => d.data().email).filter(Boolean);
+    if (!subscriberEmails.length) {
+      listEl.innerHTML = '<p class="muted">아직 구독자가 없습니다.</p>';
+      $("btn-copy-subs").disabled = true;
+      return;
+    }
+    listEl.innerHTML = `
+      <p class="muted" style="margin-top:10px;">총 ${subscriberEmails.length}명</p>
+      <textarea readonly style="min-height:120px; font-family:monospace; font-size:12px;">${esc(subscriberEmails.join("\n"))}</textarea>
+    `;
+    $("btn-copy-subs").disabled = false;
+  } catch (e) {
+    listEl.innerHTML = "";
+    setStatus("subs-admin-status", "로드 실패: " + e.message, "err");
+  }
+});
+
+$("btn-copy-subs").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(subscriberEmails.join("\n"));
+    setStatus("subs-admin-status", `이메일 ${subscriberEmails.length}건 복사 완료. STIBEE/Mailchimp 등에 붙여넣으세요.`, "ok");
+  } catch (e) {
+    setStatus("subs-admin-status", "복사 실패 — 목록을 직접 선택해 복사하세요.", "err");
   }
 });
 

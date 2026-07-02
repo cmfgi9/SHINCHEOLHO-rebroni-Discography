@@ -2,6 +2,30 @@
 
 import { loadAlbums } from "./data-service.js";
 
+/* ===== 테마 스위처 (Cosmic Dark / Nature Green) ===== */
+function initThemeSwitcher() {
+  const btn = document.getElementById("theme-btn");
+  if (!btn) return;
+
+  function apply(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    try { localStorage.setItem("theme", theme); } catch (e) { /* ignore */ }
+    // 버튼은 "전환될 테마"를 보여줌
+    btn.textContent = theme === "dark" ? "🌿" : "🌌";
+    btn.title = theme === "dark" ? "Nature Green 테마로 전환" : "Cosmic Dark 테마로 전환";
+  }
+
+  let theme = "dark";
+  try { theme = localStorage.getItem("theme") || "dark"; } catch (e) { /* ignore */ }
+  apply(theme);
+
+  btn.addEventListener("click", () => {
+    theme = theme === "dark" ? "nature" : "dark";
+    apply(theme);
+  });
+}
+initThemeSwitcher();
+
 function updateStickyBarHeight() {
   const bar = document.getElementById("stickybar");
   if (!bar) return;
@@ -172,12 +196,29 @@ async function main() {
            </div>`
         : "";
 
+      // Behind the Tracks: 세계관/스토리 (접이식)
+      const s = a.story;
+      const storyHtml = (s && (s.ko || s.en))
+        ? `<details class="album-story">
+             <summary>Behind the Tracks</summary>
+             <div class="story-body">
+               ${s.ko ? `<p class="ko">${escapeHtml(s.ko)}</p>` : ""}
+               ${s.en ? `<p class="en">${escapeHtml(s.en)}</p>` : ""}
+             </div>
+           </details>`
+        : "";
+
       const tracksHtml = (a.tracks || []).map(t => {
         const { main, sub } = splitTrackTitle(t.title);
         const tLinks = t.links || {};
         const ytId = getYouTubeId(tLinks.youtube);
         const playBtn = ytId
           ? `<button class="tbtn tbtn-secondary yt-play" data-track="${a.id}-${t.no}" data-ytid="${escapeHtml(ytId)}" aria-expanded="false">Play</button>`
+          : "";
+
+        // 가사 버튼 (가사가 있는 곡만)
+        const lyricsBtn = (t.lyrics && (t.lyrics.ko || t.lyrics.en))
+          ? `<button class="tbtn tbtn-secondary lyrics-btn" data-album="${a.id}" data-no="${t.no}">Lyrics</button>`
           : "";
 
         // 🔽 검색용 데이터 준비 (앨범명 + 곡명 + ISRC)
@@ -197,6 +238,7 @@ async function main() {
                 ${tLinks.apple ? `<a href="${escapeHtml(tLinks.apple)}" target="_blank" rel="noopener" class="tbtn tbtn-secondary">Apple Music</a>` : ""}
                 ${tLinks.youtube ? `<a href="${escapeHtml(tLinks.youtube)}" target="_blank" rel="noopener" class="tbtn tbtn-secondary">YouTube</a>` : ""}
                 ${playBtn}
+                ${lyricsBtn}
               </div>
             </div>
           </div>
@@ -216,6 +258,7 @@ async function main() {
                 ${line2 ? `<div>${line2}</div>` : ""}
               </div>
               ${conceptHtml}
+              ${storyHtml}
               ${linksHtml}
             </div>
           </div>
@@ -439,9 +482,55 @@ async function main() {
     }
   });
 
-  // ESC 키로 플레이어 닫기
+  // Event: lyrics modal
+  const lyricsModal = document.getElementById("lyrics-modal");
+  const lyricsTitle = document.getElementById("lyrics-title");
+  const lyricsBody = document.getElementById("lyrics-body");
+  const lyricsClose = document.getElementById("lyrics-close");
+
+  function openLyrics(albumId, trackNo) {
+    const album = albums.find(x => x.id === albumId);
+    const track = album?.tracks?.find(t => String(t.no) === String(trackNo));
+    if (!track || !track.lyrics) return;
+
+    const { main, sub } = splitTrackTitle(track.title);
+    lyricsTitle.textContent = `${track.no}. ${main}${sub ? ` (${sub})` : ""}`;
+
+    const ko = (track.lyrics.ko || "").trim();
+    const en = (track.lyrics.en || "").trim();
+    const cols = [];
+    if (ko) cols.push(`<div class="lyrics-col"><h4>한국어</h4><pre>${escapeHtml(ko)}</pre></div>`);
+    if (en) cols.push(`<div class="lyrics-col"><h4>English</h4><pre>${escapeHtml(en)}</pre></div>`);
+    lyricsBody.innerHTML = cols.join("");
+    lyricsBody.classList.toggle("single", cols.length === 1);
+    lyricsBody.scrollTop = 0;
+
+    lyricsModal.classList.add("open");
+  }
+
+  function closeLyrics() {
+    lyricsModal?.classList.remove("open");
+  }
+
+  document.addEventListener("click", e => {
+    const btn = e.target.closest(".lyrics-btn");
+    if (btn) {
+      openLyrics(btn.getAttribute("data-album"), btn.getAttribute("data-no"));
+    }
+  });
+  if (lyricsClose) lyricsClose.addEventListener("click", closeLyrics);
+  if (lyricsModal) {
+    lyricsModal.addEventListener("click", e => {
+      if (e.target === lyricsModal) closeLyrics();
+    });
+  }
+
+  // ESC 키로 플레이어/가사 닫기
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape") closeAllPlayers();
+    if (e.key === "Escape") {
+      closeAllPlayers();
+      closeLyrics();
+    }
   });
 
   // Floating Top Button Logic
