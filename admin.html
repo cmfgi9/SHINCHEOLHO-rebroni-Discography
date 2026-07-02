@@ -218,8 +218,15 @@
         </div>
       </div>
 
-      <label>커버 이미지 <span class="muted">(저장소 내 파일명 또는 전체 URL)</span></label>
+      <label>커버 이미지 <span class="muted">(직접 업로드하거나, 파일명/전체 URL 입력)</span></label>
       <input type="text" id="f-cover" placeholder="album10-xxxx.jpg 또는 https://...">
+      <div style="display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;">
+        <input type="file" id="f-cover-file" accept="image/*" class="hidden">
+        <button class="btn small" id="btn-upload-cover">이미지 파일 업로드</button>
+        <span class="muted" id="cover-upload-status"></span>
+      </div>
+      <img id="cover-preview" alt="커버 미리보기" class="hidden"
+        style="margin-top:10px; width:160px; height:160px; object-fit:cover; border-radius:10px; border:1px solid var(--line);">
 
       <fieldset>
         <legend>앨범 스트리밍 링크</legend>

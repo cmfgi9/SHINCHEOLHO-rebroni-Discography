@@ -7,10 +7,13 @@ const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChange
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-auth.js`);
 const { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch } =
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-firestore.js`);
+const { getStorage, ref, uploadBytes, getDownloadURL } =
+  await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-storage.js`);
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 const $ = id => document.getElementById(id);
 const views = ["view-signin", "view-noauth", "view-list", "view-edit"];
@@ -170,6 +173,8 @@ function clearForm() {
   $("f-artist").value = "SHINCHEOLHO-rebroni";
   $("f-label").value = "Rebroni Music";
   $("tracks").innerHTML = "";
+  $("cover-upload-status").textContent = "";
+  updateCoverPreview();
 }
 
 function fillForm(a) {
@@ -190,6 +195,7 @@ function fillForm(a) {
   $("tracks").innerHTML = "";
   (a.tracks || []).forEach(t => addTrackRow(t));
   renumberTracks();
+  updateCoverPreview();
 }
 
 function addTrackRow(t = {}) {
@@ -336,6 +342,81 @@ $("btn-delete").addEventListener("click", async () => {
     setStatus("edit-status", "삭제 실패: " + e.message, "err");
   }
 });
+
+// ---------- 커버 이미지 업로드 ----------
+$("btn-upload-cover").addEventListener("click", e => {
+  e.preventDefault();
+  $("f-cover-file").click();
+});
+
+$("f-cover-file").addEventListener("change", async e => {
+  const file = e.target.files?.[0];
+  e.target.value = ""; // 같은 파일 재선택 가능하도록 리셋
+  if (!file) return;
+
+  const albumId = $("f-id").value.trim();
+  if (!albumId) {
+    setStatus("edit-status", "먼저 앨범 ID를 입력한 뒤 업로드하세요.", "err");
+    return;
+  }
+
+  const statusEl = $("cover-upload-status");
+  try {
+    statusEl.textContent = "이미지 최적화 중…";
+    const blob = await resizeImage(file, 1600, 0.85);
+
+    statusEl.textContent = "업로드 중…";
+    const path = `covers/${albumId}-${Date.now()}.jpg`;
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
+    const url = await getDownloadURL(storageRef);
+
+    $("f-cover").value = url;
+    updateCoverPreview();
+    statusEl.textContent = `업로드 완료 (${Math.round(blob.size / 1024)}KB)`;
+    setStatus("edit-status", "커버 업로드 완료. [저장]을 눌러야 앨범에 반영됩니다.", "ok");
+  } catch (err) {
+    statusEl.textContent = "";
+    setStatus("edit-status", "업로드 실패: " + err.message, "err");
+  }
+});
+
+// 큰 이미지는 최대 변 기준으로 축소 후 JPEG 재인코딩 (트래픽/로딩 최적화)
+async function resizeImage(file, maxSize, quality) {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      b => b ? resolve(b) : reject(new Error("이미지 변환 실패")),
+      "image/jpeg",
+      quality
+    );
+  });
+}
+
+function updateCoverPreview() {
+  const v = $("f-cover").value.trim();
+  const img = $("cover-preview");
+  if (!v) {
+    img.classList.add("hidden");
+    img.removeAttribute("src");
+    return;
+  }
+  img.src = v; // 상대 파일명(같은 저장소)과 전체 URL 모두 동작
+  img.classList.remove("hidden");
+  img.onerror = () => img.classList.add("hidden");
+}
+
+$("f-cover").addEventListener("input", updateCoverPreview);
 
 // ---------- 유틸 ----------
 function esc(s) {
