@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // 앨범: 누구나 읽기, 관리자만 쓰기
+    match /albums/{albumId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 관리자 명단: 본인 문서만 읽기 가능(권한 확인용), 쓰기는 콘솔에서만
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // 향후 확장 예약 (Phase2+):
+    // match /products/{productId} { allow read: if true; allow write: if isAdmin(); }
+    // match /orders/{orderId} { ... 구매자 본인 + 관리자만 ... }
+
+    // 그 외 모든 문서 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

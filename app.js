@@ -1,5 +1,7 @@
 /* Discography site with improved layout & 2-line track structure */
 
+import { loadAlbums } from "./data-service.js";
+
 function updateStickyBarHeight() {
   const bar = document.getElementById("stickybar");
   if (!bar) return;
@@ -109,15 +111,8 @@ async function main() {
     `).join("");
   }
 
-  const res = await fetch("albums.json", {
-    cache: "default",
-    headers: {
-      "Cache-Control": "max-age=3600"
-    }
-  });
-
-  if (!res.ok) throw new Error("Failed to load albums.json");
-  const albums = await res.json();
+  // Firestore 우선, 실패 시 albums.json 폴백 (data-service.js)
+  const albums = await loadAlbums();
 
   updateStickyBarHeight();
   window.addEventListener("resize", updateStickyBarHeight);
