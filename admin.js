@@ -7,7 +7,7 @@ const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChange
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-auth.js`);
 const { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy, limit } =
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-firestore.js`);
-const { getStorage, ref, uploadBytes, getDownloadURL } =
+const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } =
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-storage.js`);
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
@@ -231,11 +231,129 @@ function addTrackRow(t = {}) {
     <textarea class="t-lyrics-ko" placeholder="가사를 입력하면 사이트에 [Lyrics] 버튼이 생깁니다">${esc(t.lyrics?.ko || "")}</textarea>
     <label>가사 — English (선택)</label>
     <textarea class="t-lyrics-en">${esc(t.lyrics?.en || "")}</textarea>
+    <label>음원 파일 (mp3/wav, 곡당 최대 20MB)</label>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <input type="file" class="t-audio-file hidden" accept=".mp3,.wav,audio/mpeg,audio/wav,audio/x-wav">
+      <button class="btn small t-audio-upload">음원 파일 업로드</button>
+      <button class="btn small t-audio-copy ${t.audioUrl ? "" : "hidden"}">URL 복사</button>
+      <button class="btn small danger t-audio-del ${t.audioUrl ? "" : "hidden"}">음원 삭제</button>
+      <span class="muted t-audio-status"></span>
+    </div>
+    <input type="url" class="t-audio-url" readonly placeholder="업로드하면 다운로드 URL이 자동 입력됩니다" value="${escAttr(t.audioUrl || "")}">
+    <input type="hidden" class="t-audio-path" value="${escAttr(t.audioPath || "")}">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <input type="checkbox" class="t-unlisted" style="width:auto;" ${t.unlisted ? "checked" : ""}>
+      비발매 (게임/비공개용) — 사이트 공개 목록에 노출하지 않음
+    </label>
   `;
-  div.querySelector(".t-del").addEventListener("click", e => {
+  div.querySelector(".t-del").addEventListener("click", async e => {
     e.preventDefault();
+    const audioPath = div.querySelector(".t-audio-path").value.trim();
+    if (audioPath) {
+      if (!confirm("이 곡의 음원 파일도 Storage에서 함께 삭제됩니다. 진행할까요?")) return;
+      try {
+        await deleteObject(ref(storage, audioPath));
+      } catch (err) {
+        if (err.code !== "storage/object-not-found") {
+          setStatus("edit-status", "음원 파일 삭제 실패: " + err.message, "err");
+          return;
+        }
+      }
+    }
     div.remove();
     renumberTracks();
+  });
+
+  // ----- 음원 업로드 / URL 복사 / 음원 삭제 -----
+  const audioFile = div.querySelector(".t-audio-file");
+  const audioUrlEl = div.querySelector(".t-audio-url");
+  const audioPathEl = div.querySelector(".t-audio-path");
+  const audioStatus = div.querySelector(".t-audio-status");
+  const btnCopy = div.querySelector(".t-audio-copy");
+  const btnAudioDel = div.querySelector(".t-audio-del");
+
+  function syncAudioButtons() {
+    const has = !!audioUrlEl.value.trim();
+    btnCopy.classList.toggle("hidden", !has);
+    btnAudioDel.classList.toggle("hidden", !has);
+  }
+
+  div.querySelector(".t-audio-upload").addEventListener("click", e => {
+    e.preventDefault();
+    audioFile.click();
+  });
+
+  audioFile.addEventListener("change", async e => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (!["mp3", "wav"].includes(ext)) {
+      audioStatus.textContent = "mp3 또는 wav 파일만 업로드할 수 있습니다.";
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      audioStatus.textContent = `파일이 20MB를 초과합니다 (${Math.round(file.size / 1024 / 1024)}MB).`;
+      return;
+    }
+    const slug = slugify(file.name.replace(/\.[^.]+$/, ""))
+      || slugify(div.querySelector(".t-title").value);
+    if (!slug) {
+      audioStatus.textContent = "영문 슬러그를 만들 수 없습니다. 파일명 또는 곡 제목에 영문을 포함하세요.";
+      return;
+    }
+
+    try {
+      audioStatus.textContent = "업로드 중…";
+      const path = `tracks/${slug}.${ext}`;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, file, {
+        contentType: ext === "mp3" ? "audio/mpeg" : "audio/wav"
+      });
+      const url = await getDownloadURL(storageRef);
+      audioUrlEl.value = url;
+      audioPathEl.value = path;
+      syncAudioButtons();
+      audioStatus.textContent = `업로드 완료 (${Math.round(file.size / 1024)}KB)`;
+      setStatus("edit-status", "음원 업로드 완료. [저장]을 눌러야 앨범에 반영됩니다.", "ok");
+    } catch (err) {
+      audioStatus.textContent = "";
+      setStatus("edit-status", "음원 업로드 실패: " + err.message, "err");
+    }
+  });
+
+  btnCopy.addEventListener("click", async e => {
+    e.preventDefault();
+    try {
+      await navigator.clipboard.writeText(audioUrlEl.value.trim());
+      audioStatus.textContent = "URL 복사 완료.";
+    } catch {
+      audioStatus.textContent = "복사 실패 — URL을 직접 선택해 복사하세요.";
+    }
+  });
+
+  btnAudioDel.addEventListener("click", async e => {
+    e.preventDefault();
+    if (!confirm("이 곡의 음원 파일을 Storage에서 삭제할까요?")) return;
+    const path = audioPathEl.value.trim();
+    try {
+      if (path) await deleteObject(ref(storage, path));
+      audioUrlEl.value = "";
+      audioPathEl.value = "";
+      syncAudioButtons();
+      audioStatus.textContent = "음원 삭제 완료.";
+      setStatus("edit-status", "음원 삭제 완료. [저장]을 눌러야 앨범에 반영됩니다.", "ok");
+    } catch (err) {
+      if (err.code === "storage/object-not-found") {
+        audioUrlEl.value = "";
+        audioPathEl.value = "";
+        syncAudioButtons();
+        audioStatus.textContent = "파일이 이미 없어 URL만 제거했습니다.";
+      } else {
+        setStatus("edit-status", "음원 삭제 실패: " + err.message, "err");
+      }
+    }
   });
   div.querySelector(".t-up").addEventListener("click", e => {
     e.preventDefault();
@@ -285,6 +403,11 @@ function collectForm() {
     const lko = el.querySelector(".t-lyrics-ko").value.trim();
     const len = el.querySelector(".t-lyrics-en").value.trim();
     if (lko || len) t.lyrics = { ko: lko, en: len };
+    const audioUrl = el.querySelector(".t-audio-url").value.trim();
+    const audioPath = el.querySelector(".t-audio-path").value.trim();
+    if (audioUrl) t.audioUrl = audioUrl;
+    if (audioPath) t.audioPath = audioPath;
+    if (el.querySelector(".t-unlisted").checked) t.unlisted = true;
     return t;
   }).filter(t => t.title);
 
@@ -345,8 +468,21 @@ $("btn-save").addEventListener("click", async () => {
 
 $("btn-delete").addEventListener("click", async () => {
   if (!editingId) return;
-  if (!confirm(`앨범 "${editingId}"을(를) 삭제합니다. 되돌릴 수 없습니다. 진행할까요?`)) return;
+  if (!confirm(`앨범 "${editingId}"을(를) 삭제합니다. 등록된 음원 파일도 Storage에서 함께 삭제되며, 되돌릴 수 없습니다. 진행할까요?`)) return;
   try {
+    // 앨범에 등록된 음원 파일 Storage 정리
+    const snap = await getDoc(doc(db, "albums", editingId));
+    if (snap.exists()) {
+      const tracks = snap.data().tracks || [];
+      for (const t of tracks) {
+        if (!t.audioPath) continue;
+        try {
+          await deleteObject(ref(storage, t.audioPath));
+        } catch (err) {
+          if (err.code !== "storage/object-not-found") console.warn("음원 삭제 실패:", t.audioPath, err);
+        }
+      }
+    }
     await deleteDoc(doc(db, "albums", editingId));
     show("view-list");
     await refreshList();
@@ -513,6 +649,15 @@ function updateCoverPreview() {
 $("f-cover").addEventListener("input", updateCoverPreview);
 
 // ---------- 유틸 ----------
+// 영문 슬러그화: 소문자-하이픈 (예: "City Vibe (Remix)" → "city-vibe-remix")
+function slugify(s) {
+  return String(s || "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function esc(s) {
   return String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;").replaceAll("'", "&#39;");

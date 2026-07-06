@@ -115,6 +115,47 @@ Phase2 기능은 코드 배포 외에 **Firestore 규칙 재게시 1가지만** 
   admin "뉴스레터 구독자"에서 목록 확인 및 이메일 일괄 복사 → STIBEE/Mailchimp 등에서 발송.
 - **테마**: 상단 🌿/🌌 버튼으로 Cosmic Dark ↔ Nature Green 전환. 선택은 브라우저에 저장됩니다.
 
+## 11. Phase3 적용 (음원 파일 저장 + URL 제공)
+
+admin에서 곡별 mp3/wav 업로드 → 공개 다운로드 URL 발급 기능입니다.
+적용에 필요한 작업은 **규칙 재게시 + CORS 설정** 2가지입니다.
+
+1. **Storage 규칙 재게시 (필수)**
+   - Firebase Console → Storage → Rules 탭
+   - 이 저장소의 `storage.rules` 최신 내용 전체 붙여넣기 → 게시
+   - 추가된 규칙: `tracks/` 경로 (읽기 공개, 관리자만 업로드/삭제, 20MB 이하 오디오)
+2. **버킷 CORS 설정 (필수 — Web Audio 분석/외부 도메인 재생 대비)**
+   - Google Cloud Console의 **Cloud Shell**을 열거나, gsutil이 설치된 로컬 터미널에서:
+
+   ```
+   gsutil cors set cors.json gs://rebroni-music-web.firebasestorage.app
+   ```
+
+   - `cors.json`은 이 저장소 루트에 보관되어 있습니다 (origin `*`, GET/HEAD).
+   - 확인: `gsutil cors get gs://rebroni-music-web.firebasestorage.app`
+3. git push로 배포 (Cloudflare Pages가 `functions/api/tracks.js`도 자동 배포)
+
+### 기능별 사용법
+
+- **음원 업로드**: admin → 앨범 편집 → 각 트랙의 **음원 파일 업로드** (mp3/wav, 곡당 최대 20MB).
+  파일명이 자동으로 영문 슬러그화되어 `tracks/{슬러그}.mp3` 경로에 저장되고,
+  다운로드 URL이 트랙의 `audioUrl` 필드에 기록됩니다. 업로드 후 반드시 **[저장]**.
+  **URL 복사** 버튼으로 발급된 URL을 복사할 수 있습니다.
+- **비발매 음원**: 트랙의 "비발매 (게임/비공개용)" 체크 → `unlisted: true`.
+  사이트 공개 목록에는 노출되지 않고, admin 화면과 URL로만 접근됩니다.
+- **삭제**: 트랙 삭제/앨범 삭제 시 Storage의 음원 파일도 함께 삭제됩니다.
+  음원만 삭제하려면 트랙의 **음원 삭제** 버튼 사용.
+- **공개 트랙 목록 API**: `GET https://music.rebroni.com/api/tracks`
+  → audioUrl이 있는 곡을 `[{ url, titleKo, titleEn, released, unlisted }]` JSON으로 반환.
+  `Access-Control-Allow-Origin: *` 헤더가 포함되어 외부 도메인(게임 등)에서 fetch 가능합니다.
+
+### 완료 확인 체크리스트
+
+- admin에서 mp3 업로드 → 발급 URL을 새 탭에서 열면 재생됨
+- 다른 도메인의 테스트 HTML에서 `<audio src="audioUrl">` 재생 성공 (CORS 적용 확인)
+- `fetch("https://music.rebroni.com/api/tracks")` 가 외부 도메인에서 JSON 반환
+- 기존 등록/삭제·스트리밍 링크 기능 정상 동작
+
 ## 이후 운영 방법 (새 앨범 발매 시)
 
 1. admin.html 접속 → **+ 새 앨범** → 폼 입력
@@ -127,7 +168,9 @@ Phase2 기능은 코드 배포 외에 **Firestore 규칙 재게시 1가지만** 
 albums (컬렉션)
  └─ {albumId} 문서: ordinal, title, artist, label, upload, release, upc,
                     cover, links{spotify_album, apple_album, youtube_album},
-                    concept{ko, en}, tracks[{no, title, isrc, links{...}}]
+                    concept{ko, en}, story{ko, en},
+                    tracks[{no, title, isrc, links{...}, lyrics{ko, en},
+                            audioUrl, audioPath, unlisted}]
                     (향후: productId — 실물 상품 연동용 예약)
 admins (컬렉션)
  └─ {uid} 문서: 존재하면 관리자

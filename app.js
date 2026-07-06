@@ -208,7 +208,8 @@ async function main() {
            </details>`
         : "";
 
-      const tracksHtml = (a.tracks || []).map(t => {
+      // unlisted(비발매) 곡은 공개 목록에 노출하지 않음
+      const tracksHtml = (a.tracks || []).filter(t => !t.unlisted).map(t => {
         const { main, sub } = splitTrackTitle(t.title);
         const tLinks = t.links || {};
         const ytId = getYouTubeId(tLinks.youtube);

@@ -9,6 +9,7 @@ service cloud.firestore {
     }
 
     // 앨범: 누구나 읽기, 관리자만 쓰기
+    // (트랙의 audioUrl 필드는 albums 문서 안에 포함되어 있으므로 자동으로 공개 읽기 가능)
     match /albums/{albumId} {
       allow read: if true;
       allow write: if isAdmin();
