@@ -138,6 +138,10 @@ async function main() {
   // Firestore 우선, 실패 시 albums.json 폴백 (data-service.js)
   const albums = await loadAlbums();
 
+  // 플레이리스트 모듈이 같은 데이터를 재사용하도록 공유 (중복 요청 방지)
+  window.__albums = albums;
+  window.dispatchEvent(new CustomEvent("albums:loaded", { detail: albums }));
+
   updateStickyBarHeight();
   window.addEventListener("resize", updateStickyBarHeight);
 

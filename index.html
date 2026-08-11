@@ -13,7 +13,7 @@
     catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
   </script>
   <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
-  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="styles.css?v=3">
 
   <meta property="og:title" content="SHINCHEOLHO-rebroni | Discography">
   <meta property="og:description" content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music">
@@ -30,6 +30,7 @@
   <!-- Sticky top bar: quick menu button + album nav + search -->
   <div id="stickybar" class="stickybar">
     <button id="quick-menu-btn" class="iconbtn" aria-label="Open albums menu">Albums</button>
+    <button id="playlist-btn" class="iconbtn" aria-label="Open playlist" style="margin-left:8px;">▶ Playlist</button>
     <button id="qr-btn" class="iconbtn" aria-label="Open QR Code" style="margin-left:8px;">QR</button>
     <button id="theme-btn" class="iconbtn" aria-label="Switch theme" title="테마 전환" style="margin-left:8px;">🌿</button>
     <nav id="album-nav" class="album-nav" aria-label="Album navigation"></nav>
@@ -121,9 +122,67 @@
       style="max-width:80vw; max-height:80vh; border-radius:16px; box-shadow:0 10px 40px rgba(0,0,0,0.8);">
   </div>
 
+  <!-- Playlist: 곡 선택 모달 -->
+  <div id="pl-modal" class="backdrop" style="z-index:1300;">
+    <div class="pl-panel" role="dialog" aria-labelledby="pl-modal-title">
+      <div class="pl-head">
+        <h3 id="pl-modal-title">Playlist</h3>
+        <button id="pl-close" class="iconbtn iconbtn-close" aria-label="Close playlist">✕</button>
+      </div>
+      <p class="pl-help">듣고 싶은 곡을 선택하세요. 앨범 제목의 체크박스로 앨범 전체를 한 번에 선택할 수 있습니다.<br>
+        <span class="en-sub">Pick any tracks across all albums — select a whole album with its header checkbox.</span></p>
+
+      <div class="pl-toolbar">
+        <button class="tbtn" id="pl-select-all">전체 선택</button>
+        <button class="tbtn" id="pl-clear-all">전체 해제</button>
+        <input type="search" id="pl-search" placeholder="곡 검색…" aria-label="Search tracks in playlist">
+      </div>
+
+      <div class="pl-saved">
+        <div class="pl-saved-row">
+          <input type="text" id="pl-save-name" placeholder="플레이리스트 이름 (예: 드라이브용)" maxlength="30"
+            aria-label="Playlist name">
+          <button class="tbtn" id="pl-save">현재 선택 저장</button>
+        </div>
+        <div class="pl-saved-list" id="pl-saved-list"></div>
+      </div>
+
+      <div class="pl-body" id="pl-body"></div>
+
+      <div class="pl-foot">
+        <span class="pl-selected-count" id="pl-selected-count">0곡 선택됨</span>
+        <button class="tbtn tbtn-primary" id="pl-play-selected" disabled>선택곡 재생</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Playlist: 하단 고정 플레이어 -->
+  <div id="pl-bar" class="pl-bar" aria-label="Playlist player">
+    <div class="pl-video-wrap"><div id="pl-video"></div></div>
+    <div class="pl-now">
+      <strong id="pl-now-title">—</strong>
+      <span id="pl-now-sub"></span>
+    </div>
+    <div class="pl-controls">
+      <button class="pl-btn" id="pl-prev" aria-label="이전 곡">⏮</button>
+      <button class="pl-btn pl-btn-main" id="pl-toggle" aria-label="재생">▶</button>
+      <button class="pl-btn" id="pl-next" aria-label="다음 곡">⏭</button>
+      <span class="pl-position" id="pl-position"></span>
+      <button class="pl-btn" id="pl-shuffle" aria-label="셔플" title="셔플">🔀</button>
+      <button class="pl-btn" id="pl-repeat" aria-label="전체 반복" title="전체 반복">🔁</button>
+      <button class="pl-btn" id="pl-queue-btn" aria-label="재생 목록" title="재생 목록">☰</button>
+      <button class="pl-btn" id="pl-expand" aria-label="영상 펼치기" title="영상 펼치기">△</button>
+      <button class="pl-btn" id="pl-close-bar" aria-label="플레이어 닫기" title="닫기">✕</button>
+    </div>
+    <div class="pl-queue-panel" id="pl-queue-panel">
+      <div class="pl-queue-list" id="pl-queue-list"></div>
+    </div>
+  </div>
+
   <button id="btn-back-to-top" class="btn-back-to-top" aria-label="Back to top">↑</button>
 
-  <script type="module" src="app.js?v=2"></script>
+  <script type="module" src="app.js?v=3"></script>
+  <script type="module" src="playlist.js?v=2"></script>
   <script type="module" src="community.js?v=2"></script>
 </body>
 

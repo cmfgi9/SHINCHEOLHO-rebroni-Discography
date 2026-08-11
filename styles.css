@@ -896,6 +896,519 @@ body {
   line-height: 1.6;
 }
 
+/* ========== Phase3: 통합 플레이리스트 (YouTube) ========== */
+
+/* --- 곡 선택 모달 --- */
+#pl-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pl-panel {
+  width: min(760px, 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #14141a;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+}
+
+.pl-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pl-head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: .04em;
+}
+
+.pl-help {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  opacity: .7;
+}
+
+.pl-help .en-sub {
+  opacity: .8;
+  font-style: italic;
+}
+
+.pl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 10px;
+  flex-wrap: wrap;
+}
+
+.pl-toolbar #pl-search {
+  flex: 1;
+  min-width: 140px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pl-toolbar #pl-search:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, .38);
+}
+
+/* --- 저장된 플레이리스트 --- */
+.pl-saved {
+  margin-bottom: 10px;
+}
+
+.pl-saved-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pl-saved-row input {
+  flex: 1;
+  min-width: 120px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pl-saved-row input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, .38);
+}
+
+.pl-saved-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pl-saved-empty {
+  font-size: 11.5px;
+  opacity: .55;
+}
+
+.pl-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.pl-chip button {
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.pl-chip .pl-chip-load em {
+  font-style: normal;
+  opacity: .55;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.pl-chip .pl-chip-load:hover {
+  color: #8fb4ff;
+}
+
+.pl-chip .pl-chip-del {
+  padding: 5px 9px 5px 4px;
+  opacity: .5;
+  font-size: 11px;
+}
+
+.pl-chip .pl-chip-del:hover {
+  opacity: 1;
+  color: #ff8080;
+}
+
+.pl-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 120px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 4px 0;
+}
+
+.pl-group {
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pl-group:last-child {
+  border-bottom: none;
+}
+
+.pl-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  cursor: pointer;
+  border-radius: 8px;
+  position: sticky;
+  top: 0;
+  background: #14141a;
+  z-index: 1;
+}
+
+.pl-group-head:hover {
+  background: var(--panel);
+}
+
+.pl-album-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.pl-count {
+  font-size: 11.5px;
+  opacity: .6;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-tracks {
+  padding-left: 14px;
+}
+
+.pl-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+
+.pl-track:hover {
+  background: var(--panel);
+}
+
+.pl-track.on {
+  background: rgba(120, 170, 255, .10);
+}
+
+.pl-track .pl-no {
+  min-width: 26px;
+  text-align: right;
+  opacity: .5;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.pl-track .pl-title em {
+  opacity: .6;
+  font-style: normal;
+  font-size: 12.5px;
+}
+
+.pl-body input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #5b8dff;
+  cursor: pointer;
+  flex: 0 0 16px;
+}
+
+.pl-empty {
+  padding: 24px 8px;
+  text-align: center;
+  opacity: .6;
+  font-size: 13px;
+}
+
+.pl-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.pl-selected-count {
+  flex: 1;
+  font-size: 13px;
+  opacity: .75;
+  font-variant-numeric: tabular-nums;
+}
+
+.tbtn.tbtn-primary {
+  background: #3b6fe0;
+  border-color: #3b6fe0;
+  color: #fff;
+}
+
+.tbtn.tbtn-primary:hover {
+  background: #4d80f0;
+}
+
+.tbtn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+body.pl-modal-open {
+  overflow: hidden;
+}
+
+/* --- 하단 고정 플레이어 바 --- */
+.pl-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1200;
+  display: none;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(14, 14, 17, .96);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -6px 26px rgba(0, 0, 0, .45);
+}
+
+.pl-bar.on {
+  display: flex;
+}
+
+body.pl-bar-on {
+  padding-bottom: 92px;
+}
+
+.pl-video-wrap {
+  width: 128px;
+  height: 72px;
+  flex: 0 0 128px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--line);
+  transition: width .25s ease, height .25s ease, flex-basis .25s ease;
+}
+
+.pl-bar.expanded .pl-video-wrap {
+  width: 320px;
+  height: 180px;
+  flex: 0 0 320px;
+}
+
+.pl-video-wrap iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.pl-now {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pl-now strong {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pl-now span {
+  font-size: 11.5px;
+  opacity: .6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pl-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pl-btn {
+  min-width: 34px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pl-btn:hover {
+  border-color: rgba(255, 255, 255, .35);
+}
+
+.pl-btn.pl-btn-main {
+  min-width: 42px;
+  height: 36px;
+  font-size: 16px;
+  background: #3b6fe0;
+  border-color: #3b6fe0;
+  color: #fff;
+}
+
+.pl-btn.on {
+  background: rgba(91, 141, 255, .28);
+  border-color: rgba(120, 170, 255, .7);
+}
+
+.pl-position {
+  font-size: 11.5px;
+  opacity: .6;
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* --- 재생 목록 패널 (바 위로 펼침) --- */
+.pl-queue-panel {
+  display: none;
+  position: absolute;
+  right: 12px;
+  bottom: calc(100% + 8px);
+  width: min(360px, 92vw);
+  max-height: 46vh;
+  overflow-y: auto;
+  background: #14141a;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .55);
+  padding: 6px;
+}
+
+.pl-queue-panel.open {
+  display: block;
+}
+
+.pl-q-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.pl-q-row:hover {
+  background: var(--panel);
+}
+
+.pl-q-row.on {
+  background: rgba(91, 141, 255, .18);
+}
+
+.pl-q-i {
+  min-width: 22px;
+  text-align: right;
+  opacity: .5;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-q-t {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+.pl-q-t em {
+  font-style: normal;
+  font-size: 11px;
+  opacity: .55;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 현재 재생 중인 곡 강조 (본문 트랙 목록) */
+.track.pl-current {
+  background: rgba(91, 141, 255, .10);
+  border-radius: 10px;
+}
+
+@media (max-width: 720px) {
+  .pl-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .pl-video-wrap {
+    width: 88px;
+    height: 50px;
+    flex: 0 0 88px;
+  }
+
+  .pl-bar.expanded .pl-video-wrap {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
+    flex: 1 1 100%;
+    order: -1;
+  }
+
+  .pl-controls {
+    width: 100%;
+    justify-content: center;
+  }
+
+  body.pl-bar-on {
+    padding-bottom: 148px;
+  }
+
+  .pl-panel {
+    padding: 14px 14px 12px;
+    max-height: 92vh;
+  }
+}
+
 /* ========== Phase2: Nature Green 라이트 테마 ========== */
 [data-theme="nature"] {
   --bg: #f3f7f1;
@@ -1004,6 +1517,75 @@ body {
 [data-theme="nature"] .album-player,
 [data-theme="nature"] .track-player {
   border-bottom-color: rgba(24, 68, 40, .22);
+}
+
+/* --- Nature 테마: 플레이리스트 --- */
+[data-theme="nature"] .pl-panel,
+[data-theme="nature"] .pl-group-head,
+[data-theme="nature"] .pl-queue-panel {
+  background: rgba(250, 253, 249, .99);
+  border-color: var(--line);
+  color: var(--fg);
+}
+
+[data-theme="nature"] .pl-panel,
+[data-theme="nature"] .pl-queue-panel {
+  box-shadow: 0 20px 60px rgba(30, 70, 45, .25);
+}
+
+[data-theme="nature"] .pl-bar {
+  background: rgba(250, 253, 249, .97);
+  border-top-color: var(--line);
+  box-shadow: 0 -6px 26px rgba(30, 70, 45, .18);
+}
+
+[data-theme="nature"] .pl-track.on,
+[data-theme="nature"] .pl-q-row.on,
+[data-theme="nature"] .track.pl-current {
+  background: rgba(34, 96, 56, .13);
+}
+
+[data-theme="nature"] .pl-btn {
+  background: rgba(34, 96, 56, .08);
+  border-color: rgba(24, 68, 40, .28);
+  color: var(--fg);
+}
+
+[data-theme="nature"] .pl-btn:hover {
+  border-color: rgba(24, 68, 40, .55);
+}
+
+[data-theme="nature"] .pl-btn.pl-btn-main,
+[data-theme="nature"] .tbtn.tbtn-primary {
+  background: #2e7d4f;
+  border-color: #2e7d4f;
+  color: #fff;
+}
+
+[data-theme="nature"] .pl-btn.on {
+  background: rgba(46, 125, 79, .22);
+  border-color: rgba(46, 125, 79, .6);
+}
+
+[data-theme="nature"] .pl-body input[type="checkbox"] {
+  accent-color: #2e7d4f;
+}
+
+[data-theme="nature"] .pl-toolbar #pl-search,
+[data-theme="nature"] .pl-saved-row input,
+[data-theme="nature"] .pl-chip {
+  background: rgba(34, 96, 56, .06);
+  border-color: var(--line);
+  color: var(--fg);
+}
+
+[data-theme="nature"] .pl-toolbar #pl-search:focus,
+[data-theme="nature"] .pl-saved-row input:focus {
+  border-color: rgba(24, 68, 40, .55);
+}
+
+[data-theme="nature"] .pl-chip .pl-chip-load:hover {
+  color: #1f6b3f;
 }
 
 [data-theme="nature"] .player-inner {
