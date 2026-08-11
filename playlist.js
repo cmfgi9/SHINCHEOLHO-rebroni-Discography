@@ -19,6 +19,8 @@ let wantPlay = false;     // API 준비 전 재생 요청 보류
 let shuffle = false;
 let repeat = true;
 let errStreak = 0;        // 연속 재생 실패 카운터 (무한 스킵 방지)
+let volume = 80;          // 0~100
+let muted = false;
 
 const $ = id => document.getElementById(id);
 
@@ -89,13 +91,15 @@ function loadSelection() {
     (saved.selected || []).forEach(k => { if (valid.has(k)) selected.add(k); });
     shuffle = !!saved.shuffle;
     repeat = saved.repeat !== false;
+    if (typeof saved.volume === "number") volume = Math.min(100, Math.max(0, saved.volume));
+    muted = !!saved.muted;
   } catch (e) { /* 저장값 없음/손상 — 무시 */ }
 }
 
 function saveSelection() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
-      selected: [...selected], shuffle, repeat
+      selected: [...selected], shuffle, repeat, volume, muted
     }));
   } catch (e) { /* 용량 초과 등 — 무시 */ }
 }
@@ -228,7 +232,10 @@ function ensurePlayer() {
     height: "100%", width: "100%",
     playerVars: { autoplay: 0, rel: 0, modestbranding: 1, playsinline: 1 },
     events: {
-      onReady: () => { if (wantPlay) { wantPlay = false; playCurrent(); } },
+      onReady: () => {
+        applyVolume();
+        if (wantPlay) { wantPlay = false; playCurrent(); }
+      },
       onStateChange: e => {
         const YT = window.YT;
         if (e.data === YT.PlayerState.PLAYING) errStreak = 0;
@@ -312,6 +319,30 @@ function togglePlay() {
 }
 
 function pause() { try { player?.pauseVideo(); } catch (e) { /* ignore */ } }
+
+// ---------- 볼륨 ----------
+function applyVolume() {
+  try {
+    if (!player || typeof player.setVolume !== "function") return;
+    player.setVolume(volume);
+    if (muted || volume === 0) player.mute();
+    else player.unMute();
+  } catch (e) { /* 플레이어 미준비 — 무시 */ }
+}
+
+function syncVolumeUI() {
+  const slider = $("pl-volume");
+  const btn = $("pl-mute");
+  if (slider && document.activeElement !== slider) slider.value = String(volume);
+  if (slider) slider.style.setProperty("--pl-vol", (muted ? 0 : volume) + "%");
+  if (btn) {
+    const off = muted || volume === 0;
+    btn.textContent = off ? "🔇" : (volume < 45 ? "🔉" : "🔊");
+    btn.classList.toggle("on", off);
+    btn.setAttribute("aria-label", off ? "음소거 해제" : "음소거");
+    btn.title = off ? "음소거 해제" : `음소거 (현재 ${volume}%)`;
+  }
+}
 
 function syncPlayIcon() {
   const btn = $("pl-toggle");
@@ -399,6 +430,7 @@ async function init() {
 
   $("pl-shuffle")?.classList.toggle("on", shuffle);
   $("pl-repeat")?.classList.toggle("on", repeat);
+  syncVolumeUI();
 
   openBtn?.addEventListener("click", openModal);
   $("pl-close")?.addEventListener("click", closeModal);
@@ -495,6 +527,26 @@ async function init() {
     $("pl-expand").textContent = on ? "▽" : "△";
     $("pl-expand").setAttribute("aria-label", on ? "영상 접기" : "영상 펼치기");
   });
+  // 볼륨: 슬라이더 + 음소거 토글
+  $("pl-volume")?.addEventListener("input", e => {
+    volume = Number(e.target.value) || 0;
+    if (volume > 0) muted = false;
+    applyVolume();
+    syncVolumeUI();
+  });
+  $("pl-volume")?.addEventListener("change", saveSelection);
+  $("pl-mute")?.addEventListener("click", () => {
+    if (muted || volume === 0) {
+      muted = false;
+      if (volume === 0) volume = 60;    // 0에서 해제하면 적당한 값으로 복원
+    } else {
+      muted = true;
+    }
+    applyVolume();
+    syncVolumeUI();
+    saveSelection();
+  });
+
   $("pl-shuffle")?.addEventListener("click", () => {
     shuffle = !shuffle;
     $("pl-shuffle").classList.toggle("on", shuffle);

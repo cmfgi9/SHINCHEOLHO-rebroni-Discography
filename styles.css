@@ -1299,6 +1299,55 @@ body.pl-bar-on {
   white-space: nowrap;
 }
 
+/* --- 볼륨 --- */
+.pl-vol {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#pl-volume {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 92px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right,
+      #5b8dff 0%, #5b8dff var(--pl-vol, 80%),
+      rgba(255, 255, 255, .18) var(--pl-vol, 80%), rgba(255, 255, 255, .18) 100%);
+  cursor: pointer;
+  outline: none;
+}
+
+#pl-volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #eaf0ff;
+  border: 1px solid rgba(0, 0, 0, .35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+
+#pl-volume::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #eaf0ff;
+  border: 1px solid rgba(0, 0, 0, .35);
+}
+
+#pl-volume::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+#pl-volume:focus-visible {
+  box-shadow: 0 0 0 2px rgba(91, 141, 255, .5);
+}
+
 /* --- 재생 목록 패널 (바 위로 펼침) --- */
 .pl-queue-panel {
   display: none;
@@ -1397,6 +1446,10 @@ body.pl-bar-on {
   .pl-controls {
     width: 100%;
     justify-content: center;
+  }
+
+  #pl-volume {
+    width: 64px;
   }
 
   body.pl-bar-on {
@@ -1565,6 +1618,18 @@ body.pl-bar-on {
 [data-theme="nature"] .pl-btn.on {
   background: rgba(46, 125, 79, .22);
   border-color: rgba(46, 125, 79, .6);
+}
+
+[data-theme="nature"] #pl-volume {
+  background: linear-gradient(to right,
+      #2e7d4f 0%, #2e7d4f var(--pl-vol, 80%),
+      rgba(24, 68, 40, .22) var(--pl-vol, 80%), rgba(24, 68, 40, .22) 100%);
+}
+
+[data-theme="nature"] #pl-volume::-webkit-slider-thumb,
+[data-theme="nature"] #pl-volume::-moz-range-thumb {
+  background: #fff;
+  border-color: rgba(24, 68, 40, .45);
 }
 
 [data-theme="nature"] .pl-body input[type="checkbox"] {

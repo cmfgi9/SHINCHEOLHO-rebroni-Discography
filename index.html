@@ -13,7 +13,7 @@
     catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
   </script>
   <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="styles.css?v=4">
 
   <meta property="og:title" content="SHINCHEOLHO-rebroni | Discography">
   <meta property="og:description" content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music">
@@ -168,6 +168,11 @@
       <button class="pl-btn pl-btn-main" id="pl-toggle" aria-label="재생">▶</button>
       <button class="pl-btn" id="pl-next" aria-label="다음 곡">⏭</button>
       <span class="pl-position" id="pl-position"></span>
+      <div class="pl-vol">
+        <button class="pl-btn" id="pl-mute" aria-label="음소거" title="음소거">🔊</button>
+        <input type="range" id="pl-volume" min="0" max="100" value="80" step="1"
+          aria-label="볼륨" title="볼륨">
+      </div>
       <button class="pl-btn" id="pl-shuffle" aria-label="셔플" title="셔플">🔀</button>
       <button class="pl-btn" id="pl-repeat" aria-label="전체 반복" title="전체 반복">🔁</button>
       <button class="pl-btn" id="pl-queue-btn" aria-label="재생 목록" title="재생 목록">☰</button>
@@ -182,7 +187,7 @@
   <button id="btn-back-to-top" class="btn-back-to-top" aria-label="Back to top">↑</button>
 
   <script type="module" src="app.js?v=3"></script>
-  <script type="module" src="playlist.js?v=2"></script>
+  <script type="module" src="playlist.js?v=3"></script>
   <script type="module" src="community.js?v=2"></script>
 </body>
 
