@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Rebroni Visualizer</title>
+  <meta name="description" content="음원을 재생하며 오디오 비주얼라이저와 9:16 배경을 합성해 MP4 쇼츠 영상으로 추출하는 모바일 웹앱">
+  <meta name="theme-color" content="#0b0b12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Visualizer">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
+  <link rel="stylesheet" href="viz.css?v=1">
+</head>
+
+<body>
+  <header class="topbar">
+    <a href="../" class="back" aria-label="Discography로 돌아가기">←</a>
+    <h1>Visualizer</h1>
+    <span id="fmt-badge" class="badge" title="이 기기에서 추출 가능한 영상 포맷"></span>
+  </header>
+
+  <main class="layout">
+    <!-- 9:16 미리보기 -->
+    <section class="stage-wrap">
+      <div class="stage">
+        <canvas id="stage" width="1080" height="1920" aria-label="비주얼라이저 미리보기"></canvas>
+        <div id="rec-overlay" class="rec-overlay" hidden>
+          <div class="rec-dot"></div>
+          <div id="rec-text">녹화 중…</div>
+          <div class="rec-bar"><div id="rec-progress"></div></div>
+          <button id="rec-cancel" class="btn ghost small">취소</button>
+        </div>
+      </div>
+
+      <!-- 플레이어 -->
+      <div class="player">
+        <button id="prev-btn" class="round" aria-label="이전 곡">⏮</button>
+        <button id="play-btn" class="round main" aria-label="재생" disabled>▶</button>
+        <button id="next-btn" class="round" aria-label="다음 곡">⏭</button>
+        <div class="seek">
+          <input id="seek" type="range" min="0" max="0" step="0.01" value="0" aria-label="재생 위치" disabled>
+          <div class="time"><span id="cur">0:00</span><span id="now-title" class="now-title">음원을 추가하세요</span><span id="dur">0:00</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 컨트롤 패널 -->
+    <section class="panel">
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="audio" role="tab">🎵 음원</button>
+        <button class="tab" data-tab="visual" role="tab">📊 비주얼</button>
+        <button class="tab" data-tab="bg" role="tab">🖼 배경</button>
+        <button class="tab" data-tab="export" role="tab">🎬 추출</button>
+      </nav>
+
+      <!-- 음원 -->
+      <div class="tabpane active" data-pane="audio">
+        <label class="drop" for="audio-input">
+          <strong>음원 파일 추가</strong>
+          <span>WAV · FLAC · MP3 · M4A · AAC · OGG (여러 개 선택 가능)</span>
+        </label>
+        <input id="audio-input" type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.aac,.ogg,.opus" multiple hidden>
+        <ul id="track-list" class="track-list"></ul>
+        <div class="row">
+          <label class="check"><input id="loop-one" type="checkbox"> 한 곡 반복</label>
+          <label class="field inline">볼륨 <input id="volume" type="range" min="0" max="1" step="0.01" value="1"></label>
+        </div>
+      </div>
+
+      <!-- 비주얼 -->
+      <div class="tabpane" data-pane="visual">
+        <div class="style-grid" id="style-grid"></div>
+
+        <div class="field">
+          <span>색상</span>
+          <div class="palette" id="palette"></div>
+          <div class="row">
+            <label class="color">색 1 <input id="color1" type="color" value="#00e5ff"></label>
+            <label class="color">색 2 <input id="color2" type="color" value="#ff2bd6"></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <span>위치</span>
+          <div class="seg" id="position">
+            <button data-v="top">위</button><button data-v="center">가운데</button><button data-v="bottom" class="on">아래</button>
+          </div>
+        </div>
+
+        <label class="field">크기 <output id="size-out">100%</output>
+          <input id="size" type="range" min="0.5" max="1.6" step="0.05" value="1"></label>
+        <label class="field">감도 <output id="sens-out">100%</output>
+          <input id="sens" type="range" min="0.4" max="2.5" step="0.05" value="1"></label>
+        <label class="field">부드러움 <output id="smooth-out">0.80</output>
+          <input id="smooth" type="range" min="0" max="0.95" step="0.01" value="0.8"></label>
+        <label class="field">막대 개수 <output id="bands-out">64</output>
+          <input id="bands" type="range" min="16" max="128" step="4" value="64"></label>
+        <label class="check"><input id="glow" type="checkbox" checked> 글로우 효과</label>
+
+        <div class="field">
+          <span>텍스트</span>
+          <input id="title-text" type="text" placeholder="곡 제목 (비우면 파일명)">
+          <input id="artist-text" type="text" placeholder="아티스트" value="SHINCHEOLHO-rebroni">
+          <label class="check"><input id="show-text" type="checkbox" checked> 제목/아티스트 표시</label>
+          <label class="check"><input id="show-progress" type="checkbox" checked> 진행 바 표시</label>
+        </div>
+      </div>
+
+      <!-- 배경 -->
+      <div class="tabpane" data-pane="bg">
+        <label class="drop" for="bg-input">
+          <strong>배경 이미지 / 영상 선택</strong>
+          <span>9:16 세로 비율 권장 (JPG · PNG · WEBP · GIF · MP4 · MOV · WEBM)</span>
+        </label>
+        <input id="bg-input" type="file" accept="image/*,video/*" hidden>
+        <div class="row">
+          <button id="bg-clear" class="btn ghost small">배경 제거</button>
+          <span id="bg-info" class="muted"></span>
+        </div>
+        <div class="field">
+          <span>맞춤</span>
+          <div class="seg" id="fit">
+            <button data-v="cover" class="on">꽉 채우기</button><button data-v="contain">전체 보기</button>
+          </div>
+        </div>
+        <label class="field">어둡게 <output id="dim-out">25%</output>
+          <input id="dim" type="range" min="0" max="0.85" step="0.01" value="0.25"></label>
+        <label class="field">블러 <output id="blur-out">0px</output>
+          <input id="blur" type="range" min="0" max="30" step="1" value="0"></label>
+        <label class="check"><input id="beat-zoom" type="checkbox" checked> 비트에 맞춰 배경 줌</label>
+        <div class="field">
+          <span>배경 없을 때 색</span>
+          <div class="row">
+            <label class="color">위 <input id="bgc1" type="color" value="#14112a"></label>
+            <label class="color">아래 <input id="bgc2" type="color" value="#03030a"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 추출 -->
+      <div class="tabpane" data-pane="export">
+        <div class="field">
+          <span>해상도</span>
+          <div class="seg" id="res">
+            <button data-v="720">720×1280</button><button data-v="1080" class="on">1080×1920</button>
+          </div>
+        </div>
+        <div class="field">
+          <span>프레임</span>
+          <div class="seg" id="fps">
+            <button data-v="24">24</button><button data-v="30" class="on">30</button><button data-v="60">60</button>
+          </div>
+        </div>
+        <div class="field">
+          <span>구간 (초)</span>
+          <div class="row">
+            <label class="color">시작 <input id="ex-start" type="number" min="0" step="0.1" value="0" inputmode="decimal"></label>
+            <label class="color">끝 <input id="ex-end" type="number" min="0" step="0.1" placeholder="곡 끝" inputmode="decimal"></label>
+          </div>
+          <div class="row">
+            <button class="btn ghost small" id="ex-full">전체</button>
+            <button class="btn ghost small" id="ex-60">처음 60초 (쇼츠)</button>
+            <button class="btn ghost small" id="ex-here">현재 위치부터 60초</button>
+          </div>
+        </div>
+        <button id="export-btn" class="btn primary" disabled>🎬 MP4로 영상 추출</button>
+        <p class="muted small" id="export-note">
+          추출은 선택한 구간을 실제 시간으로 재생하며 녹화합니다. 추출 중에는 화면을 켜 둔 채 앱을 떠나지 마세요.
+        </p>
+        <div id="result" class="result" hidden>
+          <video id="result-video" controls playsinline></video>
+          <div class="row">
+            <a id="dl-link" class="btn primary" download>⬇ 저장</a>
+            <button id="share-btn" class="btn ghost">공유 / 사진에 저장</button>
+          </div>
+          <span id="result-info" class="muted small"></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <audio id="audio" preload="auto" playsinline></audio>
+  <video id="bg-video" muted loop playsinline preload="auto" hidden></video>
+
+  <script src="viz.js?v=1"></script>
+</body>
+
+</html>
