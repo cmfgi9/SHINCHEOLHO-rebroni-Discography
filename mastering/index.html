@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Rebroni Mastering</title>
+  <meta name="description" content="브라우저 안에서 동작하는 무료 AI 마스터링 — 라우드니스·트루 피크 분석, 무드/레퍼런스 매칭, 플랫폼 재생 시뮬레이션, WAV 추출">
+  <meta name="theme-color" content="#0b0b12">
+  <link rel="icon" href="../visualizer/icon.svg" type="image/svg+xml">
+  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
+  <link rel="stylesheet" href="../visualizer/viz.css?v=1">
+  <link rel="stylesheet" href="master.css?v=1">
+</head>
+
+<body>
+  <header class="topbar">
+    <a href="../" class="back" aria-label="Discography로 돌아가기">←</a>
+    <h1>Mastering</h1>
+    <span id="status-badge" class="badge">음원을 추가하세요</span>
+  </header>
+
+  <main class="layout mlayout">
+    <!-- 모니터: 측정값 · 그래프 · A/B 플레이어 -->
+    <section class="monitor">
+      <div class="card">
+        <div class="meters" id="meters">
+          <div class="meter" data-k="lufs"><span class="mk">라우드니스</span><b class="mv">—</b><span class="mu">LUFS</span><span class="ms"></span></div>
+          <div class="meter" data-k="tp"><span class="mk">트루 피크</span><b class="mv">—</b><span class="mu">dBTP</span><span class="ms"></span></div>
+          <div class="meter" data-k="lra"><span class="mk">다이내믹(LRA)</span><b class="mv">—</b><span class="mu">LU</span><span class="ms"></span></div>
+          <div class="meter" data-k="plr"><span class="mk">PLR</span><b class="mv">—</b><span class="mu">dB</span><span class="ms"></span></div>
+          <div class="meter" data-k="corr"><span class="mk">스테레오 상관</span><b class="mv">—</b><span class="mu"></span><span class="ms"></span></div>
+          <div class="meter" data-k="width"><span class="mk">사이드/미드</span><b class="mv">—</b><span class="mu">dB</span><span class="ms"></span></div>
+        </div>
+        <p class="muted small legend"><span class="dot src"></span>원본 <span class="dot out"></span>마스터 <span class="dot tgt"></span>목표</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><strong>주파수 밸런스</strong><span class="muted small">1/3 옥타브 · 장시간 평균</span></div>
+        <canvas id="spec-canvas" class="chart" height="200" aria-label="스펙트럼 그래프"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><strong>라우드니스 흐름</strong><span class="muted small">숏텀 3초 · 눌러서 이동</span></div>
+        <canvas id="time-canvas" class="chart" height="120" aria-label="라우드니스 타임라인"></canvas>
+        <div class="abplayer">
+          <button id="ab-play" class="round main" aria-label="재생" disabled>▶</button>
+          <div class="seg ab" id="ab-which">
+            <button data-v="src">A 원본</button><button data-v="out" class="on">B 마스터</button>
+          </div>
+          <span id="ab-time" class="muted small">0:00 / 0:00</span>
+        </div>
+        <label class="field">듣기 기준
+          <select id="monitor-mode" class="select">
+            <option value="match">라우드니스 맞춤 (공정 비교)</option>
+            <option value="raw">원래 음량 그대로</option>
+            <option value="spotify">Spotify 재생 시뮬레이션</option>
+            <option value="youtube">YouTube 재생 시뮬레이션</option>
+            <option value="apple">Apple Music 재생 시뮬레이션</option>
+          </select>
+        </label>
+        <p class="muted small" id="monitor-note"></p>
+      </div>
+
+      <div id="busy" class="busy" hidden>
+        <div class="busy-text"><span id="busy-label">처리 중…</span><span id="busy-pct"></span></div>
+        <div class="rec-bar"><div id="busy-bar"></div></div>
+      </div>
+    </section>
+
+    <!-- 컨트롤 패널 -->
+    <section class="panel">
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="source" role="tab">🎵 음원</button>
+        <button class="tab" data-tab="ai" role="tab">🤖 AI 분석</button>
+        <button class="tab" data-tab="tune" role="tab">🎛 조정</button>
+        <button class="tab" data-tab="export" role="tab">💾 추출</button>
+      </nav>
+
+      <!-- 음원 -->
+      <div class="tabpane active" data-pane="source">
+        <label class="drop" for="file-input" data-role="source">
+          <strong>마스터링할 음원 선택</strong>
+          <span>WAV · FLAC · AIFF · MP3 · M4A (믹스다운 원본 WAV 권장)</span>
+        </label>
+        <input id="file-input" type="file" accept="audio/*,.wav,.flac,.aif,.aiff,.mp3,.m4a,.aac,.ogg" hidden>
+        <div id="file-info" class="fileinfo" hidden></div>
+        <p class="muted small">🔒 음원은 서버로 올라가지 않고 이 기기 안에서만 처리됩니다.</p>
+
+        <div class="field">
+          <span>레퍼런스 곡 <em class="muted">(선택)</em></span>
+          <p class="muted small">닮고 싶은 곡을 넣으면 그 곡의 주파수 밸런스·음량·다이내믹·스테레오 폭을 목표로 맞춥니다.</p>
+          <label class="drop small-drop" for="ref-input" data-role="ref">
+            <strong>레퍼런스 파일 선택</strong>
+          </label>
+          <input id="ref-input" type="file" accept="audio/*,.wav,.flac,.aif,.aiff,.mp3,.m4a,.aac,.ogg" hidden>
+          <div class="row">
+            <button id="catalog-btn" class="btn ghost small">💿 Rebroni 발매곡에서 고르기</button>
+          </div>
+          <select id="catalog-select" class="select" hidden>
+            <option value="">— 발매곡 선택 —</option>
+          </select>
+          <div id="ref-info" class="fileinfo" hidden></div>
+        </div>
+      </div>
+
+      <!-- AI 분석 -->
+      <div class="tabpane" data-pane="ai">
+        <div class="field">
+          <span>무드 <em class="muted">— 앨범 사운드에서 착안한 목표 사운드</em></span>
+          <div class="mood-grid" id="mood-grid"></div>
+        </div>
+        <label class="check"><input id="use-ref" type="checkbox" disabled> 레퍼런스 곡에 맞추기 <span class="muted small" id="use-ref-note">(음원 탭에서 레퍼런스를 추가하세요)</span></label>
+        <button id="auto-btn" class="btn primary" disabled>🤖 AI 자동 설정 적용</button>
+        <div class="field">
+          <span>진단 결과</span>
+          <ul id="notes" class="notes"><li class="muted">음원을 추가하면 분석 결과가 표시됩니다.</li></ul>
+        </div>
+      </div>
+
+      <!-- 세부 조정 -->
+      <div class="tabpane" data-pane="tune">
+        <div class="field">
+          <span>목표 라우드니스</span>
+          <div class="seg" id="target-seg">
+            <button data-v="-16">-16 · Apple</button><button data-v="-14">-14 · 스트리밍</button><button data-v="-11">-11 · 팝</button><button data-v="-9">-9 · 클럽</button>
+          </div>
+        </div>
+        <label class="field">목표 <output id="target-out"></output>
+          <input id="target" type="range" min="-20" max="-7" step="0.5"></label>
+        <label class="field">트루 피크 상한 <output id="ceiling-out"></output>
+          <input id="ceiling" type="range" min="-3" max="-0.1" step="0.1"></label>
+
+        <div class="field">
+          <span>EQ</span>
+          <canvas id="eq-canvas" class="chart" height="110" aria-label="EQ 곡선"></canvas>
+        </div>
+        <label class="field">AI EQ 강도 <output id="eqAmount-out"></output>
+          <input id="eqAmount" type="range" min="0" max="1" step="0.05"></label>
+        <label class="field">저역 (100Hz) <output id="low-out"></output>
+          <input id="low" type="range" min="-6" max="6" step="0.5"></label>
+        <label class="field">존재감 (3kHz) <output id="presence-out"></output>
+          <input id="presence" type="range" min="-6" max="6" step="0.5"></label>
+        <label class="field">공기감 (12kHz) <output id="air-out"></output>
+          <input id="air" type="range" min="-6" max="6" step="0.5"></label>
+
+        <label class="field">글루 압축 <output id="comp-out"></output>
+          <input id="comp" type="range" min="0" max="1" step="0.05"></label>
+        <label class="field">따뜻함 (새츄레이션) <output id="warmth-out"></output>
+          <input id="warmth" type="range" min="0" max="1" step="0.05"></label>
+        <label class="field">스테레오 폭 <output id="width-out"></output>
+          <input id="width" type="range" min="0.5" max="1.5" step="0.01"></label>
+        <label class="check"><input id="monoBass" type="checkbox"> 120Hz 이하 저역 모노화 (킥·베이스 중심 고정)</label>
+        <p class="muted small">값을 바꾸면 잠시 후 자동으로 다시 마스터링합니다.</p>
+      </div>
+
+      <!-- 추출 -->
+      <div class="tabpane" data-pane="export">
+        <div class="field">
+          <span>WAV 포맷</span>
+          <div class="seg" id="bits-seg">
+            <button data-v="24">24-bit (권장)</button><button data-v="16">16-bit · 디더</button>
+          </div>
+        </div>
+        <button id="dl-btn" class="btn primary" disabled>⬇ 마스터 WAV 저장</button>
+        <button id="viz-btn" class="btn" disabled>🎬 비주얼라이저로 보내 쇼츠 만들기</button>
+        <button id="report-btn" class="btn ghost" disabled>📄 마스터링 리포트 저장</button>
+
+        <div class="field">
+          <span>플랫폼 재생 예상 <em class="muted">(공개된 기본 정규화 기준 · 추정치)</em></span>
+          <table class="ptable" id="ptable">
+            <thead><tr><th>플랫폼</th><th>기준</th><th>원본</th><th>마스터</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p class="muted small">음수는 플랫폼이 볼륨을 그만큼 줄여서 재생한다는 뜻입니다. 너무 크게 마스터링하면 줄어든 볼륨에 압축된 소리만 남습니다.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="dsp.js?v=1"></script>
+  <script src="master.js?v=1"></script>
+</body>
+
+</html>
