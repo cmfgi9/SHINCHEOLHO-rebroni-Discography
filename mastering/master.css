@@ -1,0 +1,99 @@
+/* Mastering 전용 스타일 — 공통 컴포넌트는 ../visualizer/viz.css 를 함께 씁니다 */
+:root {
+  --src: #9a9ab0;
+  --ok: #6dffb0;
+  --warn: #ffcf6d;
+  --bad: #ff6d6d;
+}
+
+@media (min-width: 860px) {
+  .mlayout { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+  .monitor { position: sticky; top: 70px; }
+}
+
+.monitor { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+/* 휴대폰: 컨트롤(음원 선택)을 먼저 보여 줌 */
+@media (max-width: 859px) { .mlayout .panel { order: -1; } }
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px; display: grid; gap: 10px; min-width: 0;
+}
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+
+.meters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.meter {
+  display: grid; gap: 2px; padding: 10px; border-radius: 10px; background: var(--panel-2);
+  font-variant-numeric: tabular-nums; min-width: 0;
+}
+.meter .mk { font-size: 11px; color: var(--muted); }
+.meter .mv { font-size: 20px; line-height: 1.2; }
+.meter .mu { font-size: 10px; color: var(--muted); }
+.meter .ms { font-size: 11px; color: var(--src); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meter.ok .mv { color: var(--ok); }
+.meter.warn .mv { color: var(--warn); }
+.meter.bad .mv { color: var(--bad); }
+
+.legend { display: flex; gap: 6px 12px; align-items: center; flex-wrap: wrap; }
+.dot { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: -6px; vertical-align: middle; }
+.dot.src { background: var(--src); }
+.dot.out { background: var(--accent); }
+.dot.tgt { background: var(--accent-2); }
+
+.chart { width: 100%; display: block; border-radius: 10px; background: var(--panel-2); touch-action: manipulation; }
+#time-canvas { cursor: pointer; }
+
+.abplayer { display: flex; align-items: center; gap: 10px; }
+.seg.ab { flex: 1; }
+.seg.ab button.on { font-weight: 600; box-shadow: inset 0 -2px 0 currentColor; }
+.seg.ab button.on[data-v="src"] { color: var(--text); }
+.seg.ab button.on[data-v="out"] { color: var(--accent); }
+
+.select {
+  width: 100%; padding: 10px 12px; border-radius: 10px; font: inherit; font-size: 14px;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+}
+.select[hidden] { display: none; }
+
+.busy {
+  position: sticky; bottom: 12px;
+  display: grid; gap: 8px; padding: 12px 14px; border-radius: var(--radius);
+  background: rgba(20, 20, 31, .95); border: 1px solid var(--accent); font-size: 13px;
+}
+.busy[hidden] { display: none; }
+.busy-text { display: flex; justify-content: space-between; }
+#busy-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .2s; }
+
+.small-drop { padding: 14px 12px; }
+.fileinfo {
+  display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--panel-2);
+  font-size: 13px; color: var(--muted); word-break: break-all;
+}
+.fileinfo[hidden] { display: none; }
+.fileinfo b { color: var(--text); font-weight: 600; }
+.fileinfo .row { justify-content: space-between; }
+
+.mood-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.mood-grid button {
+  display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font-size: 11px;
+}
+.mood-grid button b { font-size: 14px; color: var(--text); }
+.mood-grid button.on { border-color: var(--accent); }
+
+.notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; color: var(--text); }
+.notes li { padding: 8px 10px 8px 30px; border-radius: 10px; background: var(--panel-2); position: relative; line-height: 1.45; }
+.notes li::before { position: absolute; left: 10px; top: 8px; }
+.notes li.ok::before { content: "✓"; color: var(--ok); }
+.notes li.warn::before { content: "!"; color: var(--warn); font-weight: 700; }
+.notes li.info::before { content: "i"; color: var(--accent); font-style: italic; }
+.notes li.muted { padding-left: 10px; }
+
+.ptable { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.ptable th, .ptable td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+.ptable th:first-child, .ptable td:first-child { text-align: left; }
+.ptable th { font-weight: 500; color: var(--muted); font-size: 12px; }
+.ptable td.down { color: var(--warn); }
+.ptable td.flat { color: var(--ok); }
+
+.panel .btn { width: 100%; }
+em { font-style: normal; }

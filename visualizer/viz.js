@@ -973,6 +973,27 @@
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 
+  // ---------- 마스터링 앱에서 넘어온 음원 (IndexedDB 경유) ----------
+  function takeHandoff() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open("rebroni-handoff", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("files");
+      r.onerror = () => rej(r.error);
+      r.onsuccess = () => {
+        const tx = r.result.transaction("files", "readwrite"), store = tx.objectStore("files");
+        const get = store.get("pending");
+        get.onsuccess = () => { store.delete("pending"); res(get.result || null); };
+        get.onerror = () => rej(get.error);
+      };
+    });
+  }
+  if (/[?&]from=mastering\b/.test(location.search)) {
+    history.replaceState(null, "", location.pathname);
+    takeHandoff().then((item) => {
+      if (item && item.blob) addAudioFiles([new File([item.blob], item.name, { type: "audio/wav" })]);
+    }).catch(() => { /* 넘겨받은 음원 없음 */ });
+  }
+
   renderTracks();
   requestAnimationFrame(frame);
 })();
