@@ -81,9 +81,9 @@
       <div class="tabpane active" data-pane="source">
         <label class="drop" for="file-input" data-role="source">
           <strong>마스터링할 음원 선택</strong>
-          <span>WAV · FLAC · AIFF · MP3 · M4A (믹스다운 원본 WAV 권장)</span>
+          <span>WAV · FLAC · AIFF · MP3 · M4A · OPUS (믹스다운 원본 WAV 권장)</span>
         </label>
-        <input id="file-input" type="file" accept="audio/*,.wav,.flac,.aif,.aiff,.mp3,.m4a,.aac,.ogg" hidden>
+        <input id="file-input" type="file" accept="audio/*,.wav,.flac,.aif,.aiff,.mp3,.m4a,.aac,.ogg,.opus" hidden>
         <div id="file-info" class="fileinfo" hidden></div>
         <p class="muted small">🔒 음원은 서버로 올라가지 않고 이 기기 안에서만 처리됩니다.</p>
 
@@ -93,7 +93,7 @@
           <label class="drop small-drop" for="ref-input" data-role="ref">
             <strong>레퍼런스 파일 선택</strong>
           </label>
-          <input id="ref-input" type="file" accept="audio/*,.wav,.flac,.aif,.aiff,.mp3,.m4a,.aac,.ogg" hidden>
+          <input id="ref-input" type="file" accept="audio/*,.wav,.flac,.aif,.aiff,.mp3,.m4a,.aac,.ogg,.opus" hidden>
           <div class="row">
             <button id="catalog-btn" class="btn ghost small">💿 Rebroni 발매곡에서 고르기</button>
           </div>
@@ -179,7 +179,7 @@
   </main>
 
   <script src="dsp.js?v=1"></script>
-  <script src="master.js?v=1"></script>
+  <script src="master.js?v=2"></script>
 </body>
 
 </html>

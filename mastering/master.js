@@ -94,6 +94,11 @@
           o += 8 + size + (size & 1);
         }
       }
+      // Ogg: Opus는 항상 48kHz로 디코딩, Vorbis는 식별 헤더의 표본화율
+      if (tag(0) === "OggS") {
+        if (tag(28) === "Opus" && tag(32) === "Head") return 48000;
+        if (v.getUint8(28) === 1 && tag(29) === "vorb") return v.getUint32(40, true);
+      }
       if (tag(0) === "fLaC") return (v.getUint8(18) << 12) | (v.getUint8(19) << 4) | (v.getUint8(20) >> 4);
       if (tag(0) === "FORM" && (tag(8) === "AIFF" || tag(8) === "AIFC")) {
         for (let o = 12; o + 8 <= v.byteLength;) {
