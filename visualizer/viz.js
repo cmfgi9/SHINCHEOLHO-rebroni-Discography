@@ -708,8 +708,9 @@
     recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = () => {
       vStream.getTracks().forEach((t) => t.stop());
-      if (!cancelled) showResult(new Blob(chunks, { type: recorder.mimeType || exportMime || "video/webm" }));
+      const raw = new Blob(chunks, { type: recorder.mimeType || exportMime || "video/webm" });
       chunks = [];
+      if (!cancelled) finalizeVideo(raw).then(showResult);
     };
 
     exporting = true;
@@ -774,8 +775,70 @@
     }
   });
 
+  // MediaRecorder 결과는 조각난(fragmented) MP4/WebM이라 헤더의 영상 길이가 0으로 기록됩니다.
+  // 폰 플레이어는 끝까지 재생하지만 VLLO·TikTok 등은 앞부분(몇 초)만 인식하므로,
+  // 재인코딩 없이 일반 MP4(faststart)/WebM으로 다시 포장(remux)해 길이 정보를 채웁니다.
+  async function finalizeVideo(raw) {
+    $("#export-btn").disabled = true;
+    $("#rec-overlay").hidden = false;
+    $("#rec-cancel").hidden = true;
+    $("#rec-text").textContent = "영상 정리 중… (업로드용 변환)";
+    $("#rec-progress").style.width = "0%";
+    try {
+      const mb = await import("./vendor/mediabunny.min.mjs");
+      try {
+        return await remux(mb, raw, true);
+      } catch (e) {
+        // H.264/AAC 변환이 실패해도 길이 정보만은 고친 파일을 만듭니다
+        console.warn("코덱 변환 실패, 재포장만 시도합니다", e);
+        return await remux(mb, raw, false);
+      }
+    } catch (e) {
+      console.warn("remux 실패, 원본 녹화 파일을 사용합니다", e);
+      return { blob: raw, codecs: "" };
+    } finally {
+      $("#rec-overlay").hidden = true;
+      $("#rec-cancel").hidden = false;
+      $("#export-btn").disabled = !tracks.length;
+    }
+  }
+
+  async function remux(mb, raw, transcode) {
+    const isMp4 = raw.type.includes("mp4");
+    const input = new mb.Input({ source: new mb.BlobSource(raw), formats: mb.ALL_FORMATS });
+    const output = new mb.Output({
+      format: isMp4 ? new mb.Mp4OutputFormat({ fastStart: "in-memory" }) : new mb.WebMOutputFormat(),
+      target: new mb.BufferTarget(),
+    });
+    const vt = await input.getPrimaryVideoTrack(), at = await input.getPrimaryAudioTrack();
+    const opts = { input, output, showWarnings: false };
+    let vCodec = vt ? vt.codec : null, aCodec = at ? at.codec : null;
+    // 일부 브라우저는 MP4 안에 VP9/Opus를 넣어 녹화합니다. 편집·업로드 앱 호환을 위해
+    // 기기에서 인코딩이 가능하면 H.264/AAC로 변환합니다 (불가하면 원래 코덱 유지).
+    if (transcode && isMp4 && vt && vCodec !== "avc" && await mb.canEncodeVideo("avc", { width: W, height: H })) {
+      opts.video = { codec: "avc", bitrate: W >= 1080 ? 10_000_000 : 6_000_000 };
+      vCodec = "avc";
+      $("#rec-text").textContent = "H.264로 변환 중… (업로드용)";
+    }
+    if (transcode && isMp4 && at && aCodec !== "aac" && await mb.canEncodeAudio("aac")) {
+      opts.audio = { codec: "aac", bitrate: 192_000 };
+      aCodec = "aac";
+    }
+    const conversion = await mb.Conversion.init(opts);
+    if (!conversion.isValid) throw new Error("conversion invalid");
+    conversion.onProgress = (p) => { $("#rec-progress").style.width = Math.round(p * 100) + "%"; };
+    await conversion.execute();
+    const blob = new Blob([output.target.buffer], { type: isMp4 ? "video/mp4" : "video/webm" });
+    return { blob, codecs: codecLabel(vCodec, aCodec) };
+  }
+
+  function codecLabel(v, a) {
+    const names = { avc: "H.264", hevc: "H.265", vp9: "VP9", vp8: "VP8", av1: "AV1", aac: "AAC", opus: "Opus", mp3: "MP3" };
+    return [v, a].filter(Boolean).map((c) => names[c] || c).join(" / ");
+  }
+
   let resultUrl = null, resultFile = null;
-  function showResult(blob) {
+  function showResult({ blob, codecs }) {
     const isMp4 = blob.type.includes("mp4");
     const ext = isMp4 ? "mp4" : "webm";
     const safe = (currentTitle() || "visualizer").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 60);
@@ -786,7 +849,7 @@
     $("#result-video").src = resultUrl;
     const a = $("#dl-link");
     a.href = resultUrl; a.download = name;
-    $("#result-info").textContent = `${name} · ${fmtSize(blob.size)} · ${W}×${H} ${cfg.fps}fps`;
+    $("#result-info").textContent = `${name} · ${fmtSize(blob.size)} · ${W}×${H} ${cfg.fps}fps` + (codecs ? ` · ${codecs}` : "");
     $("#share-btn").hidden = !(navigator.canShare && navigator.canShare({ files: [resultFile] }));
     $("#result").hidden = false;
     activateTab("export");
