@@ -29,6 +29,18 @@ function setStatus(id, msg, cls = "") {
 let currentUser = null;
 let editingId = null; // null = 새 앨범
 
+// 업로드 가능한 음원 포맷 → Storage contentType
+const AUDIO_TYPES = {
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  opus: "audio/ogg", // Ogg Opus
+  ogg: "audio/ogg",
+  m4a: "audio/mp4",  // AAC (MP4 컨테이너)
+  aac: "audio/aac"   // AAC (ADTS)
+};
+// 다른 포맷으로 다시 올려 경로가 바뀐 기존 음원 — [저장]이 끝난 뒤에 Storage에서 삭제
+const replacedAudioPaths = new Set();
+
 // ---------- 인증 ----------
 $("btn-signin").addEventListener("click", async () => {
   try {
@@ -148,6 +160,7 @@ $("btn-add-track").addEventListener("click", e => {
 
 function openEdit(albumId) {
   editingId = albumId;
+  replacedAudioPaths.clear();
   $("edit-title").textContent = albumId ? `앨범 편집 — ${albumId}` : "새 앨범 추가";
   $("btn-delete").classList.toggle("hidden", !albumId);
   $("f-id").disabled = !!albumId;
@@ -231,9 +244,9 @@ function addTrackRow(t = {}) {
     <textarea class="t-lyrics-ko" placeholder="가사를 입력하면 사이트에 [Lyrics] 버튼이 생깁니다">${esc(t.lyrics?.ko || "")}</textarea>
     <label>가사 — English (선택)</label>
     <textarea class="t-lyrics-en">${esc(t.lyrics?.en || "")}</textarea>
-    <label>음원 파일 (mp3/wav, 곡당 최대 20MB)</label>
+    <label>음원 파일 (mp3/wav/opus/m4a·aac, 곡당 최대 20MB)</label>
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-      <input type="file" class="t-audio-file hidden" accept=".mp3,.wav,audio/mpeg,audio/wav,audio/x-wav">
+      <input type="file" class="t-audio-file hidden" accept="${Object.keys(AUDIO_TYPES).map(e => "." + e).join(",")},audio/*">
       <button class="btn small t-audio-upload">음원 파일 업로드</button>
       <button class="btn small t-audio-copy ${t.audioUrl ? "" : "hidden"}">URL 복사</button>
       <button class="btn small danger t-audio-del ${t.audioUrl ? "" : "hidden"}">음원 삭제</button>
@@ -289,8 +302,8 @@ function addTrackRow(t = {}) {
     if (!file) return;
 
     const ext = (file.name.split(".").pop() || "").toLowerCase();
-    if (!["mp3", "wav"].includes(ext)) {
-      audioStatus.textContent = "mp3 또는 wav 파일만 업로드할 수 있습니다.";
+    if (!AUDIO_TYPES[ext]) {
+      audioStatus.textContent = "mp3 · wav · opus · ogg · m4a · aac 파일만 업로드할 수 있습니다.";
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
@@ -308,10 +321,10 @@ function addTrackRow(t = {}) {
       audioStatus.textContent = "업로드 중…";
       const path = `tracks/${slug}.${ext}`;
       const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file, {
-        contentType: ext === "mp3" ? "audio/mpeg" : "audio/wav"
-      });
+      await uploadBytes(storageRef, file, { contentType: AUDIO_TYPES[ext] });
       const url = await getDownloadURL(storageRef);
+      const oldPath = audioPathEl.value.trim();
+      if (oldPath && oldPath !== path) replacedAudioPaths.add(oldPath);
       audioUrlEl.value = url;
       audioPathEl.value = path;
       syncAudioButtons();
@@ -454,6 +467,17 @@ $("btn-save").addEventListener("click", async () => {
     btn.disabled = true;
     setStatus("edit-status", "저장 중…");
     await setDoc(doc(db, "albums", id), data);
+    // 새 포맷으로 교체된 기존 음원 정리 (이 앨범에서 아직 쓰는 경로는 남김)
+    const inUse = new Set(data.tracks.map(t => t.audioPath).filter(Boolean));
+    for (const path of replacedAudioPaths) {
+      if (inUse.has(path)) continue;
+      try {
+        await deleteObject(ref(storage, path));
+      } catch (err) {
+        if (err.code !== "storage/object-not-found") console.warn("기존 음원 삭제 실패:", path, err);
+      }
+    }
+    replacedAudioPaths.clear();
     setStatus("edit-status", "저장 완료. 사이트에 바로 반영됩니다.", "ok");
     editingId = id;
     $("f-id").disabled = true;
