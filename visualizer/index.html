@@ -169,6 +169,11 @@
             <button class="btn ghost small" id="ex-here">현재 위치부터 60초</button>
           </div>
         </div>
+        <label class="field">페이드 인 <output id="fade-in-out">0.5초</output>
+          <input id="fade-in" type="range" min="0" max="3" step="0.5" value="0.5"></label>
+        <label class="field">페이드 아웃 <output id="fade-out-out">3.0초</output>
+          <input id="fade-out" type="range" min="0" max="8" step="0.5" value="3"></label>
+        <label class="check"><input id="fade-video" type="checkbox"> 화면도 함께 페이드 (검은 화면으로)</label>
         <button id="export-btn" class="btn primary" disabled>🎬 MP4로 영상 추출</button>
         <p class="muted small" id="export-note">
           추출은 선택한 구간을 실제 시간으로 재생하며 녹화합니다. 추출 중에는 화면을 켜 둔 채 앱을 떠나지 마세요.
@@ -188,7 +193,7 @@
   <audio id="audio" preload="auto" playsinline></audio>
   <video id="bg-video" muted loop playsinline preload="auto" hidden></video>
 
-  <script src="viz.js?v=2"></script>
+  <script src="viz.js?v=3"></script>
 </body>
 
 </html>

@@ -15,6 +15,7 @@
     artist: "SHINCHEOLHO-rebroni", showText: true, showProgress: true,
     fit: "cover", dim: 0.25, blur: 0, beatZoom: true, bgc1: "#14112a", bgc2: "#03030a",
     res: 1080, fps: 30, volume: 1, loopOne: false,
+    fadeIn: 0.5, fadeOut: 3, fadeVideo: false,
   };
   const STORE_KEY = "rebroni-visualizer-settings";
   const cfg = Object.assign({}, DEFAULTS);
@@ -55,7 +56,7 @@
   setResolution(cfg.res);
 
   // ---------- 오디오 그래프 ----------
-  let actx = null, analyser = null, recDest = null, gainNode = null;
+  let actx = null, analyser = null, recDest = null, gainNode = null, fadeGain = null;
   let freq = new Uint8Array(0), wave = new Uint8Array(0);
 
   function ensureAudio() {
@@ -70,11 +71,13 @@
     analyser.smoothingTimeConstant = cfg.smooth;
     gainNode = actx.createGain();
     gainNode.gain.value = cfg.volume;
+    fadeGain = actx.createGain();         // 추출 시 페이드 인/아웃 (비주얼라이저 분석은 페이드 전 신호 사용)
     src.connect(analyser);
-    analyser.connect(gainNode);
+    analyser.connect(fadeGain);
+    fadeGain.connect(gainNode);
     gainNode.connect(actx.destination);   // 스피커 (볼륨 적용)
     recDest = actx.createMediaStreamDestination();
-    analyser.connect(recDest);            // 녹화용 (볼륨과 무관하게 원음 레벨)
+    fadeGain.connect(recDest);            // 녹화용 (볼륨과 무관하게 원음 레벨)
     freq = new Uint8Array(analyser.frequencyBinCount);
     wave = new Uint8Array(analyser.fftSize);
   }
@@ -644,6 +647,10 @@
     drawBackground(bassEnv);
     (draw[cfg.style] || draw.bars)();
     drawOverlay();
+    if (exporting && cfg.fadeVideo) {
+      const g = fadeLevel();
+      if (g < 1) { ctx.fillStyle = `rgba(0,0,0,${1 - g})`; ctx.fillRect(0, 0, W, H); }
+    }
     ctx.restore();
     if (exporting) tickExport();
     requestAnimationFrame(frame);
@@ -720,11 +727,24 @@
     $("#result").hidden = true;
     try { wakeLock = await navigator.wakeLock?.request("screen"); } catch (e) { wakeLock = null; }
 
+    if (cfg.fadeIn > 0) { fadeGain.gain.cancelScheduledValues(actx.currentTime); fadeGain.gain.setValueAtTime(0, actx.currentTime); }
     recorder.start(1000);
     try { await audio.play(); } catch (e) { cancelExport(); alert("재생을 시작할 수 없습니다: " + e.message); }
   }
 
+  // 추출 구간 기준 페이드 레벨 (0~1). 재생 위치로 계산하므로 일시정지/재개에도 어긋나지 않습니다.
+  function fadeLevel() {
+    const t = audio.currentTime;
+    const len = exEnd - exStart;
+    const fi = Math.min(cfg.fadeIn, len / 2), fo = Math.min(cfg.fadeOut, len / 2);
+    let g = 1;
+    if (fi > 0) g = Math.min(g, (t - exStart) / fi);
+    if (fo > 0) g = Math.min(g, (exEnd - t) / fo);
+    return Math.max(0, Math.min(1, g));
+  }
+
   function tickExport() {
+    if (fadeGain && !audio.paused) fadeGain.gain.setTargetAtTime(fadeLevel(), actx.currentTime, 0.015);
     const p = (audio.currentTime - exStart) / (exEnd - exStart);
     $("#rec-progress").style.width = Math.max(0, Math.min(100, p * 100)) + "%";
     $("#rec-text").textContent = `녹화 중… ${fmtTime(audio.currentTime - exStart)} / ${fmtTime(exEnd - exStart)}`;
@@ -734,6 +754,7 @@
   function endExportState() {
     exporting = false;
     audio.pause();
+    if (fadeGain) { fadeGain.gain.cancelScheduledValues(actx.currentTime); fadeGain.gain.setValueAtTime(1, actx.currentTime); }
     document.body.classList.remove("exporting");
     $("#rec-overlay").hidden = true;
     $("#export-btn").disabled = !tracks.length;
@@ -915,10 +936,12 @@
     ["bands", "bands", (v) => String(v)],
     ["dim", "dim", (v) => Math.round(v * 100) + "%"],
     ["blur", "blur", (v) => v + "px"],
+    ["fade-in", "fadeIn", (v) => v ? v.toFixed(1) + "초" : "없음"],
+    ["fade-out", "fadeOut", (v) => v ? v.toFixed(1) + "초" : "없음"],
   ];
   RANGES.forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => { cfg[key] = +e.target.value; syncUI(); save(); }));
 
-  [["glow", "glow"], ["show-text", "showText"], ["show-progress", "showProgress"], ["beat-zoom", "beatZoom"], ["loop-one", "loopOne"]]
+  [["glow", "glow"], ["show-text", "showText"], ["show-progress", "showProgress"], ["beat-zoom", "beatZoom"], ["loop-one", "loopOne"], ["fade-video", "fadeVideo"]]
     .forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); }));
   [["color1", "color1"], ["color2", "color2"], ["bgc1", "bgc1"], ["bgc2", "bgc2"]]
     .forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => { cfg[key] = e.target.value; syncUI(); save(); }));
@@ -938,7 +961,7 @@
     $("#bgc1").value = cfg.bgc1; $("#bgc2").value = cfg.bgc2;
     $("#glow").checked = cfg.glow; $("#show-text").checked = cfg.showText;
     $("#show-progress").checked = cfg.showProgress; $("#beat-zoom").checked = cfg.beatZoom;
-    $("#loop-one").checked = cfg.loopOne; $("#volume").value = cfg.volume;
+    $("#loop-one").checked = cfg.loopOne; $("#fade-video").checked = cfg.fadeVideo; $("#volume").value = cfg.volume;
     $("#artist-text").value = cfg.artist;
     document.documentElement.style.setProperty("--accent", cfg.color1);
     document.documentElement.style.setProperty("--accent-2", cfg.color2);
