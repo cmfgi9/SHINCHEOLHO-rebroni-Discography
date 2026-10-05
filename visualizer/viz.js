@@ -46,14 +46,27 @@
   bgVideo.hidden = false;
   Object.assign(bgVideo.style, { position: "fixed", left: "-10px", top: "0", width: "1px", height: "1px", opacity: "0", pointerEvents: "none" });
 
+  // 추출 해상도 (세로 9:16). 미리보기는 기기 부담을 줄이려고 최대 1080으로 그리고,
+  // 2K/4K는 추출하는 동안에만 캔버스를 키웁니다. 모든 그리기는 K(=W/1080) 비율로 스케일됩니다.
+  const RESOLUTIONS = {
+    720: { label: "720p", bitrate: 6_000_000 },
+    1080: { label: "1080p", bitrate: 10_000_000 },
+    1440: { label: "2K", bitrate: 16_000_000 },
+    2160: { label: "4K", bitrate: 35_000_000 },
+  };
+  const PREVIEW_MAX = 1080;
+  if (!RESOLUTIONS[cfg.res]) cfg.res = 1080;
   let W = 1080, H = 1920, K = 1;
   function setResolution(r) {
-    W = r === 720 ? 720 : 1080;
+    W = RESOLUTIONS[r] ? r : 1080;
     H = Math.round(W * 16 / 9);
     K = W / 1080;
-    canvas.width = W; canvas.height = H;
+    if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
   }
-  setResolution(cfg.res);
+  const previewRes = () => Math.min(cfg.res, PREVIEW_MAX);
+  // 60fps는 같은 화질에 비트레이트를 1.5배로
+  const videoBitrate = (w, fps) => Math.round(RESOLUTIONS[w].bitrate * (fps > 30 ? 1.5 : 1));
+  setResolution(previewRes());
 
   // ---------- 오디오 그래프 ----------
   let actx = null, analyser = null, recDest = null, gainNode = null, fadeGain = null;
@@ -673,6 +686,14 @@
     return MIME_CANDIDATES.find((m) => { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } }) || "";
   }
   const exportMime = pickMime();
+  // 2K/4K H.264는 레벨 5.1이 필요하므로 지원되면 해당 코덱 문자열을 우선 사용
+  function mimeFor(w) {
+    if (w > 1080 && exportMime && exportMime.includes("avc1")) {
+      const hi = "video/mp4;codecs=avc1.640033,mp4a.40.2";
+      try { if (MediaRecorder.isTypeSupported(hi)) return hi; } catch (e) { /* ignore */ }
+    }
+    return exportMime;
+  }
   (function showFormat() {
     const b = $("#fmt-badge");
     if (exportMime === null) { b.textContent = "녹화 미지원"; b.className = "badge warn"; return; }
@@ -685,6 +706,7 @@
   })();
 
   let exporting = false, recorder = null, chunks = [], exStart = 0, exEnd = 0, cancelled = false, wakeLock = null;
+  let exW = 1080, exH = 1920, exFps = 30;
 
   async function startExport() {
     if (exporting || current < 0) return;
@@ -704,10 +726,17 @@
     await new Promise((r) => { audio.addEventListener("seeked", r, { once: true }); setTimeout(r, 1500); });
     if (bgKind === "video") { bgVideo.currentTime = 0; bgVideo.play().catch(() => {}); }
 
-    const vStream = canvas.captureStream(cfg.fps);
+    exW = cfg.res; exH = Math.round(exW * 16 / 9); exFps = cfg.fps;
+    if (W !== exW) { setResolution(exW); particles.length = 0; }
+    const mime = mimeFor(exW);
+    if (exW > 1080 && !(await probeHighRes(mime))) {
+      setResolution(previewRes()); particles.length = 0;
+      return;
+    }
+    const vStream = canvas.captureStream(exFps);
     const stream = new MediaStream([...vStream.getVideoTracks(), ...recDest.stream.getAudioTracks()]);
-    const opts = { videoBitsPerSecond: W >= 1080 ? 10_000_000 : 6_000_000, audioBitsPerSecond: 256_000 };
-    if (exportMime) opts.mimeType = exportMime;
+    const opts = { videoBitsPerSecond: videoBitrate(exW, exFps), audioBitsPerSecond: 256_000 };
+    if (mime) opts.mimeType = mime;
     try { recorder = new MediaRecorder(stream, opts); }
     catch (e) { delete opts.mimeType; recorder = new MediaRecorder(stream, opts); }
 
@@ -715,9 +744,9 @@
     recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = () => {
       vStream.getTracks().forEach((t) => t.stop());
-      const raw = new Blob(chunks, { type: recorder.mimeType || exportMime || "video/webm" });
+      const raw = new Blob(chunks, { type: recorder.mimeType || mime || "video/webm" });
       chunks = [];
-      if (!cancelled) finalizeVideo(raw).then(showResult);
+      if (!cancelled) finalizeVideo(raw).then((r) => { if (r) showResult(r); });
     };
 
     exporting = true;
@@ -730,6 +759,54 @@
     if (cfg.fadeIn > 0) { fadeGain.gain.cancelScheduledValues(actx.currentTime); fadeGain.gain.setValueAtTime(0, actx.currentTime); }
     recorder.start(1000);
     try { await audio.play(); } catch (e) { cancelExport(); alert("재생을 시작할 수 없습니다: " + e.message); }
+  }
+
+  // 2K/4K는 기기 인코더가 지원하지 않으면 MediaRecorder가 경고 없이 영상 트랙을 빼고 소리만 저장합니다.
+  // 본 녹화 전에 3초 시험 녹화로 (인코더 시동이 느린 기기도 있어 너무 짧으면 오판) 영상이 실제로 기록되는지와 프레임레이트를 확인합니다.
+  async function probeHighRes(mime) {
+    const label = RESOLUTIONS[exW].label;
+    $("#export-btn").disabled = true;
+    $("#rec-overlay").hidden = false;
+    $("#rec-cancel").hidden = true;
+    $("#rec-text").textContent = `${label} 녹화 가능 여부 확인 중…`;
+    $("#rec-progress").style.width = "0%";
+    let ok = false, fps = 0;
+    try {
+      const vs = canvas.captureStream(exFps);
+      const opts = { videoBitsPerSecond: videoBitrate(exW, exFps) };
+      if (mime) opts.mimeType = mime;
+      let rec;
+      try { rec = new MediaRecorder(vs, opts); } catch (e) { delete opts.mimeType; rec = new MediaRecorder(vs, opts); }
+      const parts = [];
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) parts.push(e.data); };
+      const stopped = new Promise((r) => { rec.onstop = r; });
+      rec.start();
+      await new Promise((r) => setTimeout(r, 3000));
+      rec.stop();
+      await stopped;
+      vs.getTracks().forEach((t) => t.stop());
+      const mb = await import("./vendor/mediabunny.min.mjs");
+      const input = new mb.Input({ source: new mb.BlobSource(new Blob(parts, { type: rec.mimeType })), formats: mb.ALL_FORMATS });
+      const vt = await input.getPrimaryVideoTrack();
+      if (vt && (await vt.getDisplayWidth()) === exW) {
+        ok = true;
+        fps = (await vt.computePacketStats()).averagePacketRate;
+      }
+    } catch (e) {
+      console.warn("고해상도 시험 녹화 실패", e);
+    } finally {
+      $("#rec-overlay").hidden = true;
+      $("#rec-cancel").hidden = false;
+      $("#export-btn").disabled = !tracks.length;
+    }
+    if (!ok) {
+      alert(`이 기기(브라우저)는 ${label}(${exW}×${exH}) 녹화를 지원하지 않습니다.\n더 낮은 해상도를 선택해 주세요.`);
+      return false;
+    }
+    if (fps > 0 && fps < exFps * 0.6) {
+      return confirm(`이 기기에서 ${label}는 약 ${Math.round(fps)}fps로만 녹화되어 영상이 끊겨 보일 수 있습니다 (목표 ${exFps}fps).\n그래도 추출할까요?\n\n취소하고 해상도·프레임을 낮추거나 글로우·블러를 끄면 더 부드러워집니다.`);
+    }
+    return true;
   }
 
   // 추출 구간 기준 페이드 레벨 (0~1). 재생 위치로 계산하므로 일시정지/재개에도 어긋나지 않습니다.
@@ -754,6 +831,7 @@
   function endExportState() {
     exporting = false;
     audio.pause();
+    if (W !== previewRes()) { setResolution(previewRes()); particles.length = 0; }
     if (fadeGain) { fadeGain.gain.cancelScheduledValues(actx.currentTime); fadeGain.gain.setValueAtTime(1, actx.currentTime); }
     document.body.classList.remove("exporting");
     $("#rec-overlay").hidden = true;
@@ -810,13 +888,18 @@
       try {
         return await remux(mb, raw, true);
       } catch (e) {
+        if (e.noVideo) throw e;
         // H.264/AAC 변환이 실패해도 길이 정보만은 고친 파일을 만듭니다
         console.warn("코덱 변환 실패, 재포장만 시도합니다", e);
         return await remux(mb, raw, false);
       }
     } catch (e) {
+      if (e.noVideo) {
+        alert(`영상이 녹화되지 않았습니다. 이 기기는 ${exW}×${exH} 녹화를 지원하지 않는 것 같습니다.\n더 낮은 해상도로 다시 추출해 주세요.`);
+        return null;
+      }
       console.warn("remux 실패, 원본 녹화 파일을 사용합니다", e);
-      return { blob: raw, codecs: "" };
+      return { blob: raw, codecs: "", realFps: 0 };
     } finally {
       $("#rec-overlay").hidden = true;
       $("#rec-cancel").hidden = false;
@@ -832,12 +915,13 @@
       target: new mb.BufferTarget(),
     });
     const vt = await input.getPrimaryVideoTrack(), at = await input.getPrimaryAudioTrack();
+    if (!vt) throw Object.assign(new Error("녹화 결과에 영상 트랙이 없음"), { noVideo: true });
     const opts = { input, output, showWarnings: false };
     let vCodec = vt ? vt.codec : null, aCodec = at ? at.codec : null;
     // 일부 브라우저는 MP4 안에 VP9/Opus를 넣어 녹화합니다. 편집·업로드 앱 호환을 위해
     // 기기에서 인코딩이 가능하면 H.264/AAC로 변환합니다 (불가하면 원래 코덱 유지).
-    if (transcode && isMp4 && vt && vCodec !== "avc" && await mb.canEncodeVideo("avc", { width: W, height: H })) {
-      opts.video = { codec: "avc", bitrate: W >= 1080 ? 10_000_000 : 6_000_000 };
+    if (transcode && isMp4 && vt && vCodec !== "avc" && await mb.canEncodeVideo("avc", { width: exW, height: exH })) {
+      opts.video = { codec: "avc", bitrate: videoBitrate(exW, exFps) };
       vCodec = "avc";
       $("#rec-text").textContent = "H.264로 변환 중… (업로드용)";
     }
@@ -848,9 +932,12 @@
     const conversion = await mb.Conversion.init(opts);
     if (!conversion.isValid) throw new Error("conversion invalid");
     conversion.onProgress = (p) => { $("#rec-progress").style.width = Math.round(p * 100) + "%"; };
+    // 실제로 녹화된 프레임레이트 (기기가 고해상도 그리기를 따라가지 못하면 목표보다 낮아짐)
+    let realFps = 0;
+    try { if (vt) realFps = (await vt.computePacketStats()).averagePacketRate; } catch (e) { /* ignore */ }
     await conversion.execute();
     const blob = new Blob([output.target.buffer], { type: isMp4 ? "video/mp4" : "video/webm" });
-    return { blob, codecs: codecLabel(vCodec, aCodec) };
+    return { blob, codecs: codecLabel(vCodec, aCodec), realFps };
   }
 
   function codecLabel(v, a) {
@@ -859,7 +946,7 @@
   }
 
   let resultUrl = null, resultFile = null;
-  function showResult({ blob, codecs }) {
+  function showResult({ blob, codecs, realFps }) {
     const isMp4 = blob.type.includes("mp4");
     const ext = isMp4 ? "mp4" : "webm";
     const safe = (currentTitle() || "visualizer").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 60);
@@ -870,7 +957,13 @@
     $("#result-video").src = resultUrl;
     const a = $("#dl-link");
     a.href = resultUrl; a.download = name;
-    $("#result-info").textContent = `${name} · ${fmtSize(blob.size)} · ${W}×${H} ${cfg.fps}fps` + (codecs ? ` · ${codecs}` : "");
+    $("#result-info").textContent = `${name} · ${fmtSize(blob.size)} · ${exW}×${exH} ${exFps}fps` + (codecs ? ` · ${codecs}` : "");
+    const slow = realFps > 0 && realFps < exFps * 0.85;
+    $("#result-warn").hidden = !slow;
+    if (slow) {
+      $("#result-warn").textContent = `⚠ 실제 녹화 프레임이 약 ${Math.round(realFps)}fps로, 목표(${exFps}fps)보다 낮아 영상이 끊겨 보일 수 있습니다. `
+        + "이 기기에서는 해상도나 프레임을 낮추거나, 글로우·블러를 끄고 다시 추출해 보세요.";
+    }
     $("#share-btn").hidden = !(navigator.canShare && navigator.canShare({ files: [resultFile] }));
     $("#result").hidden = false;
     activateTab("export");
@@ -926,8 +1019,41 @@
   }
   bindSeg("position", "position");
   bindSeg("fit", "fit");
-  bindSeg("res", "res", Number, () => setResolution(cfg.res));
-  bindSeg("fps", "fps", Number);
+  bindSeg("res", "res", Number, () => { setResolution(previewRes()); checkResSupport(); });
+  bindSeg("fps", "fps", Number, checkResSupport);
+
+  // 2K/4K 선택 시 이 기기의 녹화 가능 여부를 미리 확인해 안내 (차단하지는 않음)
+  async function checkResSupport() {
+    const note = $("#res-note"), w = cfg.res, fps = cfg.fps;
+    if (w <= 1080) { note.hidden = true; return; }
+    const h = Math.round(w * 16 / 9), br = videoBitrate(w, fps), mime = mimeFor(w) || "";
+    const mbPerMin = Math.round(br * 60 / 8 / 1e6);
+    const lines = [`${RESOLUTIONS[w].label}(${w}×${h})는 그리기·인코딩 부담이 커서 최신 고성능 기기에 권장합니다. 1분에 약 ${mbPerMin}MB입니다.`];
+    if (w === 2160) lines.push("휴대폰 메모리 한계로 4K는 1분 이내 쇼츠를 권장합니다.");
+    let bad = false, slow = false;
+    const m = mime.match(/^([^;]+);codecs=([^,]+)/);
+    try {
+      if (m && navigator.mediaCapabilities && navigator.mediaCapabilities.encodingInfo) {
+        const info = await navigator.mediaCapabilities.encodingInfo({
+          type: "record",
+          video: { contentType: `${m[1]};codecs="${m[2]}"`, width: w, height: h, bitrate: br, framerate: fps },
+        });
+        if (!info.supported) bad = true; else if (!info.smooth) slow = true;
+      }
+    } catch (e) { /* 확인 불가 */ }
+    try {
+      if (!bad && window.VideoEncoder && m && m[2].startsWith("avc1")) {
+        const r = await VideoEncoder.isConfigSupported({ codec: "avc1.640033", width: w, height: h, bitrate: br, framerate: fps });
+        if (!r.supported) bad = true;
+      }
+    } catch (e) { /* 확인 불가 */ }
+    if (cfg.res !== w || cfg.fps !== fps) return; // 그 사이 선택이 바뀜
+    if (bad) lines.unshift("⚠ 이 기기의 인코더가 이 해상도를 지원하지 않는 것으로 보고됩니다. 추출이 실패하거나 낮은 화질로 저장될 수 있습니다.");
+    else if (slow) lines.unshift("⚠ 이 기기에서는 이 해상도 녹화가 끊길 수 있다고 보고됩니다.");
+    note.textContent = lines.join(" ");
+    note.classList.toggle("warn", bad || slow);
+    note.hidden = false;
+  }
 
   const RANGES = [
     ["size", "size", (v) => Math.round(v * 100) + "%"],
@@ -995,5 +1121,6 @@
   }
 
   renderTracks();
+  checkResSupport();
   requestAnimationFrame(frame);
 })();

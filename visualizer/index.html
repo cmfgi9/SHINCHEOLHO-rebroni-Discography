@@ -15,7 +15,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
   <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
-  <link rel="stylesheet" href="viz.css?v=1">
+  <link rel="stylesheet" href="viz.css?v=2">
 </head>
 
 <body>
@@ -148,8 +148,9 @@
         <div class="field">
           <span>해상도</span>
           <div class="seg" id="res">
-            <button data-v="720">720×1280</button><button data-v="1080" class="on">1080×1920</button>
+            <button data-v="720">720p</button><button data-v="1080" class="on">1080p</button><button data-v="1440">2K</button><button data-v="2160">4K</button>
           </div>
+          <p id="res-note" class="muted small" hidden></p>
         </div>
         <div class="field">
           <span>프레임</span>
@@ -185,6 +186,7 @@
             <button id="share-btn" class="btn ghost">공유 / 사진에 저장</button>
           </div>
           <span id="result-info" class="muted small"></span>
+          <p id="result-warn" class="small warn" hidden></p>
         </div>
       </div>
     </section>
@@ -193,7 +195,7 @@
   <audio id="audio" preload="auto" playsinline></audio>
   <video id="bg-video" muted loop playsinline preload="auto" hidden></video>
 
-  <script src="viz.js?v=4"></script>
+  <script src="viz.js?v=5"></script>
 </body>
 
 </html>

@@ -1,6 +1,6 @@
 // 앱 셸 캐시 — 파일 수정 배포 시 VERSION을 올려주세요
-const VERSION = "viz-v4";
-const SHELL = ["./", "index.html", "viz.css?v=1", "viz.js?v=4", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
+const VERSION = "viz-v5";
+const SHELL = ["./", "index.html", "viz.css?v=2", "viz.js?v=5", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
