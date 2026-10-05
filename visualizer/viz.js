@@ -39,7 +39,8 @@
 
   // ---------- DOM ----------
   const canvas = $("#stage");
-  const ctx = canvas.getContext("2d");
+  const mainCtx = canvas.getContext("2d");
+  let ctx = mainCtx; // 배경 캐시를 그릴 때만 잠시 다른 캔버스로 바뀜
   const audio = $("#audio");
   const bgVideo = $("#bg-video");
   // iOS Safari는 display:none 비디오의 프레임을 갱신하지 않을 수 있어 화면 밖에 작게 둡니다.
@@ -268,21 +269,48 @@
   const blurCanvas = document.createElement("canvas");
   const blurCtx = blurCanvas.getContext("2d");
 
+  // 정적 배경(그라데이션·이미지·블러·어둡게)은 출력 크기 캔버스에 한 번만 그려 두고 매 프레임 재사용합니다.
+  // 큰 원본 이미지를 비트 줌으로 매 프레임 다른 배율로 그리면 브라우저가 원본을 매번 다시 축소해
+  // 고해상도에서 프레임이 크게 떨어지기 때문입니다 (5MP 이미지 + 4K에서 6fps).
+  const bgCache = document.createElement("canvas");
+  const bgCacheCtx = bgCache.getContext("2d");
+  let bgCacheKey = "";
+  function staticBackground() {
+    const key = [W, H, bgKind === "image" && bgImage ? bgImage.src : "", cfg.fit, cfg.blur, cfg.dim, cfg.bgc1, cfg.bgc2].join("|");
+    if (key !== bgCacheKey) {
+      if (bgCache.width !== W || bgCache.height !== H) { bgCache.width = W; bgCache.height = H; }
+      const prev = ctx;
+      ctx = bgCacheCtx;
+      paintBackground(bgKind === "image" ? bgImage : null, 1);
+      ctx = prev;
+      bgCacheKey = key;
+    }
+    return bgCache;
+  }
+
   function drawBackground(bass) {
+    const zoom = cfg.beatZoom ? 1 + Math.pow(bass, 2) * 0.07 : 1;
+    if (bgKind === "video") {
+      if (bgVideo.readyState >= 2 && bgVideo.paused) bgVideo.play().catch(() => {});
+      paintBackground(bgVideo.readyState >= 2 ? bgVideo : null, zoom);
+      return;
+    }
+    const cache = staticBackground();
+    if (zoom === 1) { ctx.drawImage(cache, 0, 0); return; }
+    const sw = W / zoom, sh = H / zoom;
+    ctx.drawImage(cache, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, W, H);
+  }
+
+  function paintBackground(src, zoom) {
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, cfg.bgc1); g.addColorStop(1, cfg.bgc2);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    let src = null, sw = 0, sh = 0;
-    if (bgKind === "image" && bgImage) { src = bgImage; sw = bgImage.naturalWidth; sh = bgImage.naturalHeight; }
-    else if (bgKind === "video" && bgVideo.readyState >= 2) {
-      src = bgVideo; sw = bgVideo.videoWidth; sh = bgVideo.videoHeight;
-      if (bgVideo.paused) bgVideo.play().catch(() => {});
-    }
+    const sw = src ? (src.naturalWidth || src.videoWidth || 0) : 0;
+    const sh = src ? (src.naturalHeight || src.videoHeight || 0) : 0;
     if (src && sw && sh) {
       const s = cfg.fit === "cover" ? Math.max(W / sw, H / sh) : Math.min(W / sw, H / sh);
-      const zoom = cfg.beatZoom ? 1 + Math.pow(bass, 2) * 0.07 : 1;
       const dw = sw * s * zoom, dh = sh * s * zoom;
       const dx = (W - dw) / 2, dy = (H - dh) / 2;
       if (cfg.blur > 0) {
@@ -756,7 +784,8 @@
     $("#result").hidden = true;
     try { wakeLock = await navigator.wakeLock?.request("screen"); } catch (e) { wakeLock = null; }
 
-    if (cfg.fadeIn > 0) { fadeGain.gain.cancelScheduledValues(actx.currentTime); fadeGain.gain.setValueAtTime(0, actx.currentTime); }
+    fadeGain.gain.cancelScheduledValues(actx.currentTime);
+    fadeGain.gain.setValueAtTime(cfg.fadeIn > 0 ? 0 : 1, actx.currentTime);
     recorder.start(1000);
     try { await audio.play(); } catch (e) { cancelExport(); alert("재생을 시작할 수 없습니다: " + e.message); }
   }
@@ -770,43 +799,65 @@
     $("#rec-cancel").hidden = true;
     $("#rec-text").textContent = `${label} 녹화 가능 여부 확인 중…`;
     $("#rec-progress").style.width = "0%";
-    let ok = false, fps = 0;
+    let result = { ok: false, fps: 0 };
+    // 실제와 같은 부담으로 측정하도록 음악을 소리 없이 재생하며 시험 (멈춘 상태의 비주얼라이저는 훨씬 가벼움)
+    fadeGain.gain.cancelScheduledValues(actx.currentTime);
+    fadeGain.gain.setValueAtTime(0, actx.currentTime);
     try {
-      const vs = canvas.captureStream(exFps);
-      const opts = { videoBitsPerSecond: videoBitrate(exW, exFps) };
-      if (mime) opts.mimeType = mime;
-      let rec;
-      try { rec = new MediaRecorder(vs, opts); } catch (e) { delete opts.mimeType; rec = new MediaRecorder(vs, opts); }
-      const parts = [];
-      rec.ondataavailable = (e) => { if (e.data && e.data.size) parts.push(e.data); };
-      const stopped = new Promise((r) => { rec.onstop = r; });
-      rec.start();
-      await new Promise((r) => setTimeout(r, 3000));
-      rec.stop();
-      await stopped;
-      vs.getTracks().forEach((t) => t.stop());
-      const mb = await import("./vendor/mediabunny.min.mjs");
-      const input = new mb.Input({ source: new mb.BlobSource(new Blob(parts, { type: rec.mimeType })), formats: mb.ALL_FORMATS });
-      const vt = await input.getPrimaryVideoTrack();
-      if (vt && (await vt.getDisplayWidth()) === exW) {
-        ok = true;
-        fps = (await vt.computePacketStats()).averagePacketRate;
-      }
+      await audio.play().catch(() => {});
+      result = await probeOnce(mime, 3000);
+      // 첫 고해상도 인코더 초기화는 느릴 수 있어, 영상이 안 나오면 한 번 더 길게 시도
+      if (!result.ok) result = await probeOnce(mime, 4000);
     } catch (e) {
       console.warn("고해상도 시험 녹화 실패", e);
     } finally {
+      audio.pause();
+      audio.currentTime = exStart;
+      await new Promise((r) => { audio.addEventListener("seeked", r, { once: true }); setTimeout(r, 1500); });
+      fadeGain.gain.setValueAtTime(1, actx.currentTime);
       $("#rec-overlay").hidden = true;
       $("#rec-cancel").hidden = false;
       $("#export-btn").disabled = !tracks.length;
     }
+    const { ok, fps } = result;
+    console.info(`[visualizer] ${label} 시험 녹화: ${ok ? Math.round(fps) + "fps" : "영상 없음"}`);
     if (!ok) {
       alert(`이 기기(브라우저)는 ${label}(${exW}×${exH}) 녹화를 지원하지 않습니다.\n더 낮은 해상도를 선택해 주세요.`);
       return false;
     }
+    // 너무 느리면 소리가 끊기거나 브라우저가 종료될 수 있어 중단
+    if (fps > 0 && fps < exFps * 0.4) {
+      alert(`이 기기에서 ${label}는 약 ${Math.round(fps)}fps로만 그려져 녹화가 불안정합니다 (소리 끊김·앱 종료 위험).\n해상도를 낮추거나 글로우·비트 줌·블러를 끄고 다시 시도해 주세요.`);
+      return false;
+    }
     if (fps > 0 && fps < exFps * 0.6) {
-      return confirm(`이 기기에서 ${label}는 약 ${Math.round(fps)}fps로만 녹화되어 영상이 끊겨 보일 수 있습니다 (목표 ${exFps}fps).\n그래도 추출할까요?\n\n취소하고 해상도·프레임을 낮추거나 글로우·블러를 끄면 더 부드러워집니다.`);
+      return confirm(`이 기기에서 ${label}는 약 ${Math.round(fps)}fps로만 녹화되어 영상이 끊겨 보일 수 있습니다 (목표 ${exFps}fps).\n그래도 추출할까요?\n\n취소하고 해상도·프레임을 낮추거나 글로우·비트 줌·블러를 끄면 더 부드러워집니다.`);
     }
     return true;
+  }
+
+  async function probeOnce(mime, ms) {
+    const vs = canvas.captureStream(exFps);
+    const opts = { videoBitsPerSecond: videoBitrate(exW, exFps) };
+    if (mime) opts.mimeType = mime;
+    let rec;
+    try { rec = new MediaRecorder(vs, opts); } catch (e) { delete opts.mimeType; rec = new MediaRecorder(vs, opts); }
+    const parts = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) parts.push(e.data); };
+    const stopped = new Promise((r) => { rec.onstop = r; });
+    rec.start();
+    await new Promise((r) => setTimeout(r, ms));
+    rec.stop();
+    await stopped;
+    vs.getTracks().forEach((t) => t.stop());
+    if (!parts.length) return { ok: false, fps: 0 };
+    try {
+      const mb = await import("./vendor/mediabunny.min.mjs");
+      const input = new mb.Input({ source: new mb.BlobSource(new Blob(parts, { type: rec.mimeType })), formats: mb.ALL_FORMATS });
+      const vt = await input.getPrimaryVideoTrack();
+      if (vt && (await vt.getDisplayWidth()) === exW) return { ok: true, fps: (await vt.computePacketStats()).averagePacketRate };
+    } catch (e) { /* 프레임이 아직 안 나온 헤더만 있는 파일 등 */ }
+    return { ok: false, fps: 0 };
   }
 
   // 추출 구간 기준 페이드 레벨 (0~1). 재생 위치로 계산하므로 일시정지/재개에도 어긋나지 않습니다.
@@ -958,6 +1009,7 @@
     const a = $("#dl-link");
     a.href = resultUrl; a.download = name;
     $("#result-info").textContent = `${name} · ${fmtSize(blob.size)} · ${exW}×${exH} ${exFps}fps` + (codecs ? ` · ${codecs}` : "");
+    if (realFps) console.info(`[visualizer] 녹화 결과 ${exW}×${exH}: ${Math.round(realFps)}fps`);
     const slow = realFps > 0 && realFps < exFps * 0.85;
     $("#result-warn").hidden = !slow;
     if (slow) {
