@@ -735,6 +735,10 @@
 
   let exporting = false, recorder = null, chunks = [], exStart = 0, exEnd = 0, cancelled = false, wakeLock = null;
   let exW = 1080, exH = 1920, exFps = 30;
+  // 2K/4K는 녹화 시작 직후 인코더 초기화로 1~2초간 영상·소리가 끊길 수 있어,
+  // 음악을 멈춘 채 먼저 녹화를 돌려 예열한 뒤(pre-roll) 재생하고, 완성 후 그 구간을 잘라냅니다.
+  const PREROLL_MS = 2000;
+  let preRolling = false, prerollSec = 0, recStartedAt = 0;
 
   async function startExport() {
     if (exporting || current < 0) return;
@@ -765,6 +769,9 @@
     const stream = new MediaStream([...vStream.getVideoTracks(), ...recDest.stream.getAudioTracks()]);
     const opts = { videoBitsPerSecond: videoBitrate(exW, exFps), audioBitsPerSecond: 256_000 };
     if (mime) opts.mimeType = mime;
+    const usePreroll = exW > 1080;
+    // 예열 구간을 재인코딩 없이 정확히 잘라내려면 키프레임이 촘촘해야 함 (지원 브라우저만 적용)
+    if (usePreroll) opts.videoKeyFrameIntervalDuration = 500;
     try { recorder = new MediaRecorder(stream, opts); }
     catch (e) { delete opts.mimeType; recorder = new MediaRecorder(stream, opts); }
 
@@ -774,8 +781,10 @@
       vStream.getTracks().forEach((t) => t.stop());
       const raw = new Blob(chunks, { type: recorder.mimeType || mime || "video/webm" });
       chunks = [];
-      if (!cancelled) finalizeVideo(raw).then((r) => { if (r) showResult(r); });
+      if (!cancelled) finalizeVideo(raw, prerollSec).then((r) => { if (r) showResult(r); });
     };
+    recorder.onstart = () => { recStartedAt = performance.now(); };
+    prerollSec = 0;
 
     exporting = true;
     document.body.classList.add("exporting");
@@ -787,6 +796,16 @@
     fadeGain.gain.cancelScheduledValues(actx.currentTime);
     fadeGain.gain.setValueAtTime(cfg.fadeIn > 0 ? 0 : 1, actx.currentTime);
     recorder.start(1000);
+    if (usePreroll) {
+      preRolling = true;
+      $("#rec-text").textContent = "녹화 준비 중… (고해상도 인코더 예열)";
+      await new Promise((r) => setTimeout(r, PREROLL_MS));
+      preRolling = false;
+      if (!exporting) return; // 예열 중 취소됨
+    }
+    audio.addEventListener("playing", () => {
+      if (usePreroll && recStartedAt) prerollSec = (performance.now() - recStartedAt) / 1000;
+    }, { once: true });
     try { await audio.play(); } catch (e) { cancelExport(); alert("재생을 시작할 수 없습니다: " + e.message); }
   }
 
@@ -872,6 +891,7 @@
   }
 
   function tickExport() {
+    if (preRolling) return;
     if (fadeGain && !audio.paused) fadeGain.gain.setTargetAtTime(fadeLevel(), actx.currentTime, 0.015);
     const p = (audio.currentTime - exStart) / (exEnd - exStart);
     $("#rec-progress").style.width = Math.max(0, Math.min(100, p * 100)) + "%";
@@ -905,6 +925,12 @@
   // 화면이 꺼지거나 앱을 벗어나면 녹화를 일시정지 → 돌아오면 이어서 녹화
   document.addEventListener("visibilitychange", () => {
     if (!exporting || !recorder) return;
+    if (preRolling && document.hidden) {
+      // 예열 구간 길이가 어긋나므로 중단
+      cancelExport();
+      alert("녹화 준비 중에 앱을 벗어나 추출을 취소했습니다. 다시 시도해 주세요.");
+      return;
+    }
     if (document.hidden) {
       audio.pause();
       if (recorder.state === "recording") recorder.pause();
@@ -919,7 +945,7 @@
     if (exporting && !document.hidden) $("#rec-text").textContent = "일시정지됨 — 여기를 탭하면 이어서 녹화합니다";
   });
   $("#rec-overlay").addEventListener("click", (e) => {
-    if (exporting && audio.paused && !e.target.closest("#rec-cancel")) {
+    if (exporting && !preRolling && audio.paused && !e.target.closest("#rec-cancel")) {
       if (recorder.state === "paused") recorder.resume();
       audio.play().catch(() => {});
     }
@@ -928,7 +954,7 @@
   // MediaRecorder 결과는 조각난(fragmented) MP4/WebM이라 헤더의 영상 길이가 0으로 기록됩니다.
   // 폰 플레이어는 끝까지 재생하지만 VLLO·TikTok 등은 앞부분(몇 초)만 인식하므로,
   // 재인코딩 없이 일반 MP4(faststart)/WebM으로 다시 포장(remux)해 길이 정보를 채웁니다.
-  async function finalizeVideo(raw) {
+  async function finalizeVideo(raw, trimStart = 0) {
     $("#export-btn").disabled = true;
     $("#rec-overlay").hidden = false;
     $("#rec-cancel").hidden = true;
@@ -937,12 +963,12 @@
     try {
       const mb = await import("./vendor/mediabunny.min.mjs");
       try {
-        return await remux(mb, raw, true);
+        return await remux(mb, raw, true, trimStart);
       } catch (e) {
         if (e.noVideo) throw e;
         // H.264/AAC 변환이 실패해도 길이 정보만은 고친 파일을 만듭니다
         console.warn("코덱 변환 실패, 재포장만 시도합니다", e);
-        return await remux(mb, raw, false);
+        return await remux(mb, raw, false, trimStart);
       }
     } catch (e) {
       if (e.noVideo) {
@@ -958,7 +984,7 @@
     }
   }
 
-  async function remux(mb, raw, transcode) {
+  async function remux(mb, raw, transcode, trimStart = 0) {
     const isMp4 = raw.type.includes("mp4");
     const input = new mb.Input({ source: new mb.BlobSource(raw), formats: mb.ALL_FORMATS });
     const output = new mb.Output({
@@ -968,6 +994,13 @@
     const vt = await input.getPrimaryVideoTrack(), at = await input.getPrimaryAudioTrack();
     if (!vt) throw Object.assign(new Error("녹화 결과에 영상 트랙이 없음"), { noVideo: true });
     const opts = { input, output, showWarnings: false };
+    if (trimStart > 0) {
+      // 예열 구간 제거: 키프레임 경계에 맞춰 재인코딩 없이 자르고(최대 키프레임 간격만큼 정지 화면이 남을 수 있음),
+      // 시작 시각은 0으로 당김
+      opts.trim = { start: trimStart };
+      console.info(`[visualizer] 예열 구간 ${trimStart.toFixed(2)}초 제거`);
+      opts.copy = { boundaryPolicy: "expand", shiftTolerance: Infinity };
+    }
     let vCodec = vt ? vt.codec : null, aCodec = at ? at.codec : null;
     // 일부 브라우저는 MP4 안에 VP9/Opus를 넣어 녹화합니다. 편집·업로드 앱 호환을 위해
     // 기기에서 인코딩이 가능하면 H.264/AAC로 변환합니다 (불가하면 원래 코덱 유지).
