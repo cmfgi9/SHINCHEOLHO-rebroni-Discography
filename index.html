@@ -13,7 +13,7 @@
     catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
   </script>
   <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 
   <meta property="og:title" content="SHINCHEOLHO-rebroni | Discography">
   <meta property="og:description" content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music">
@@ -72,6 +72,14 @@
       </form>
       <p class="community-note">구독 시 이메일 주소는 새 소식 발송에만 사용됩니다. <a href="privacy.html">개인정보 처리방침</a></p>
       <p class="community-status" id="subscribe-status"></p>
+      <details class="unsub" id="unsub-box">
+        <summary>구독 해지 (Unsubscribe)</summary>
+        <form id="unsub-form" class="subscribe-form">
+          <input type="email" id="unsub-email" placeholder="구독한 이메일 주소" maxlength="150" required>
+          <button class="tbtn" type="submit">해지하기</button>
+        </form>
+        <p class="community-status" id="unsub-status"></p>
+      </details>
     </div>
 
     <div class="community-box" id="guestbook">
@@ -193,7 +201,7 @@
 
   <script type="module" src="app.js?v=3"></script>
   <script type="module" src="playlist.js?v=3"></script>
-  <script type="module" src="community.js?v=2"></script>
+  <script type="module" src="community.js?v=3"></script>
 </body>
 
 </html>

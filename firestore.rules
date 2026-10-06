@@ -48,6 +48,9 @@ service cloud.firestore {
     }
 
     // 뉴스레터 구독자: 누구나 신규 등록만 가능(문서 ID = 이메일 → 중복 등록 차단), 열람은 관리자만
+    // 구독 해지: 이메일 주소를 아는 사람은 누구나 해당 문서를 삭제 가능 (사이트의 '구독 해지' 버튼).
+    //   목록 열람은 관리자만 가능하므로 다른 구독자의 이메일을 알아낼 수는 없고,
+    //   없는 문서를 삭제해도 같은 결과가 나와 구독 여부도 드러나지 않음
     match /subscribers/{email} {
       allow create: if request.resource.data.keys().hasOnly(['email', 'createdAt'])
         && request.resource.data.email == email
@@ -55,7 +58,8 @@ service cloud.firestore {
         && request.resource.data.email.size() <= 150
         && request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$')
         && request.resource.data.createdAt is string;
-      allow read, delete: if isAdmin();
+      allow read: if isAdmin();
+      allow delete: if true;
       allow update: if false;
     }
 
