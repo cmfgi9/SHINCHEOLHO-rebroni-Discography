@@ -55,6 +55,12 @@ function scrollToId(id) {
   window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
 }
 
+// 상단 Fan Wall 바로가기: 고정 상단바 높이만큼 띄워서 스크롤
+document.getElementById("fanwall-btn")?.addEventListener("click", e => {
+  e.preventDefault();
+  scrollToId("guestbook");
+});
+
 function getYouTubeId(url) {
   if (!url) return null;
   try {
