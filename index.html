@@ -13,7 +13,7 @@
     catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
   </script>
   <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=7">
 
   <meta property="og:title" content="SHINCHEOLHO-rebroni | Discography">
   <meta property="og:description" content="Official discography of SHINCHEOLHO-rebroni · Rebroni Music">
@@ -35,6 +35,9 @@
     <button id="theme-btn" class="iconbtn" aria-label="Switch theme" title="테마 전환" style="margin-left:8px;">🌿</button>
     <a href="visualizer/" class="iconbtn" aria-label="Open visualizer" title="비주얼라이저 · MP4 추출" style="margin-left:8px; text-decoration:none;">Visualizer</a>
     <a href="mastering/" class="iconbtn" aria-label="Open mastering" title="AI 마스터링 · 라우드니스 분석" style="margin-left:8px; text-decoration:none;">Mastering</a>
+    <!-- Fan Wall: 커뮤니티(Firebase)가 켜졌을 때만 community.js가 표시 -->
+    <a href="#guestbook" id="fanwall-btn" class="iconbtn" aria-label="Go to Fan Wall" title="방명록 바로가기" style="margin-left:8px; text-decoration:none;" hidden>Fan Wall</a>
+    <a href="privacy.html" class="iconbtn" aria-label="Privacy policy" title="개인정보 처리방침" style="margin-left:8px; text-decoration:none;">Privacy</a>
     <nav id="album-nav" class="album-nav" aria-label="Album navigation"></nav>
 
     <div class="sns-links">
@@ -199,9 +202,9 @@
 
   <button id="btn-back-to-top" class="btn-back-to-top" aria-label="Back to top">↑</button>
 
-  <script type="module" src="app.js?v=3"></script>
+  <script type="module" src="app.js?v=4"></script>
   <script type="module" src="playlist.js?v=3"></script>
-  <script type="module" src="community.js?v=3"></script>
+  <script type="module" src="community.js?v=4"></script>
 </body>
 
 </html>

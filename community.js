@@ -18,6 +18,8 @@ async function init() {
   const db = getFirestore(app);
 
   section.classList.remove("hidden");
+  const fanwallBtn = document.getElementById("fanwall-btn");
+  if (fanwallBtn) fanwallBtn.hidden = false;
 
   const $ = id => document.getElementById(id);
   function setStatus(id, msg, cls = "") {
