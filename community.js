@@ -11,7 +11,7 @@ async function init() {
   if (!firebaseConfigReady()) return; // 섹션 숨김 유지
 
   const { initializeApp, getApps } = await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-app.js`);
-  const { getFirestore, collection, doc, addDoc, setDoc, updateDoc, getDocs, query, orderBy, limit } =
+  const { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDocs, query, orderBy, limit } =
     await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-firestore.js`);
 
   const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
@@ -56,6 +56,26 @@ async function init() {
       } else {
         setStatus("subscribe-status", "오류가 발생했습니다. 잠시 후 다시 시도해주세요.", "err");
       }
+    }
+  });
+
+  /* ===== 뉴스레터 구독 해지 ===== */
+  // 문서 ID = 이메일이므로 해당 문서를 삭제. 구독 여부가 드러나지 않도록 결과 메시지는 항상 동일하게 안내
+  $("unsub-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const email = $("unsub-email").value.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      setStatus("unsub-status", "올바른 이메일 주소를 입력해주세요.", "err");
+      return;
+    }
+    if (!confirm(`${email} 의 뉴스레터 구독을 해지할까요?`)) return;
+    try {
+      await deleteDoc(doc(db, "subscribers", email));
+      setStatus("unsub-status", "구독이 해지되어 이메일 주소가 삭제되었습니다. (구독 중이 아니었다면 변경 사항이 없습니다)", "ok");
+      $("unsub-email").value = "";
+    } catch (err) {
+      console.warn("unsubscribe failed:", err);
+      setStatus("unsub-status", "해지 처리에 실패했습니다. cmfgi9@gmail.com 으로 해지를 요청해 주세요.", "err");
     }
   });
 

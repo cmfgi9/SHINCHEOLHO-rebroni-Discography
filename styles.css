@@ -604,6 +604,38 @@ footer p {
   margin: 0;
 }
 
+footer p + p {
+  margin-top: 6px;
+}
+
+.footer-link,
+.community-note a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.community-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  opacity: .7;
+}
+
+.unsub {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.unsub summary {
+  cursor: pointer;
+  opacity: .7;
+  width: fit-content;
+}
+
+.unsub[open] summary {
+  margin-bottom: 8px;
+}
+
 /* Responsive */
 @media (max-width: 820px) {
   .album-grid {
