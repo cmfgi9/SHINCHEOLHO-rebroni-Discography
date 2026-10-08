@@ -159,6 +159,48 @@
     .note-rich figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
     .note-rich figcaption:empty { display: none; }
 
+    /* 유튜브 플레이어 (눌러서 재생) */
+    .yt-lite {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid var(--line);
+    }
+    .yt-lite.yt-short { aspect-ratio: 9 / 16; max-width: 340px; margin: 0 auto; }
+    .yt-lite button {
+      all: unset;
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      background-size: cover;
+      background-position: center;
+    }
+    .yt-lite button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+    .yt-lite iframe { display: block; width: 100%; height: 100%; border: 0; }
+    .yt-play-icon {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 68px;
+      height: 48px;
+      transform: translate(-50%, -50%);
+      background: #ff0033;
+      border-radius: 12px;
+      opacity: .92;
+    }
+    .yt-play-icon::after {
+      content: "";
+      position: absolute;
+      left: 27px;
+      top: 14px;
+      border-style: solid;
+      border-width: 10px 0 10px 17px;
+      border-color: transparent transparent transparent #fff;
+    }
+
     .note-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
     .note-meta .chip { cursor: default; }
     .note-meta a.chip { cursor: pointer; text-decoration: none; }
@@ -198,7 +240,7 @@
     </main>
   </div>
 
-  <script type="module" src="journal.js?v=2"></script>
+  <script type="module" src="journal.js?v=3"></script>
 </body>
 
 </html>

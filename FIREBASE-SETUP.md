@@ -210,6 +210,29 @@ admin에서 곡별 음원(mp3/wav/opus/m4a·aac) 업로드 → 공개 다운로�
 - 공개 페이지에는 허용된 서식만 남겨 표시하므로, 다른 사이트에서 붙여넣은 글의 스크립트·잡다한 스타일은 자동으로 제거됩니다.
 - 글자색은 다크/네이처 두 테마에서 모두 읽히는 중간 밝기의 색을 권장합니다.
 
+## 13. 영상 (YouTube Videos)
+
+유튜브에 올린 앨범곡 · 미발매곡 · Shorts 영상을 사이트의 `videos.html`(상단 메뉴 **Videos**)에 모아 보여줍니다.
+동작하려면 **Firestore 규칙 재게시**가 필요합니다 (Storage 규칙은 변경 없음).
+
+1. Firebase Console → Firestore Database → 규칙 탭 → `firestore.rules` 최신본 게시
+   - 추가된 규칙: `videos` 컬렉션 (관리자만 작성, 공개 영상만 누구나 읽기)
+2. git push로 배포
+
+### 사용법
+
+- **여러 개 한 번에**: admin → **영상 (YouTube)** → "여러 개 한 번에 추가"에 유튜브 주소를 한 줄에 하나씩 붙여넣고
+  구분(앨범곡/미발매곡/기타)·관련 앨범을 고른 뒤 **가져오기**. 제목은 유튜브에서 자동으로 가져오며,
+  이미 등록된 영상은 건너뜁니다. `/shorts/` 주소는 자동으로 세로 영상(Shorts)으로 표시됩니다.
+- **1개씩 / 편집**: **+ 영상 1개 추가** 또는 목록의 **편집** → 제목, 구분, 관련 앨범, 곡 이름(수록곡 추천), 게시일,
+  설명, Shorts 여부, 공개 여부를 입력. 게시일 순(최신이 위)으로 정렬됩니다.
+- **삭제**: 사이트 목록에서만 빠지며 유튜브의 영상은 그대로 남습니다.
+- **공개 페이지**: 썸네일 갤러리 → 누르면 재생 창(개인정보 보호 강화 모드 `youtube-nocookie`).
+  전체/앨범곡/미발매곡/기타/Shorts 필터, 앨범 선택, 검색. 영상별 공유 링크 `videos.html#v=영상ID`,
+  앨범별 링크 `videos.html?album=앨범ID`.
+- **창작 노트에 영상 넣기**: 노트 편집기의 **▶ 유튜브** 버튼 → 주소 붙여넣기. 공개 Journal에서 눌러서 재생됩니다.
+- 앨범 수록곡의 YouTube 링크가 Shorts(`/shorts/…`) 주소여도 곡별 **Play** 버튼과 플레이리스트에서 재생됩니다.
+
 ## 이후 운영 방법 (새 앨범 발매 시)
 
 1. admin.html 접속 → **+ 새 앨범** → 폼 입력
@@ -232,6 +255,9 @@ notes (컬렉션) — 창작 노트
  └─ {autoId} 문서: title, body(일반 텍스트 사본), html(서식 본문), media[](첨부 Storage 경로),
                    date(YYYY-MM-DD), tags[], albumId, published(공개 여부), createdAt, updatedAt
 Storage journal/ — 창작 노트 첨부 사진·음원
+videos (컬렉션) — 유튜브 영상
+ └─ {유튜브 영상 ID} 문서: youtubeId, title, kind(album|unreleased|etc), albumId, track,
+                         date(YYYY-MM-DD), description, isShort, published, createdAt, updatedAt
 
 향후 확장 (Phase2+): products, orders, users 컬렉션을 같은 층위에 추가
 ```

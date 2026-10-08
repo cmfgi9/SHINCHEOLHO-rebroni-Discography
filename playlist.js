@@ -37,7 +37,7 @@ function ytIdOf(url) {
     if (u.hostname.includes("youtu.be")) return u.pathname.split("/").filter(Boolean)[0] || null;
     const v = u.searchParams.get("v");
     if (v) return v;
-    const m = u.pathname.match(/\/embed\/([^\/?]+)/);
+    const m = u.pathname.match(/\/(?:embed|shorts|live)\/([^\/?]+)/);
     return m ? m[1] : null;
   } catch (e) {
     const m = String(url).match(/[?&]v=([^&]+)/);

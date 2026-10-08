@@ -1,6 +1,7 @@
-// 관리자 페이지: Google 로그인 + 앨범/트랙/링크 CRUD + albums.json 마이그레이션 + 창작 노트
+// 관리자 페이지: Google 로그인 + 앨범/트랙/링크 CRUD + albums.json 마이그레이션 + 창작 노트 + 영상
 import { firebaseConfig } from "./firebase-config.js";
-import { sanitizeHtml, plainToHtml, htmlToText, storagePathsIn } from "./journal-format.js";
+import { sanitizeHtml, plainToHtml, htmlToText, storagePathsIn } from "./journal-format.js?v=2";
+import { parseYouTube, thumbUrl, fetchYouTubeTitle } from "./youtube.js";
 
 const VER = "10.12.2";
 const { initializeApp, getApps } = await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-app.js`);
@@ -17,13 +18,13 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 const $ = id => document.getElementById(id);
-const views = ["view-signin", "view-noauth", "view-list", "view-notes", "view-note", "view-edit"];
+const views = ["view-signin", "view-noauth", "view-list", "view-notes", "view-note", "view-videos", "view-video", "view-edit"];
 function show(...ids) {
   views.forEach(v => $(v).classList.toggle("hidden", !ids.includes(v)));
 }
-// 관리자 첫 화면: 앨범 목록 + 창작 노트 목록
+// 관리자 첫 화면: 앨범 목록 + 창작 노트 목록 + 영상 목록
 function showHome() {
-  show("view-list", "view-notes");
+  show("view-list", "view-notes", "view-videos");
 }
 function setStatus(id, msg, cls = "") {
   const el = $(id);
@@ -76,6 +77,7 @@ onAuthStateChanged(auth, async user => {
   showHome();
   await refreshList();
   await refreshNotes();
+  await refreshVideos();
 });
 
 async function checkAdmin(uid) {
@@ -683,12 +685,12 @@ function renderNotes() {
 $("note-filter").addEventListener("input", renderNotes);
 $("btn-new-note").addEventListener("click", () => openNote(null));
 
-function fillAlbumOptions(selected) {
-  const sel = $("n-album");
+function fillAlbumOptions(selected, selectId = "n-album") {
+  const sel = $(selectId);
   sel.innerHTML = '<option value="">— 없음 —</option>' + albumCache
     .map(a => `<option value="${esc(a.id)}">${esc(a.ordinal || a.id)} · ${esc(a.title || "")}</option>`)
     .join("");
-  // 삭제된 앨범을 가리키는 노트도 값이 사라지지 않도록 유지
+  // 삭제된 앨범을 가리키는 노트·영상도 값이 사라지지 않도록 유지
   if (selected && !albumCache.some(a => a.id === selected)) {
     sel.insertAdjacentHTML("beforeend", `<option value="${esc(selected)}">${esc(selected)} (삭제된 앨범)</option>`);
   }
@@ -742,6 +744,10 @@ function decorateEditor() {
     if (!fig.querySelector("figcaption")) fig.appendChild(document.createElement("figcaption"));
     fig.querySelector("figcaption").contentEditable = "true";
     fig.querySelector("audio")?.setAttribute("controls", "");
+    // 유튜브 블록은 편집 중에는 썸네일만 보여줌 (공개 페이지에서 플레이어로 표시)
+    if (fig.dataset.kind === "youtube" && !fig.querySelector("img") && fig.dataset.id) {
+      fig.insertAdjacentHTML("afterbegin", `<img src="${escAttr(thumbUrl(fig.dataset.id))}" alt="">`);
+    }
     if (!fig.querySelector(".fig-del")) {
       fig.insertAdjacentHTML("afterbegin", '<button type="button" class="btn small danger fig-del" style="float:right;">✕ 빼기</button>');
     }
@@ -854,6 +860,15 @@ async function attachFiles(files) {
 }
 
 $("rte-image").addEventListener("click", () => $("rte-image-file").click());
+$("rte-youtube").addEventListener("click", () => {
+  const url = prompt("유튜브 영상 주소를 붙여넣으세요 (일반 영상·Shorts 모두 가능)");
+  if (!url) return;
+  const yt = parseYouTube(url);
+  if (!yt) return alert("유튜브 영상 주소를 알아볼 수 없습니다. 영상 페이지의 주소나 [공유] 링크를 붙여넣으세요.");
+  insertFigure(`<figure data-kind="youtube" data-id="${yt.id}"${yt.isShort ? ' data-short="1"' : ""}>` +
+    `<img src="${escAttr(thumbUrl(yt.id))}" alt=""><figcaption></figcaption></figure>`);
+  $("rte-status").textContent = "유튜브 영상을 넣었습니다. 공개 페이지에서는 눌러서 재생됩니다.";
+});
 $("rte-audio").addEventListener("click", () => $("rte-audio-file").click());
 $("rte-audio-file").accept = Object.keys(AUDIO_TYPES).map(e => "." + e).join(",") + ",audio/*";
 ["rte-image-file", "rte-audio-file"].forEach(id => $(id).addEventListener("change", e => {
@@ -1012,6 +1027,260 @@ $("btn-note-delete").addEventListener("click", async () => {
     setStatus("note-list-status", "노트 삭제 완료.", "ok");
   } catch (e) {
     setStatus("note-edit-status", "삭제 실패: " + e.message, "err");
+  }
+});
+
+// ---------- 영상 (YouTube Videos) ----------
+// videos/{youtubeId}: { youtubeId, title, kind(album|unreleased|etc), albumId, track, date(YYYY-MM-DD),
+//                       description, isShort, published, createdAt, updatedAt }
+const KIND_LABEL = { album: "앨범곡", unreleased: "미발매곡", etc: "기타 영상" };
+let videosCache = [];
+let editingVideoId = null; // null = 새 영상
+let videoSnapshot = "";
+
+function sortVideos(list) {
+  return list.sort((a, b) =>
+    String(b.date || "").localeCompare(String(a.date || ""))
+    || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+}
+
+async function refreshVideos() {
+  const listEl = $("video-list");
+  listEl.innerHTML = '<p class="muted">불러오는 중…</p>';
+  setStatus("video-list-status", "");
+  fillAlbumOptions($("bulk-album").value, "bulk-album");
+  try {
+    const snap = await getDocs(collection(db, "videos"));
+    videosCache = sortVideos(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+    renderVideos();
+  } catch (e) {
+    listEl.innerHTML = "";
+    setStatus("video-list-status", "영상 로드 실패: " + e.message + rulesHint(e), "err");
+  }
+}
+
+function renderVideos() {
+  const listEl = $("video-list");
+  const q = $("video-filter").value.trim().toLowerCase();
+  const items = q
+    ? videosCache.filter(v => [v.title, v.track, v.description].join(" ").toLowerCase().includes(q))
+    : videosCache;
+  if (!videosCache.length) {
+    listEl.innerHTML = '<p class="muted">아직 등록된 영상이 없습니다. 위에 유튜브 주소를 붙여넣고 [가져오기]를 누르세요.</p>';
+    return;
+  }
+  if (!items.length) {
+    listEl.innerHTML = '<p class="muted">검색 결과가 없습니다.</p>';
+    return;
+  }
+  listEl.innerHTML = "";
+  items.forEach(v => {
+    const album = albumCache.find(a => a.id === v.albumId);
+    const meta = [v.date, KIND_LABEL[v.kind] || v.kind, v.isShort ? "Shorts" : "", album?.title || "", v.track]
+      .filter(Boolean).join(" · ");
+    const row = document.createElement("div");
+    row.className = "vid-row";
+    row.innerHTML = `
+      <img src="${escAttr(thumbUrl(v.id, "mqdefault"))}" alt="" loading="lazy">
+      <div class="t">
+        <strong>${esc(v.title || "(제목 없음)")}</strong>
+        <small>${esc(meta)} <span class="badge ${v.published ? "pub" : ""}">${v.published ? "공개" : "비공개"}</span></small>
+      </div>
+      <button class="btn small" data-video="${esc(v.id)}">편집</button>
+    `;
+    listEl.appendChild(row);
+  });
+  listEl.querySelectorAll("[data-video]").forEach(btn => {
+    btn.addEventListener("click", () => openVideo(btn.getAttribute("data-video")));
+  });
+}
+
+$("video-filter").addEventListener("input", renderVideos);
+$("btn-new-video").addEventListener("click", () => openVideo(null));
+
+// ----- 여러 개 한 번에 추가 -----
+$("btn-bulk-add").addEventListener("click", async () => {
+  const btn = $("btn-bulk-add");
+  const lines = $("bulk-urls").value.split(/\s+/).map(x => x.trim()).filter(Boolean);
+  if (!lines.length) return setStatus("bulk-status", "유튜브 주소를 한 줄에 하나씩 붙여넣으세요.", "err");
+
+  const kind = $("bulk-kind").value;
+  const albumId = $("bulk-album").value;
+  const published = $("bulk-published").checked;
+  const seen = new Set(videosCache.map(v => v.id));
+  const added = [], skipped = [], invalid = [], failed = [];
+  let untitled = 0; // 제목을 못 가져와 임시 제목이 들어간 영상 수
+
+  btn.disabled = true;
+  try {
+    for (const line of lines) {
+      const yt = parseYouTube(line);
+      if (!yt) { invalid.push(line); continue; }
+      if (seen.has(yt.id)) { skipped.push(yt.id); continue; }
+      seen.add(yt.id);
+      setStatus("bulk-status", `가져오는 중… (${added.length + 1}) ${yt.id}`);
+      let title = await fetchYouTubeTitle(yt.id);
+      if (!title) {
+        title = `YouTube ${yt.id}`;
+        untitled++;
+      }
+      const now = new Date().toISOString();
+      try {
+        await setDoc(doc(db, "videos", yt.id), {
+          youtubeId: yt.id, title, kind, albumId, track: "", date: todayLocal(),
+          description: "", isShort: yt.isShort, published, createdAt: now, updatedAt: now
+        });
+        added.push(title);
+      } catch (e) {
+        failed.push(`${yt.id} (${e.message}${rulesHint(e)})`);
+      }
+    }
+    const msg = [
+      added.length ? `${added.length}개 추가` : "",
+      skipped.length ? `이미 있는 영상 ${skipped.length}개 건너뜀` : "",
+      invalid.length ? `알아볼 수 없는 주소 ${invalid.length}개: ${invalid.join(", ")}` : "",
+      failed.length ? `실패 ${failed.length}개: ${failed.join(", ")}` : ""
+    ].filter(Boolean).join(" · ");
+    setStatus("bulk-status", msg + (untitled ? ` — 제목을 못 가져온 ${untitled}개는 'YouTube …'로 들어갔으니 [편집]에서 고쳐주세요.` : ""),
+      invalid.length || failed.length ? "err" : "ok");
+    if (added.length) $("bulk-urls").value = invalid.join("\n");
+    await refreshVideos();
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ----- 영상 1개 추가/편집 -----
+function readVideoForm() {
+  return {
+    title: $("v-title").value.trim(),
+    kind: $("v-kind").value,
+    albumId: $("v-album").value,
+    track: $("v-track").value.trim(),
+    date: $("v-date").value.trim(),
+    description: $("v-desc").value.trim(),
+    isShort: $("v-short").checked,
+    published: $("v-published").checked
+  };
+}
+
+function updateVideoPreview() {
+  const yt = parseYouTube($("v-url").value);
+  const img = $("v-preview");
+  img.classList.toggle("hidden", !yt);
+  if (yt) img.src = thumbUrl(yt.id);
+  return yt;
+}
+
+function fillTrackSuggestions() {
+  const album = albumCache.find(a => a.id === $("v-album").value);
+  $("v-track-list").innerHTML = (album?.tracks || [])
+    .map(t => `<option value="${escAttr(t.title || "")}"></option>`).join("");
+}
+
+$("v-url").addEventListener("input", () => {
+  const yt = updateVideoPreview();
+  if (yt?.isShort) $("v-short").checked = true;
+});
+$("v-album").addEventListener("change", fillTrackSuggestions);
+
+$("btn-video-fetch").addEventListener("click", async () => {
+  const yt = updateVideoPreview();
+  if (!yt) return setStatus("video-edit-status", "유튜브 주소를 알아볼 수 없습니다.", "err");
+  setStatus("video-edit-status", "제목 가져오는 중…");
+  const title = await fetchYouTubeTitle(yt.id);
+  if (title) {
+    $("v-title").value = title;
+    setStatus("video-edit-status", "제목을 가져왔습니다.", "ok");
+  } else {
+    setStatus("video-edit-status", "제목을 가져오지 못했습니다. 직접 입력하세요.", "err");
+  }
+});
+
+function openVideo(videoId) {
+  const v = videoId ? videosCache.find(x => x.id === videoId) : null;
+  if (videoId && !v) {
+    setStatus("video-list-status", "영상을 찾을 수 없습니다. 목록을 새로고침합니다.", "err");
+    refreshVideos();
+    return;
+  }
+  editingVideoId = videoId;
+  $("video-edit-title").textContent = v ? "영상 편집" : "영상 추가";
+  $("btn-video-delete").classList.toggle("hidden", !v);
+  $("v-url").value = v ? `https://youtu.be/${v.id}` : "";
+  $("v-url").disabled = !!v;
+  $("btn-video-fetch").classList.toggle("hidden", !!v);
+  $("v-title").value = v?.title || "";
+  $("v-kind").value = v?.kind || "album";
+  fillAlbumOptions(v?.albumId || "", "v-album");
+  fillTrackSuggestions();
+  $("v-track").value = v?.track || "";
+  $("v-date").value = v?.date || todayLocal();
+  $("v-desc").value = v?.description || "";
+  $("v-short").checked = !!v?.isShort;
+  $("v-published").checked = v ? !!v.published : true;
+  updateVideoPreview();
+  videoSnapshot = JSON.stringify(readVideoForm()) + $("v-url").value;
+  setStatus("video-edit-status", "");
+  show("view-video");
+  window.scrollTo(0, 0);
+  (v ? $("v-title") : $("v-url")).focus();
+}
+
+$("btn-video-cancel").addEventListener("click", () => {
+  if (JSON.stringify(readVideoForm()) + $("v-url").value !== videoSnapshot
+    && !confirm("저장하지 않은 변경 사항이 있습니다. 목록으로 돌아갈까요?")) return;
+  showHome();
+  renderVideos();
+});
+
+$("btn-video-save").addEventListener("click", async () => {
+  const btn = $("btn-video-save");
+  const yt = editingVideoId ? { id: editingVideoId } : parseYouTube($("v-url").value);
+  const data = readVideoForm();
+  if (!yt) return setStatus("video-edit-status", "유튜브 주소를 알아볼 수 없습니다.", "err");
+  if (!data.title) return setStatus("video-edit-status", "제목은 필수입니다.", "err");
+  if (!data.date) return setStatus("video-edit-status", "게시일은 필수입니다.", "err");
+
+  btn.disabled = true;
+  setStatus("video-edit-status", "저장 중…");
+  try {
+    const prev = videosCache.find(x => x.id === yt.id);
+    if (!editingVideoId && prev) throw new Error("이미 등록된 영상입니다. 목록에서 [편집]하세요.");
+    const now = new Date().toISOString();
+    await setDoc(doc(db, "videos", yt.id), {
+      youtubeId: yt.id,
+      ...data,
+      createdAt: prev?.createdAt || now,
+      updatedAt: now
+    });
+    editingVideoId = yt.id;
+    $("video-edit-title").textContent = "영상 편집";
+    $("btn-video-delete").classList.remove("hidden");
+    $("v-url").disabled = true;
+    $("btn-video-fetch").classList.add("hidden");
+    videoSnapshot = JSON.stringify(data) + $("v-url").value;
+    await refreshVideos();
+    setStatus("video-edit-status",
+      data.published ? "저장 완료. Videos 페이지에 공개되었습니다." : "저장 완료 (비공개).", "ok");
+  } catch (e) {
+    setStatus("video-edit-status", "저장 실패: " + e.message + rulesHint(e), "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("btn-video-delete").addEventListener("click", async () => {
+  if (!editingVideoId) return;
+  if (!confirm("이 영상을 사이트 목록에서 삭제할까요? (유튜브의 영상은 그대로 남습니다)")) return;
+  try {
+    await deleteDoc(doc(db, "videos", editingVideoId));
+    editingVideoId = null;
+    showHome();
+    await refreshVideos();
+    setStatus("video-list-status", "영상 삭제 완료.", "ok");
+  } catch (e) {
+    setStatus("video-edit-status", "삭제 실패: " + e.message, "err");
   }
 });
 

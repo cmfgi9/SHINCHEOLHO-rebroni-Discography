@@ -71,7 +71,7 @@ function getYouTubeId(url) {
     }
     const v = u.searchParams.get("v");
     if (v) return v;
-    const m = u.pathname.match(/\/embed\/([^\/\?]+)/);
+    const m = u.pathname.match(/\/(?:embed|shorts|live)\/([^\/\?]+)/);
     if (m) return m[1];
     return null;
   } catch (e) {
