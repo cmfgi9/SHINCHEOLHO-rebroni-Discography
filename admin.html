@@ -217,6 +217,17 @@
     .rte figure img { display: block; max-width: 100%; max-height: 420px; border-radius: 8px; }
     .rte figure audio { display: block; width: 100%; }
     .rte figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .rte figure[data-kind=youtube] img { aspect-ratio: 16 / 9; object-fit: cover; max-height: 260px; }
+    .rte figure[data-kind=youtube]::after { content: "▶ YouTube"; display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* 영상 관리 */
+    .vid-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .vid-row:last-child { border-bottom: none; }
+    .vid-row img { width: 112px; height: 63px; object-fit: cover; border-radius: 6px; flex: none; background: var(--panel2); }
+    .vid-row .t { flex: 1; min-width: 0; }
+    .vid-row .t strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vid-row .t small { color: var(--muted); display: block; }
+    #v-preview { margin-top: 10px; width: 240px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
   </style>
 </head>
 
@@ -290,6 +301,106 @@
       <div class="status" id="note-list-status"></div>
     </section>
 
+    <!-- 3-3) 영상 목록 (Videos) -->
+    <section class="card hidden" id="view-videos">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h2 style="flex:1; margin:8px 0;">영상 (YouTube)</h2>
+        <button class="btn primary" id="btn-new-video">+ 영상 1개 추가</button>
+        <a class="btn" href="videos.html" target="_blank" style="text-decoration:none;">공개 페이지 보기</a>
+      </div>
+      <p class="muted">유튜브에 올린 영상을 사이트의 Videos 페이지에 모아 보여줍니다. 앨범곡·미발매곡·기타로 나눌 수 있고, Shorts(세로 영상)도 지원합니다.</p>
+
+      <fieldset style="margin-top:4px;">
+        <legend>여러 개 한 번에 추가</legend>
+        <label>유튜브 주소 <span class="muted">(한 줄에 하나씩 — 제목은 자동으로 가져옵니다)</span></label>
+        <textarea id="bulk-urls" placeholder="https://youtu.be/xxxxxxxxxxx&#10;https://www.youtube.com/shorts/xxxxxxxxxxx"></textarea>
+        <div class="grid3">
+          <div>
+            <label>구분</label>
+            <select id="bulk-kind">
+              <option value="album">앨범곡</option>
+              <option value="unreleased">미발매곡</option>
+              <option value="etc">기타 영상</option>
+            </select>
+          </div>
+          <div>
+            <label>관련 앨범 (선택)</label>
+            <select id="bulk-album"><option value="">— 없음 —</option></select>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text); margin:8px 0 0;">
+              <input type="checkbox" id="bulk-published" style="width:auto;" checked> 바로 공개
+            </label>
+          </div>
+        </div>
+        <div class="actions" style="margin-top:12px;">
+          <button class="btn primary" id="btn-bulk-add">가져오기</button>
+        </div>
+        <div class="status" id="bulk-status"></div>
+      </fieldset>
+
+      <input type="text" id="video-filter" placeholder="제목·곡·설명 검색" style="margin-top:16px;">
+      <div id="video-list"></div>
+      <div class="status" id="video-list-status"></div>
+    </section>
+
+    <!-- 3-4) 영상 편집 -->
+    <section class="card hidden" id="view-video">
+      <h2 id="video-edit-title">영상 추가</h2>
+
+      <label>유튜브 주소 * <span class="muted">(저장 후 변경 불가 — 다른 영상은 새로 추가하세요)</span></label>
+      <div style="display:flex; gap:8px;">
+        <input type="url" id="v-url" placeholder="https://youtu.be/… 또는 https://www.youtube.com/shorts/…">
+        <button class="btn" id="btn-video-fetch" type="button" style="white-space:nowrap;">제목 가져오기</button>
+      </div>
+      <img id="v-preview" alt="썸네일 미리보기" class="hidden">
+
+      <label>제목 *</label>
+      <input type="text" id="v-title" maxlength="200">
+
+      <div class="grid3">
+        <div>
+          <label>구분 *</label>
+          <select id="v-kind">
+            <option value="album">앨범곡</option>
+            <option value="unreleased">미발매곡</option>
+            <option value="etc">기타 영상</option>
+          </select>
+        </div>
+        <div>
+          <label>관련 앨범 (선택)</label>
+          <select id="v-album"><option value="">— 없음 —</option></select>
+        </div>
+        <div>
+          <label>게시일 *</label>
+          <input type="date" id="v-date">
+        </div>
+      </div>
+
+      <label>곡 이름 (선택) <span class="muted">(앨범을 고르면 수록곡이 추천됩니다)</span></label>
+      <input type="text" id="v-track" maxlength="200" list="v-track-list">
+      <datalist id="v-track-list"></datalist>
+
+      <label>설명 (선택)</label>
+      <textarea id="v-desc" maxlength="5000" placeholder="영상 소개, 제작 비하인드 등"></textarea>
+
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text);">
+        <input type="checkbox" id="v-short" style="width:auto;"> 세로 영상 (Shorts · 9:16)
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text);">
+        <input type="checkbox" id="v-published" style="width:auto;"> 공개 — 사이트 Videos 페이지에 노출
+      </label>
+
+      <div class="actions">
+        <button class="btn primary" id="btn-video-save">저장</button>
+        <button class="btn" id="btn-video-cancel">목록으로</button>
+        <button class="btn danger hidden" id="btn-video-delete">이 영상 삭제</button>
+      </div>
+      <p class="muted">삭제해도 유튜브의 영상은 그대로이며, 사이트 목록에서만 빠집니다.</p>
+      <div class="status" id="video-edit-status"></div>
+    </section>
+
     <!-- 3-2) 창작 노트 편집 -->
     <section class="card hidden" id="view-note">
       <h2 id="note-edit-title">새 노트</h2>
@@ -335,6 +446,7 @@
         <span class="sep"></span>
         <button class="btn" type="button" id="rte-image" title="사진 넣기">📷 사진</button>
         <button class="btn" type="button" id="rte-audio" title="음원 스케치 넣기">🎵 음원</button>
+        <button class="btn" type="button" id="rte-youtube" title="유튜브 영상 넣기">▶ 유튜브</button>
         <input type="file" id="rte-image-file" accept="image/*" multiple class="hidden">
         <input type="file" id="rte-audio-file" class="hidden">
       </div>

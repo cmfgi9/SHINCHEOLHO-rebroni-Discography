@@ -1,5 +1,6 @@
 // 창작 노트 서식(HTML) 공용 모듈 — 관리자 편집기와 공개 Journal 페이지가 함께 사용
 // 허용 목록에 있는 태그·속성만 남기고 나머지는 제거해 스크립트 삽입 등을 막는다.
+import { YT_ID_RE, createLitePlayer } from "./youtube.js";
 
 // 태그 → 허용 속성
 const ALLOWED = {
@@ -7,7 +8,7 @@ const ALLOWED = {
   B: [], STRONG: [], I: [], EM: [], U: [], S: [], STRIKE: [],
   H3: [], H4: [], BLOCKQUOTE: [], UL: [], OL: [], LI: [],
   A: ["href"], SPAN: ["style"],
-  FIGURE: ["data-kind"], FIGCAPTION: [], IMG: ["src", "alt"], AUDIO: ["src"]
+  FIGURE: ["data-kind", "data-id", "data-short"], FIGCAPTION: [], IMG: ["src", "alt"], AUDIO: ["src"]
 };
 // 내용까지 통째로 버리는 태그 (그 외 모르는 태그는 껍데기만 벗기고 내용은 유지)
 const DROP = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "NOSCRIPT", "TEMPLATE",
@@ -72,7 +73,9 @@ function cleanNode(node, out, doc) {
       if (name === "href") safe = safeUrl(v, { allowMailto: true });
       else if (name === "src") safe = safeUrl(v).startsWith("https:") ? safeUrl(v) : "";
       else if (name === "style") safe = safeStyle(v);
-      else if (name === "data-kind") safe = ["image", "audio"].includes(v) ? v : "";
+      else if (name === "data-kind") safe = ["image", "audio", "youtube"].includes(v) ? v : "";
+      else if (name === "data-id") safe = YT_ID_RE.test(v) ? v : ""; // 유튜브 영상 ID만 허용
+      else if (name === "data-short") safe = v === "1" ? v : "";
       else if (name === "alt") safe = v.slice(0, 200);
       if (safe) el.setAttribute(name, safe);
     }
@@ -112,6 +115,17 @@ export function renderHtml(html) {
   });
   tpl.content.querySelectorAll("img").forEach(img => {
     img.loading = "lazy";
+  });
+  // 유튜브 블록: 썸네일 대신 눌러서 재생하는 플레이어로 교체 (iframe은 검증된 영상 ID로만 만듦)
+  tpl.content.querySelectorAll('figure[data-kind="youtube"]').forEach(fig => {
+    const id = fig.getAttribute("data-id");
+    if (!id) return fig.remove();
+    const caption = fig.querySelector("figcaption");
+    fig.replaceChildren(createLitePlayer(id, {
+      isShort: fig.getAttribute("data-short") === "1",
+      title: caption?.textContent || ""
+    }));
+    if (caption) fig.appendChild(caption);
   });
   return tpl.content;
 }

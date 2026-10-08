@@ -1,7 +1,7 @@
 // 공개 창작 노트(Journal) 페이지: notes 컬렉션에서 published == true 인 노트만 타임라인으로 표시
 import { firebaseConfig } from "./firebase-config.js";
 import { firebaseConfigReady, loadAlbums } from "./data-service.js";
-import { renderHtml } from "./journal-format.js";
+import { renderHtml } from "./journal-format.js?v=2";
 
 const VER = "10.12.2";
 const $ = id => document.getElementById(id);
