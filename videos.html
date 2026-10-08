@@ -222,20 +222,31 @@
     .modal-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
     .modal-links a { text-decoration: none; }
 
-    .close {
-      position: absolute;
-      right: 10px;
-      top: 10px;
+    /* 닫기 버튼 줄: 영상 위쪽 바깥에 두어 유튜브 화면(제목 등)을 가리지 않음.
+       긴 설명을 스크롤해도 보이도록 창 위쪽에 고정 */
+    .modal-bar {
+      position: sticky;
+      top: 0;
       z-index: 1;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, .3);
-      background: rgba(0, 0, 0, .6);
-      color: #fff;
-      font-size: 18px;
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px 10px;
+      background: var(--modal);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .close {
+      font: inherit;
+      font-size: 14px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--chip);
+      color: var(--fg);
       cursor: pointer;
     }
+
+    .close:hover, .close:focus-visible { border-color: var(--accent); color: var(--accent); }
 
     a { color: var(--accent); }
 
@@ -278,7 +289,9 @@
 
   <div class="modal" id="modal" hidden>
     <div class="modal-panel" id="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <button class="close" id="modal-close" type="button" aria-label="닫기">✕</button>
+      <div class="modal-bar">
+        <button class="close" id="modal-close" type="button" aria-label="닫기">닫기 ✕</button>
+      </div>
       <div class="player" id="player"></div>
       <div class="modal-body">
         <h2 id="modal-title"></h2>
