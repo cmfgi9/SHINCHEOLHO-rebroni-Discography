@@ -64,17 +64,20 @@ service cloud.firestore {
     }
 
     // 창작 노트 (Creator's Journal): 관리자만 작성/수정/삭제.
+    //   html = 서식 본문(사이트에서 허용 태그만 남겨 표시), body = 일반 텍스트 사본, media = 첨부 파일 Storage 경로
     //   공개(published == true) 노트는 누구나 읽기, 비공개 노트는 관리자만 읽기.
     //   공개 페이지는 반드시 where('published', '==', true) 조건으로 조회해야 규칙을 통과함
     match /notes/{noteId} {
       allow read: if resource.data.published == true || isAdmin();
       allow create, update: if isAdmin()
-        && request.resource.data.keys().hasOnly(['title', 'body', 'date', 'tags', 'albumId', 'published', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['title', 'body', 'html', 'media', 'date', 'tags', 'albumId', 'published', 'createdAt', 'updatedAt'])
         && request.resource.data.title is string
         && request.resource.data.title.size() >= 1
         && request.resource.data.title.size() <= 120
         && request.resource.data.body is string
         && request.resource.data.body.size() <= 50000
+        && (!('html' in request.resource.data) || (request.resource.data.html is string && request.resource.data.html.size() <= 300000))
+        && (!('media' in request.resource.data) || (request.resource.data.media is list && request.resource.data.media.size() <= 100))
         && request.resource.data.date is string
         && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         && request.resource.data.tags is list

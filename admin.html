@@ -157,7 +157,66 @@
     }
 
     .badge.pub { color: var(--ok); border-color: rgba(48, 164, 108, .5); }
-    #n-body { min-height: 320px; line-height: 1.7; }
+    /* 창작 노트 서식 편집기 */
+    .rte-toolbar {
+      position: sticky;
+      top: 57px;
+      z-index: 5;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      background: var(--panel2);
+    }
+
+    .rte-toolbar .btn { padding: 4px 9px; font-size: 13px; min-width: 32px; }
+    .rte-toolbar .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+
+    .swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--line);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .rte-toolbar input[type=color] {
+      width: 28px;
+      height: 26px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: none;
+      cursor: pointer;
+    }
+
+    .rte {
+      min-height: 320px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 0 0 8px 8px;
+      background: var(--panel2);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.7;
+      overflow-wrap: anywhere;
+    }
+
+    .rte:focus { outline: none; border-color: var(--accent); }
+    .rte:empty::before { content: attr(data-placeholder); color: var(--muted); }
+    .rte p { margin: 0 0 .6em; }
+    .rte h3 { font-size: 18px; margin: .8em 0 .4em; }
+    .rte blockquote { margin: .6em 0; padding: 2px 12px; border-left: 3px solid var(--accent); color: var(--muted); }
+    .rte a { color: var(--accent); }
+    .rte figure { margin: 12px 0; padding: 8px; border: 1px dashed var(--line); border-radius: 10px; }
+    .rte figure img { display: block; max-width: 100%; max-height: 420px; border-radius: 8px; }
+    .rte figure audio { display: block; width: 100%; }
+    .rte figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
   </style>
 </head>
 
@@ -253,8 +312,35 @@
         </div>
       </div>
 
-      <label>본문 *</label>
-      <textarea id="n-body" placeholder="아이디어, 영감, 작업 메모를 자유롭게 적으세요. 줄바꿈은 그대로 보존됩니다."></textarea>
+      <label>본문 * <span class="muted">(글자를 선택한 뒤 서식 버튼을 누르세요. 사진은 붙여넣기(Ctrl+V)로도 넣을 수 있습니다)</span></label>
+      <div class="rte-toolbar" id="rte-toolbar">
+        <button class="btn" type="button" data-cmd="bold" title="굵게 (Ctrl+B)"><b>B</b></button>
+        <button class="btn" type="button" data-cmd="italic" title="기울임 (Ctrl+I)"><i>I</i></button>
+        <button class="btn" type="button" data-cmd="underline" title="밑줄 (Ctrl+U)"><u>U</u></button>
+        <button class="btn" type="button" data-cmd="strikeThrough" title="취소선"><s>S</s></button>
+        <span class="sep"></span>
+        <button class="btn" type="button" data-block="H3" title="소제목">소제목</button>
+        <button class="btn" type="button" data-block="BLOCKQUOTE" title="인용">❝</button>
+        <button class="btn" type="button" data-cmd="insertUnorderedList" title="글머리 목록">•</button>
+        <button class="btn" type="button" data-cmd="insertOrderedList" title="번호 목록">1.</button>
+        <button class="btn" type="button" id="rte-link" title="링크">🔗</button>
+        <span class="sep"></span>
+        <button class="swatch" type="button" data-color="#ff5a5f" style="background:#ff5a5f" title="빨강"></button>
+        <button class="swatch" type="button" data-color="#ffb02e" style="background:#ffb02e" title="주황"></button>
+        <button class="swatch" type="button" data-color="#3ecf8e" style="background:#3ecf8e" title="초록"></button>
+        <button class="swatch" type="button" data-color="#4f8cff" style="background:#4f8cff" title="파랑"></button>
+        <button class="swatch" type="button" data-color="#b57bff" style="background:#b57bff" title="보라"></button>
+        <input type="color" id="rte-color" value="#7dd3fc" title="다른 색 고르기">
+        <button class="btn" type="button" data-cmd="removeFormat" title="선택한 글자의 서식 지우기">서식 지우기</button>
+        <span class="sep"></span>
+        <button class="btn" type="button" id="rte-image" title="사진 넣기">📷 사진</button>
+        <button class="btn" type="button" id="rte-audio" title="음원 스케치 넣기">🎵 음원</button>
+        <input type="file" id="rte-image-file" accept="image/*" multiple class="hidden">
+        <input type="file" id="rte-audio-file" class="hidden">
+      </div>
+      <div class="rte" id="n-body" contenteditable="true"
+        data-placeholder="아이디어, 영감, 작업 메모를 자유롭게 적으세요."></div>
+      <div class="muted" id="rte-status" style="min-height:18px; margin-top:4px;"></div>
 
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text);">
         <input type="checkbox" id="n-published" style="width:auto;">
