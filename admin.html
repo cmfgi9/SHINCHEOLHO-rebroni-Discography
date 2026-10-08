@@ -133,6 +133,31 @@
     .muted { color: var(--muted); font-size: 13px; }
     code { background: var(--panel2); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
     .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+    select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel2);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .badge.pub { color: var(--ok); border-color: rgba(48, 164, 108, .5); }
+    #n-body { min-height: 320px; line-height: 1.7; }
   </style>
 </head>
 
@@ -191,6 +216,57 @@
         <div id="admin-subs-list"></div>
         <div class="status" id="subs-admin-status"></div>
       </fieldset>
+    </section>
+
+    <!-- 3-1) 창작 노트 목록 (Creator's Journal) -->
+    <section class="card hidden" id="view-notes">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h2 style="flex:1; margin:8px 0;">창작 노트</h2>
+        <button class="btn primary" id="btn-new-note">+ 새 노트</button>
+        <a class="btn" href="journal.html" target="_blank" style="text-decoration:none;">공개 페이지 보기</a>
+      </div>
+      <p class="muted">떠오른 아이디어·작업 과정을 날짜순으로 기록합니다. 기본은 비공개이며, [공개]로 체크한 노트만 사이트의 Journal 페이지에 보입니다.</p>
+      <input type="text" id="note-filter" placeholder="제목·본문·태그 검색">
+      <div id="note-list"></div>
+      <div class="status" id="note-list-status"></div>
+    </section>
+
+    <!-- 3-2) 창작 노트 편집 -->
+    <section class="card hidden" id="view-note">
+      <h2 id="note-edit-title">새 노트</h2>
+
+      <label>제목 *</label>
+      <input type="text" id="n-title" maxlength="120" placeholder="예: 새벽 3시, 여의도 노을 멜로디 스케치">
+
+      <div class="grid3">
+        <div>
+          <label>기록일 *</label>
+          <input type="date" id="n-date">
+        </div>
+        <div>
+          <label>관련 앨범 (선택)</label>
+          <select id="n-album"><option value="">— 없음 —</option></select>
+        </div>
+        <div>
+          <label>태그 <span class="muted">(쉼표로 구분)</span></label>
+          <input type="text" id="n-tags" placeholder="멜로디, 가사, 세계관">
+        </div>
+      </div>
+
+      <label>본문 *</label>
+      <textarea id="n-body" placeholder="아이디어, 영감, 작업 메모를 자유롭게 적으세요. 줄바꿈은 그대로 보존됩니다."></textarea>
+
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text);">
+        <input type="checkbox" id="n-published" style="width:auto;">
+        공개 — 사이트 Journal 페이지에 노출
+      </label>
+
+      <div class="actions">
+        <button class="btn primary" id="btn-note-save">저장</button>
+        <button class="btn" id="btn-note-cancel">목록으로</button>
+        <button class="btn danger hidden" id="btn-note-delete">이 노트 삭제</button>
+      </div>
+      <div class="status" id="note-edit-status"></div>
     </section>
 
     <!-- 4) 앨범 편집 폼 -->
