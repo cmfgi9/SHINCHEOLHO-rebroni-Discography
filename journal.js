@@ -1,6 +1,7 @@
 // 공개 창작 노트(Journal) 페이지: notes 컬렉션에서 published == true 인 노트만 타임라인으로 표시
 import { firebaseConfig } from "./firebase-config.js";
 import { firebaseConfigReady, loadAlbums } from "./data-service.js";
+import { renderHtml } from "./journal-format.js";
 
 const VER = "10.12.2";
 const $ = id => document.getElementById(id);
@@ -55,11 +56,19 @@ function render() {
       <article class="note" id="note-${esc(n.id)}">
         <div class="note-date"><a href="#note-${esc(n.id)}">${esc(n.date || "")}</a></div>
         <h2>${esc(n.title || "")}</h2>
-        <p class="note-body">${linkify(esc(n.body || ""))}</p>
+        ${n.html
+          ? `<div class="note-rich" data-rich="${esc(n.id)}"></div>`
+          : `<p class="note-body">${linkify(esc(n.body || ""))}</p>`}
         ${albumChip || tagChips ? `<div class="note-meta">${albumChip}${tagChips}</div>` : ""}
       </article>
     `;
   }).join("");
+
+  // 서식 본문은 허용된 태그만 남긴 뒤 DOM으로 삽입
+  listEl.querySelectorAll("[data-rich]").forEach(el => {
+    const n = items.find(x => x.id === el.getAttribute("data-rich"));
+    el.appendChild(renderHtml(n?.html || ""));
+  });
 
   listEl.querySelectorAll("[data-tag]").forEach(btn => {
     btn.addEventListener("click", () => {

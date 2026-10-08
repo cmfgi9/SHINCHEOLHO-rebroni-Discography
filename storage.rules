@@ -26,6 +26,15 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // 창작 노트 첨부(사진·음원 스케치): 누구나 읽기, 관리자만 업로드/삭제 (20MB 이하 이미지/오디오)
+    match /journal/{fileName} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.size < 20 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('audio/.*'));
+      allow delete: if isAdmin();
+    }
+
     // 그 외 경로 차단
     match /{allPaths=**} {
       allow read, write: if false;

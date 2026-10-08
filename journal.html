@@ -134,6 +134,31 @@
       margin: 0;
     }
 
+    /* 서식 본문 (사진·음원·굵게·글자색 등) */
+    .note-rich { font-size: 15px; overflow-wrap: anywhere; }
+    .note-rich p { margin: 0 0 .8em; }
+    .note-rich > :last-child { margin-bottom: 0; }
+    .note-rich h3 { font-size: 17px; margin: 1.2em 0 .5em; }
+    .note-rich h4 { font-size: 15px; margin: 1em 0 .4em; }
+    .note-rich blockquote {
+      margin: .8em 0;
+      padding: 2px 14px;
+      border-left: 3px solid var(--accent);
+      color: var(--muted);
+    }
+    .note-rich ul, .note-rich ol { margin: .4em 0 .8em; padding-left: 1.4em; }
+    .note-rich figure { margin: 14px 0; }
+    .note-rich figure img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+    }
+    .note-rich figure audio { display: block; width: 100%; }
+    .note-rich figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .note-rich figcaption:empty { display: none; }
+
     .note-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
     .note-meta .chip { cursor: default; }
     .note-meta a.chip { cursor: pointer; text-decoration: none; }
@@ -173,7 +198,7 @@
     </main>
   </div>
 
-  <script type="module" src="journal.js?v=1"></script>
+  <script type="module" src="journal.js?v=2"></script>
 </body>
 
 </html>

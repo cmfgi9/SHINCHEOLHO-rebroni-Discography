@@ -1,5 +1,6 @@
 // 관리자 페이지: Google 로그인 + 앨범/트랙/링크 CRUD + albums.json 마이그레이션 + 창작 노트
 import { firebaseConfig } from "./firebase-config.js";
+import { sanitizeHtml, plainToHtml, htmlToText, storagePathsIn } from "./journal-format.js";
 
 const VER = "10.12.2";
 const { initializeApp, getApps } = await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-app.js`);
@@ -606,7 +607,8 @@ $("btn-copy-subs").addEventListener("click", async () => {
 });
 
 // ---------- 창작 노트 (Creator's Journal) ----------
-// notes/{autoId}: { title, body, date(YYYY-MM-DD), tags[], albumId, published, createdAt, updatedAt }
+// notes/{autoId}: { title, body(일반 텍스트 사본), html(서식 본문), media[](첨부 Storage 경로),
+//                   date(YYYY-MM-DD), tags[], albumId, published, createdAt, updatedAt }
 let notesCache = [];
 let editingNoteId = null; // null = 새 노트
 let noteSnapshot = "";    // 저장하지 않은 변경 감지용
@@ -693,15 +695,223 @@ function fillAlbumOptions(selected) {
   sel.value = selected || "";
 }
 
+// ----- 서식 편집기 (본문) -----
+const editor = $("n-body");
+let savedRange = null;          // 툴바·색상 선택 창을 누르는 동안 잃어버리는 선택 영역 보관
+const sessionUploads = new Set(); // 이 편집 중에 올린 파일 — 저장하지 않고 나가면 Storage에서 정리
+
+document.execCommand("defaultParagraphSeparator", false, "p"); // Enter → <p> 문단
+
+document.addEventListener("selectionchange", () => {
+  const sel = getSelection();
+  if (sel.rangeCount && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+    savedRange = sel.getRangeAt(0).cloneRange();
+  }
+});
+
+function restoreSelection() {
+  editor.focus();
+  const sel = getSelection();
+  sel.removeAllRanges();
+  if (savedRange && editor.contains(savedRange.commonAncestorContainer)) {
+    sel.addRange(savedRange);
+  } else { // 커서 위치가 없으면 본문 끝에
+    const r = document.createRange();
+    r.selectNodeContents(editor);
+    r.collapse(false);
+    sel.addRange(r);
+  }
+}
+
+function exec(cmd, value = null) {
+  restoreSelection();
+  document.execCommand(cmd, false, value);
+}
+
+function applyColor(color) {
+  restoreSelection();
+  document.execCommand("styleWithCSS", false, true); // <font> 대신 <span style="color">로 저장
+  document.execCommand("foreColor", false, color);
+  document.execCommand("styleWithCSS", false, false);
+}
+
+// 편집 화면에서만 쓰는 장치: 사진/음원 블록은 통째로 다루고, 설명만 편집 + 삭제 버튼
+function decorateEditor() {
+  editor.querySelectorAll("figure").forEach(fig => {
+    fig.contentEditable = "false";
+    if (!fig.querySelector("figcaption")) fig.appendChild(document.createElement("figcaption"));
+    fig.querySelector("figcaption").contentEditable = "true";
+    fig.querySelector("audio")?.setAttribute("controls", "");
+    if (!fig.querySelector(".fig-del")) {
+      fig.insertAdjacentHTML("afterbegin", '<button type="button" class="btn small danger fig-del" style="float:right;">✕ 빼기</button>');
+    }
+  });
+}
+
+editor.addEventListener("click", e => {
+  const del = e.target.closest(".fig-del");
+  if (!del) return;
+  e.preventDefault();
+  del.closest("figure").remove();
+});
+
+// 툴바 버튼을 눌러도 본문의 선택 영역이 풀리지 않도록
+$("rte-toolbar").addEventListener("mousedown", e => {
+  if (e.target.closest("button")) e.preventDefault();
+});
+$("rte-toolbar").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.cmd) exec(b.dataset.cmd);
+  else if (b.dataset.color) applyColor(b.dataset.color);
+  else if (b.dataset.block) {
+    restoreSelection();
+    const cur = String(document.queryCommandValue("formatBlock") || "").toUpperCase();
+    document.execCommand("formatBlock", false, cur === b.dataset.block ? "P" : b.dataset.block);
+  }
+});
+$("rte-color").addEventListener("input", e => applyColor(e.target.value));
+
+$("rte-link").addEventListener("click", () => {
+  const url = prompt("링크 주소를 입력하세요 (https://…)");
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url.trim())) return alert("https:// 로 시작하는 주소를 입력하세요.");
+  restoreSelection();
+  if (getSelection().isCollapsed) {
+    document.execCommand("insertHTML", false, `<a href="${escAttr(url.trim())}">${esc(url.trim())}</a>`);
+  } else {
+    document.execCommand("createLink", false, url.trim());
+  }
+});
+
+// 권한 오류일 때: 규칙 재게시 안내
+function rulesHint(err) {
+  return /permission|unauthorized/i.test(String(err.code || err.message))
+    ? " (Firebase Console에서 firestore.rules · storage.rules 최신본을 게시했는지 확인하세요)"
+    : "";
+}
+
+// ----- 사진 / 음원 스케치 첨부 -----
+function journalPathPrefix() {
+  return `journal/${editingNoteId || "draft"}-${Date.now()}`;
+}
+
+async function uploadJournalImage(file) {
+  if (!file.type.startsWith("image/")) throw new Error("이미지 파일이 아닙니다.");
+  let blob = file;
+  let ext = "jpg";
+  let contentType = "image/jpeg";
+  if (file.type === "image/gif") { // 움직이는 GIF는 변환하지 않고 그대로
+    if (file.size > 10 * 1024 * 1024) throw new Error("GIF는 10MB 이하만 올릴 수 있습니다.");
+    ext = "gif";
+    contentType = "image/gif";
+  } else {
+    blob = await resizeImage(file, 1600, 0.85);
+  }
+  const path = `${journalPathPrefix()}.${ext}`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, blob, { contentType });
+  sessionUploads.add(path);
+  return getDownloadURL(storageRef);
+}
+
+async function uploadJournalAudio(file) {
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  if (!AUDIO_TYPES[ext]) throw new Error("mp3 · wav · opus · ogg · m4a · aac 파일만 올릴 수 있습니다.");
+  if (file.size > 20 * 1024 * 1024) throw new Error(`파일이 20MB를 초과합니다 (${Math.round(file.size / 1024 / 1024)}MB).`);
+  const slug = slugify(file.name.replace(/\.[^.]+$/, ""));
+  const path = `${journalPathPrefix()}${slug ? "-" + slug : ""}.${ext}`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file, { contentType: AUDIO_TYPES[ext] });
+  sessionUploads.add(path);
+  return getDownloadURL(storageRef);
+}
+
+function insertFigure(html) {
+  restoreSelection();
+  document.execCommand("insertHTML", false, html + "<p><br></p>");
+  decorateEditor();
+}
+
+async function attachFiles(files) {
+  for (const file of files) {
+    const isAudio = file.type.startsWith("audio/") || AUDIO_TYPES[(file.name.split(".").pop() || "").toLowerCase()];
+    $("rte-status").textContent = `${file.name} 올리는 중…`;
+    try {
+      if (isAudio) {
+        const url = await uploadJournalAudio(file);
+        insertFigure(`<figure data-kind="audio"><audio controls preload="none" src="${escAttr(url)}"></audio>` +
+          `<figcaption>${esc(file.name.replace(/\.[^.]+$/, ""))}</figcaption></figure>`);
+      } else {
+        const url = await uploadJournalImage(file);
+        insertFigure(`<figure data-kind="image"><img src="${escAttr(url)}" alt=""><figcaption></figcaption></figure>`);
+      }
+      $("rte-status").textContent = `${file.name} 첨부 완료. [저장]을 눌러야 노트에 반영됩니다.`;
+    } catch (err) {
+      $("rte-status").textContent = `${file.name}: ${err.message}${rulesHint(err)}`;
+    }
+  }
+}
+
+$("rte-image").addEventListener("click", () => $("rte-image-file").click());
+$("rte-audio").addEventListener("click", () => $("rte-audio-file").click());
+$("rte-audio-file").accept = Object.keys(AUDIO_TYPES).map(e => "." + e).join(",") + ",audio/*";
+["rte-image-file", "rte-audio-file"].forEach(id => $(id).addEventListener("change", e => {
+  const files = [...(e.target.files || [])];
+  e.target.value = "";
+  attachFiles(files);
+}));
+
+// 붙여넣기: 이미지 파일은 업로드, 서식 있는 글은 허용된 서식만 남김
+editor.addEventListener("paste", e => {
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.length) {
+    e.preventDefault();
+    attachFiles(files);
+    return;
+  }
+  const html = e.clipboardData?.getData("text/html");
+  if (html) {
+    e.preventDefault();
+    document.execCommand("insertHTML", false, sanitizeHtml(html));
+    decorateEditor();
+  }
+});
+
+// 끌어다 놓기: 놓은 위치에 사진/음원 첨부
+editor.addEventListener("drop", e => {
+  const files = [...(e.dataTransfer?.files || [])];
+  if (!files.length) return;
+  e.preventDefault();
+  const r = document.caretRangeFromPoint?.(e.clientX, e.clientY);
+  if (r) savedRange = r;
+  attachFiles(files);
+});
+
 function readNoteForm() {
+  const html = sanitizeHtml(editor.innerHTML);
   return {
     title: $("n-title").value.trim(),
     date: $("n-date").value.trim(),
     albumId: $("n-album").value,
     tags: $("n-tags").value.split(",").map(t => t.trim().replace(/^#/, "")).filter(Boolean),
-    body: $("n-body").value.replace(/\s+$/, ""),
+    // 일반 텍스트 사본: 관리자 검색·미리보기용
+    body: htmlToText(html),
+    html,
+    media: storagePathsIn(html),
     published: $("n-published").checked
   };
+}
+
+// Storage 파일 삭제 (이미 없는 파일은 무시)
+async function deleteStoragePaths(paths) {
+  for (const path of paths) {
+    try {
+      await deleteObject(ref(storage, path));
+    } catch (err) {
+      if (err.code !== "storage/object-not-found") console.warn("첨부 파일 삭제 실패:", path, err);
+    }
+  }
 }
 
 function openNote(noteId) {
@@ -712,13 +922,18 @@ function openNote(noteId) {
     return;
   }
   editingNoteId = noteId;
+  sessionUploads.clear();
+  savedRange = null;
   $("note-edit-title").textContent = n ? "노트 편집" : "새 노트";
   $("btn-note-delete").classList.toggle("hidden", !n);
   $("n-title").value = n?.title || "";
   $("n-date").value = n?.date || todayLocal();
   $("n-tags").value = (n?.tags || []).join(", ");
-  $("n-body").value = n?.body || "";
+  // 서식 기능 이전에 쓴 노트는 일반 텍스트를 문단으로 변환해 불러옴
+  editor.innerHTML = n?.html ? sanitizeHtml(n.html) : plainToHtml(n?.body || "");
+  decorateEditor();
   $("n-published").checked = !!n?.published;
+  $("rte-status").textContent = "";
   fillAlbumOptions(n?.albumId || "");
   noteSnapshot = JSON.stringify(readNoteForm());
   setStatus("note-edit-status", "");
@@ -727,9 +942,19 @@ function openNote(noteId) {
   $("n-title").focus();
 }
 
+function noteDirty() {
+  return !$("view-note").classList.contains("hidden") && JSON.stringify(readNoteForm()) !== noteSnapshot;
+}
+window.addEventListener("beforeunload", e => {
+  if (noteDirty()) e.preventDefault();
+});
+
 $("btn-note-cancel").addEventListener("click", async () => {
-  if (JSON.stringify(readNoteForm()) !== noteSnapshot
-    && !confirm("저장하지 않은 변경 사항이 있습니다. 목록으로 돌아갈까요?")) return;
+  if (noteDirty() && !confirm("저장하지 않은 변경 사항이 있습니다. 목록으로 돌아갈까요?")) return;
+  // 저장하지 않은 첨부 파일 정리 (저장된 노트가 쓰는 파일은 남김)
+  const saved = new Set(notesCache.find(x => x.id === editingNoteId)?.media || []);
+  await deleteStoragePaths([...sessionUploads].filter(p => !saved.has(p)));
+  sessionUploads.clear();
   showHome();
   renderNotes();
 });
@@ -739,14 +964,14 @@ $("btn-note-save").addEventListener("click", async () => {
   const data = readNoteForm();
   if (!data.title) return setStatus("note-edit-status", "제목은 필수입니다.", "err");
   if (!data.date) return setStatus("note-edit-status", "기록일은 필수입니다.", "err");
-  if (!data.body.trim()) return setStatus("note-edit-status", "본문을 입력하세요.", "err");
+  if (!data.body && !data.media.length) return setStatus("note-edit-status", "본문을 입력하거나 사진·음원을 첨부하세요.", "err");
 
   btn.disabled = true;
   setStatus("note-edit-status", "저장 중…");
   try {
     const now = new Date().toISOString();
+    const prev = editingNoteId ? notesCache.find(x => x.id === editingNoteId) : null;
     if (editingNoteId) {
-      const prev = notesCache.find(x => x.id === editingNoteId);
       await setDoc(doc(db, "notes", editingNoteId), {
         ...data,
         createdAt: prev?.createdAt || now,
@@ -758,12 +983,16 @@ $("btn-note-save").addEventListener("click", async () => {
       $("note-edit-title").textContent = "노트 편집";
       $("btn-note-delete").classList.remove("hidden");
     }
+    // 본문에서 빠진 사진/음원 파일 정리
+    const keep = new Set(data.media);
+    await deleteStoragePaths([...new Set([...(prev?.media || []), ...sessionUploads])].filter(p => !keep.has(p)));
+    sessionUploads.clear();
     noteSnapshot = JSON.stringify(data);
     await refreshNotes();
     setStatus("note-edit-status",
       data.published ? "저장 완료. Journal 페이지에 공개되었습니다." : "저장 완료 (비공개).", "ok");
   } catch (e) {
-    setStatus("note-edit-status", "저장 실패: " + e.message, "err");
+    setStatus("note-edit-status", "저장 실패: " + e.message + rulesHint(e), "err");
   } finally {
     btn.disabled = false;
   }
@@ -771,9 +1000,12 @@ $("btn-note-save").addEventListener("click", async () => {
 
 $("btn-note-delete").addEventListener("click", async () => {
   if (!editingNoteId) return;
-  if (!confirm("이 노트를 삭제합니다. 되돌릴 수 없습니다. 진행할까요?")) return;
+  if (!confirm("이 노트를 삭제합니다. 첨부한 사진·음원도 함께 삭제되며 되돌릴 수 없습니다. 진행할까요?")) return;
   try {
+    const prev = notesCache.find(x => x.id === editingNoteId);
     await deleteDoc(doc(db, "notes", editingNoteId));
+    await deleteStoragePaths([...new Set([...(prev?.media || []), ...sessionUploads])]);
+    sessionUploads.clear();
     editingNoteId = null;
     showHome();
     await refreshNotes();
