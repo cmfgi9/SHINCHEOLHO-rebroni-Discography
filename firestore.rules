@@ -63,6 +63,25 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // 창작 노트 (Creator's Journal): 관리자만 작성/수정/삭제.
+    //   공개(published == true) 노트는 누구나 읽기, 비공개 노트는 관리자만 읽기.
+    //   공개 페이지는 반드시 where('published', '==', true) 조건으로 조회해야 규칙을 통과함
+    match /notes/{noteId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['title', 'body', 'date', 'tags', 'albumId', 'published', 'createdAt', 'updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.body is string
+        && request.resource.data.body.size() <= 50000
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.tags is list
+        && request.resource.data.published is bool;
+      allow delete: if isAdmin();
+    }
+
     // 향후 확장 예약 (커머스):
     // match /products/{productId} { allow read: if true; allow write: if isAdmin(); }
     // match /orders/{orderId} { ... 구매자 본인 + 관리자만 ... }

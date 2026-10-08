@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal | SHINCHEOLHO-rebroni · Rebroni Music</title>
+  <meta name="description" content="SHINCHEOLHO-rebroni의 창작 노트 — 곡과 앨범이 만들어지는 과정의 아이디어 기록">
+  <meta property="og:title" content="Journal | SHINCHEOLHO-rebroni">
+  <meta property="og:description" content="창작 노트 — 곡과 앨범이 만들어지는 과정의 아이디어 기록">
+  <meta property="og:image" content="https://music.rebroni.com/ep1-beyondgoldengate.jpg">
+  <meta property="og:url" content="https://music.rebroni.com/journal.html">
+  <!-- 사이트와 같은 테마(dark / nature)를 CSS 로드 전에 적용 -->
+  <script>
+    try { document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "dark"); }
+    catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
+  </script>
+  <style>
+    :root {
+      --bg: #0e0e11;
+      --fg: #f5f5f7;
+      --muted: #a1a1aa;
+      --line: rgba(255, 255, 255, .12);
+      --panel: rgba(255, 255, 255, .04);
+      --chip: rgba(255, 255, 255, .07);
+      --accent: #7dd3fc;
+    }
+
+    [data-theme="nature"] {
+      --bg: #f3f7f1;
+      --fg: #1d2b21;
+      --muted: #55685a;
+      --line: rgba(24, 68, 40, .18);
+      --panel: rgba(255, 255, 255, .7);
+      --chip: rgba(34, 96, 56, .08);
+      --accent: #2f7a4b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.7;
+      padding: 32px 16px 48px;
+    }
+
+    .container { max-width: 760px; margin: 0 auto; }
+
+    .back {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .back:hover { color: var(--fg); }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+
+    h1 { font-size: 28px; margin: 0 0 6px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 15px; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .chip {
+      font: inherit;
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--chip);
+      color: var(--fg);
+      cursor: pointer;
+    }
+
+    .chip.on { border-color: var(--accent); color: var(--accent); }
+    .toolbar .spacer { flex: 1; }
+
+    .timeline { position: relative; padding-left: 22px; }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: var(--line);
+    }
+
+    .note {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 18px;
+    }
+
+    .note::before {
+      content: "";
+      position: absolute;
+      left: -22px;
+      top: 26px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--bg);
+    }
+
+    .note-date { font-size: 13px; color: var(--muted); }
+    .note-date a { color: inherit; text-decoration: none; }
+    .note h2 { font-size: 19px; margin: 4px 0 12px; }
+
+    .note-body {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 15px;
+      margin: 0;
+    }
+
+    .note-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .note-meta .chip { cursor: default; }
+    .note-meta a.chip { cursor: pointer; text-decoration: none; }
+    .note-meta button.chip { cursor: pointer; }
+
+    a { color: var(--accent); }
+
+    .empty { color: var(--muted); text-align: center; padding: 40px 0; }
+    .note:target { border-color: var(--accent); }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 23px; }
+      .note { padding: 16px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <a href="./" class="back">← Discography로 돌아가기</a>
+
+    <header>
+      <h1>Journal</h1>
+      <p class="subtitle">창작 노트 — 곡과 앨범이 만들어지기까지의 아이디어 기록<br>
+        <span style="font-size:13px;">Notes from the studio: ideas, sketches and stories behind the music.</span></p>
+    </header>
+
+    <div class="toolbar" id="toolbar" hidden>
+      <button class="chip on" id="sort-new" type="button">최신순</button>
+      <button class="chip" id="sort-old" type="button">처음부터</button>
+      <span class="spacer"></span>
+      <span id="tag-filter"></span>
+    </div>
+
+    <main class="timeline" id="notes">
+      <p class="empty">불러오는 중…</p>
+    </main>
+  </div>
+
+  <script type="module" src="journal.js?v=1"></script>
+</body>
+
+</html>

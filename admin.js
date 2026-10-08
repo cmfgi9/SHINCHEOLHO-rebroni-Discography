@@ -1,11 +1,11 @@
-// 관리자 페이지: Google 로그인 + 앨범/트랙/링크 CRUD + albums.json 마이그레이션
+// 관리자 페이지: Google 로그인 + 앨범/트랙/링크 CRUD + albums.json 마이그레이션 + 창작 노트
 import { firebaseConfig } from "./firebase-config.js";
 
 const VER = "10.12.2";
 const { initializeApp, getApps } = await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-app.js`);
 const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } =
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-auth.js`);
-const { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy, limit } =
+const { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, writeBatch, query, orderBy, limit } =
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-firestore.js`);
 const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } =
   await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-storage.js`);
@@ -16,9 +16,13 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 const $ = id => document.getElementById(id);
-const views = ["view-signin", "view-noauth", "view-list", "view-edit"];
+const views = ["view-signin", "view-noauth", "view-list", "view-notes", "view-note", "view-edit"];
 function show(...ids) {
   views.forEach(v => $(v).classList.toggle("hidden", !ids.includes(v)));
+}
+// 관리자 첫 화면: 앨범 목록 + 창작 노트 목록
+function showHome() {
+  show("view-list", "view-notes");
 }
 function setStatus(id, msg, cls = "") {
   const el = $(id);
@@ -68,8 +72,9 @@ onAuthStateChanged(auth, async user => {
     show("view-noauth");
     return;
   }
-  show("view-list");
+  showHome();
   await refreshList();
+  await refreshNotes();
 });
 
 async function checkAdmin(uid) {
@@ -83,10 +88,13 @@ async function checkAdmin(uid) {
 }
 
 // ---------- 앨범 목록 ----------
+let albumCache = []; // 창작 노트의 '관련 앨범' 선택지로도 사용
+
 async function fetchAlbums() {
   const snap = await getDocs(collection(db, "albums"));
   const albums = snap.docs.map(d => ({ ...d.data(), id: d.id }));
   albums.sort((a, b) => String(b.release || "").localeCompare(String(a.release || "")));
+  albumCache = albums;
   return albums;
 }
 
@@ -149,7 +157,7 @@ $("btn-import").addEventListener("click", async () => {
 // ---------- 편집 폼 ----------
 $("btn-new").addEventListener("click", () => openEdit(null));
 $("btn-cancel").addEventListener("click", async () => {
-  show("view-list");
+  showHome();
   await refreshList();
 });
 $("btn-add-track").addEventListener("click", e => {
@@ -508,7 +516,7 @@ $("btn-delete").addEventListener("click", async () => {
       }
     }
     await deleteDoc(doc(db, "albums", editingId));
-    show("view-list");
+    showHome();
     await refreshList();
     setStatus("list-status", `앨범 "${editingId}" 삭제 완료.`, "ok");
     editingId = null;
@@ -594,6 +602,184 @@ $("btn-copy-subs").addEventListener("click", async () => {
     setStatus("subs-admin-status", `이메일 ${subscriberEmails.length}건 복사 완료. STIBEE/Mailchimp 등에 붙여넣으세요.`, "ok");
   } catch (e) {
     setStatus("subs-admin-status", "복사 실패 — 목록을 직접 선택해 복사하세요.", "err");
+  }
+});
+
+// ---------- 창작 노트 (Creator's Journal) ----------
+// notes/{autoId}: { title, body, date(YYYY-MM-DD), tags[], albumId, published, createdAt, updatedAt }
+let notesCache = [];
+let editingNoteId = null; // null = 새 노트
+let noteSnapshot = "";    // 저장하지 않은 변경 감지용
+
+function todayLocal() {
+  return new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (로컬 시간대)
+}
+
+// 기록일 내림차순(최신이 위), 같은 날은 작성 시각 내림차순
+function sortNotes(notes) {
+  return notes.sort((a, b) =>
+    String(b.date || "").localeCompare(String(a.date || ""))
+    || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+}
+
+async function refreshNotes() {
+  const listEl = $("note-list");
+  listEl.innerHTML = '<p class="muted">불러오는 중…</p>';
+  setStatus("note-list-status", "");
+  try {
+    const snap = await getDocs(collection(db, "notes"));
+    notesCache = sortNotes(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+    renderNotes();
+  } catch (e) {
+    listEl.innerHTML = "";
+    setStatus("note-list-status", "노트 로드 실패: " + e.message +
+      " (firestore.rules에 notes 규칙을 게시했는지 확인하세요)", "err");
+  }
+}
+
+function renderNotes() {
+  const listEl = $("note-list");
+  const q = $("note-filter").value.trim().toLowerCase();
+  const items = q
+    ? notesCache.filter(n => [n.title, n.body, (n.tags || []).join(" ")].join(" ").toLowerCase().includes(q))
+    : notesCache;
+  if (!notesCache.length) {
+    listEl.innerHTML = '<p class="muted">아직 노트가 없습니다. [+ 새 노트]로 첫 아이디어를 기록하세요.</p>';
+    return;
+  }
+  if (!items.length) {
+    listEl.innerHTML = '<p class="muted">검색 결과가 없습니다.</p>';
+    return;
+  }
+  listEl.innerHTML = "";
+  items.forEach(n => {
+    const album = albumCache.find(a => a.id === n.albumId);
+    const meta = [
+      n.date || "-",
+      album ? album.title : (n.albumId || ""),
+      (n.tags || []).map(t => "#" + t).join(" ")
+    ].filter(Boolean).join(" · ");
+    const preview = String(n.body || "").replace(/\s+/g, " ").slice(0, 80);
+    const row = document.createElement("div");
+    row.className = "album-row";
+    row.innerHTML = `
+      <div class="t">
+        <strong>${esc(n.title || "(제목 없음)")}</strong>
+        <span class="badge ${n.published ? "pub" : ""}">${n.published ? "공개" : "비공개"}</span>
+        <small>${esc(meta)}</small>
+        <small>${esc(preview)}${String(n.body || "").length > 80 ? "…" : ""}</small>
+      </div>
+      <button class="btn small" data-note="${esc(n.id)}">편집</button>
+    `;
+    listEl.appendChild(row);
+  });
+  listEl.querySelectorAll("[data-note]").forEach(btn => {
+    btn.addEventListener("click", () => openNote(btn.getAttribute("data-note")));
+  });
+}
+
+$("note-filter").addEventListener("input", renderNotes);
+$("btn-new-note").addEventListener("click", () => openNote(null));
+
+function fillAlbumOptions(selected) {
+  const sel = $("n-album");
+  sel.innerHTML = '<option value="">— 없음 —</option>' + albumCache
+    .map(a => `<option value="${esc(a.id)}">${esc(a.ordinal || a.id)} · ${esc(a.title || "")}</option>`)
+    .join("");
+  // 삭제된 앨범을 가리키는 노트도 값이 사라지지 않도록 유지
+  if (selected && !albumCache.some(a => a.id === selected)) {
+    sel.insertAdjacentHTML("beforeend", `<option value="${esc(selected)}">${esc(selected)} (삭제된 앨범)</option>`);
+  }
+  sel.value = selected || "";
+}
+
+function readNoteForm() {
+  return {
+    title: $("n-title").value.trim(),
+    date: $("n-date").value.trim(),
+    albumId: $("n-album").value,
+    tags: $("n-tags").value.split(",").map(t => t.trim().replace(/^#/, "")).filter(Boolean),
+    body: $("n-body").value.replace(/\s+$/, ""),
+    published: $("n-published").checked
+  };
+}
+
+function openNote(noteId) {
+  const n = noteId ? notesCache.find(x => x.id === noteId) : null;
+  if (noteId && !n) {
+    setStatus("note-list-status", "노트를 찾을 수 없습니다. 목록을 새로고침합니다.", "err");
+    refreshNotes();
+    return;
+  }
+  editingNoteId = noteId;
+  $("note-edit-title").textContent = n ? "노트 편집" : "새 노트";
+  $("btn-note-delete").classList.toggle("hidden", !n);
+  $("n-title").value = n?.title || "";
+  $("n-date").value = n?.date || todayLocal();
+  $("n-tags").value = (n?.tags || []).join(", ");
+  $("n-body").value = n?.body || "";
+  $("n-published").checked = !!n?.published;
+  fillAlbumOptions(n?.albumId || "");
+  noteSnapshot = JSON.stringify(readNoteForm());
+  setStatus("note-edit-status", "");
+  show("view-note");
+  window.scrollTo(0, 0);
+  $("n-title").focus();
+}
+
+$("btn-note-cancel").addEventListener("click", async () => {
+  if (JSON.stringify(readNoteForm()) !== noteSnapshot
+    && !confirm("저장하지 않은 변경 사항이 있습니다. 목록으로 돌아갈까요?")) return;
+  showHome();
+  renderNotes();
+});
+
+$("btn-note-save").addEventListener("click", async () => {
+  const btn = $("btn-note-save");
+  const data = readNoteForm();
+  if (!data.title) return setStatus("note-edit-status", "제목은 필수입니다.", "err");
+  if (!data.date) return setStatus("note-edit-status", "기록일은 필수입니다.", "err");
+  if (!data.body.trim()) return setStatus("note-edit-status", "본문을 입력하세요.", "err");
+
+  btn.disabled = true;
+  setStatus("note-edit-status", "저장 중…");
+  try {
+    const now = new Date().toISOString();
+    if (editingNoteId) {
+      const prev = notesCache.find(x => x.id === editingNoteId);
+      await setDoc(doc(db, "notes", editingNoteId), {
+        ...data,
+        createdAt: prev?.createdAt || now,
+        updatedAt: now
+      });
+    } else {
+      const created = await addDoc(collection(db, "notes"), { ...data, createdAt: now, updatedAt: now });
+      editingNoteId = created.id;
+      $("note-edit-title").textContent = "노트 편집";
+      $("btn-note-delete").classList.remove("hidden");
+    }
+    noteSnapshot = JSON.stringify(data);
+    await refreshNotes();
+    setStatus("note-edit-status",
+      data.published ? "저장 완료. Journal 페이지에 공개되었습니다." : "저장 완료 (비공개).", "ok");
+  } catch (e) {
+    setStatus("note-edit-status", "저장 실패: " + e.message, "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("btn-note-delete").addEventListener("click", async () => {
+  if (!editingNoteId) return;
+  if (!confirm("이 노트를 삭제합니다. 되돌릴 수 없습니다. 진행할까요?")) return;
+  try {
+    await deleteDoc(doc(db, "notes", editingNoteId));
+    editingNoteId = null;
+    showHome();
+    await refreshNotes();
+    setStatus("note-list-status", "노트 삭제 완료.", "ok");
+  } catch (e) {
+    setStatus("note-edit-status", "삭제 실패: " + e.message, "err");
   }
 });
 
