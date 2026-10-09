@@ -37,12 +37,14 @@ export function watchUrl(id, isShort = false) {
   return isShort ? `https://www.youtube.com/shorts/${id}` : `https://www.youtube.com/watch?v=${id}`;
 }
 
-// 개인정보 보호 강화 모드(youtube-nocookie) 플레이어 주소
-export function embedUrl(id, autoplay = false) {
-  return `https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1${autoplay ? "&autoplay=1" : ""}`;
+// 플레이어 주소 — 디스코그래피의 곡별 Play와 같은 방식(일반 youtube.com, 자동 재생 없음).
+// 방문자가 플레이어의 재생 버튼을 직접 눌러야 유튜브 조회수로 집계됨
+// (youtube-nocookie + 자동 재생 방식은 YouTube 스튜디오에서 조회수가 잡히지 않는 것을 확인함)
+export function embedUrl(id) {
+  return `https://www.youtube.com/embed/${id}?autoplay=0&rel=0&playsinline=1`;
 }
 
-// 클릭하면 그 자리에서 재생되는 가벼운 플레이어 (처음에는 썸네일만 불러옴)
+// 처음에는 썸네일만 보여주고, 누르면 그 자리에 유튜브 플레이어를 불러옴 (재생은 플레이어에서 직접)
 export function createLitePlayer(id, { isShort = false, title = "" } = {}) {
   const box = document.createElement("div");
   box.className = "yt-lite" + (isShort ? " yt-short" : "");
@@ -53,7 +55,7 @@ export function createLitePlayer(id, { isShort = false, title = "" } = {}) {
   btn.innerHTML = '<span class="yt-play-icon" aria-hidden="true"></span>';
   btn.addEventListener("click", () => {
     const iframe = document.createElement("iframe");
-    iframe.src = embedUrl(id, true);
+    iframe.src = embedUrl(id);
     iframe.title = title || "YouTube video player";
     iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
     iframe.allowFullscreen = true;
