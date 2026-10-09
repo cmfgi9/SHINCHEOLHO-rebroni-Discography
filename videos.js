@@ -1,7 +1,7 @@
 // 공개 영상(Videos) 페이지: videos 컬렉션에서 published == true 인 영상을 썸네일 갤러리로 표시
 import { firebaseConfig } from "./firebase-config.js";
 import { firebaseConfigReady, loadAlbums } from "./data-service.js";
-import { YT_ID_RE, thumbUrl, watchUrl, embedUrl } from "./youtube.js";
+import { YT_ID_RE, thumbUrl, watchUrl, embedUrl } from "./youtube.js?v=2";
 
 const VER = "10.12.2";
 const KIND_LABEL = { album: "앨범곡", unreleased: "미발매곡", etc: "기타" };
@@ -58,7 +58,7 @@ function showModal(id) {
   lastFocus = document.activeElement;
   $("modal-panel").classList.toggle("short", !!v.isShort);
   const iframe = document.createElement("iframe");
-  iframe.src = embedUrl(v.id, true);
+  iframe.src = embedUrl(v.id); // 재생은 방문자가 플레이어에서 직접 (조회수 집계)
   iframe.title = v.title || "YouTube video player";
   iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
   iframe.allowFullscreen = true;

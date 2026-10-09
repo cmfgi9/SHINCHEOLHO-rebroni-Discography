@@ -1,7 +1,7 @@
 // 관리자 페이지: Google 로그인 + 앨범/트랙/링크 CRUD + albums.json 마이그레이션 + 창작 노트 + 영상
 import { firebaseConfig } from "./firebase-config.js";
-import { sanitizeHtml, plainToHtml, htmlToText, storagePathsIn } from "./journal-format.js?v=2";
-import { parseYouTube, thumbUrl, fetchYouTubeTitle } from "./youtube.js";
+import { sanitizeHtml, plainToHtml, htmlToText, storagePathsIn } from "./journal-format.js?v=3";
+import { parseYouTube, thumbUrl, fetchYouTubeTitle } from "./youtube.js?v=2";
 
 const VER = "10.12.2";
 const { initializeApp, getApps } = await import(`https://www.gstatic.com/firebasejs/${VER}/firebase-app.js`);

@@ -1,6 +1,6 @@
 // 창작 노트 서식(HTML) 공용 모듈 — 관리자 편집기와 공개 Journal 페이지가 함께 사용
 // 허용 목록에 있는 태그·속성만 남기고 나머지는 제거해 스크립트 삽입 등을 막는다.
-import { YT_ID_RE, createLitePlayer } from "./youtube.js";
+import { YT_ID_RE, createLitePlayer } from "./youtube.js?v=2";
 
 // 태그 → 허용 속성
 const ALLOWED = {
