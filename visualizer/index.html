@@ -15,7 +15,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
   <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
-  <link rel="stylesheet" href="viz.css?v=2">
+  <link rel="stylesheet" href="viz.css?v=3">
 </head>
 
 <body>
@@ -115,13 +115,23 @@
       <!-- 배경 -->
       <div class="tabpane" data-pane="bg">
         <label class="drop" for="bg-input">
-          <strong>배경 이미지 / 영상 선택</strong>
-          <span>9:16 세로 비율 권장 (JPG · PNG · WEBP · GIF · MP4 · MOV · WEBM)</span>
+          <strong>배경 이미지 / 영상 선택 (여러 개 가능)</strong>
+          <span>9:16 세로 비율 권장 · 최대 10개 (영상은 5개까지)<br>JPG · PNG · WEBP · GIF · MP4 · MOV · WEBM</span>
         </label>
-        <input id="bg-input" type="file" accept="image/*,video/*" hidden>
+        <input id="bg-input" type="file" accept="image/*,video/*" multiple hidden>
+        <ul id="bg-list" class="track-list"></ul>
         <div class="row">
-          <button id="bg-clear" class="btn ghost small">배경 제거</button>
+          <button id="bg-clear" class="btn ghost small">모두 제거</button>
           <span id="bg-info" class="muted"></span>
+        </div>
+        <div id="slide-opts" class="field" hidden>
+          <span>슬라이드쇼 (2개 이상일 때 목록 순서대로 반복)</span>
+          <label class="field">장면 전환 간격 <output id="bg-interval-out">5초</output>
+            <input id="bg-interval" type="range" min="2" max="30" step="1" value="5"></label>
+          <div class="seg" id="bg-transition">
+            <button data-v="fade" class="on">부드럽게 (크로스페이드)</button><button data-v="cut">바로 전환</button>
+          </div>
+          <p class="muted small">영상은 장면이 시작될 때 처음부터 재생되고, 간격보다 짧으면 반복됩니다.</p>
         </div>
         <div class="field">
           <span>맞춤</span>
@@ -195,7 +205,7 @@
   <audio id="audio" preload="auto" playsinline></audio>
   <video id="bg-video" muted loop playsinline preload="auto" hidden></video>
 
-  <script src="viz.js?v=8"></script>
+  <script src="viz.js?v=9"></script>
 </body>
 
 </html>

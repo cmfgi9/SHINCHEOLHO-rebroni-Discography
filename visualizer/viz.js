@@ -16,6 +16,7 @@
     fit: "cover", dim: 0.25, blur: 0, beatZoom: true, bgc1: "#14112a", bgc2: "#03030a",
     res: 1080, fps: 30, volume: 1, loopOne: false,
     fadeIn: 0.5, fadeOut: 3, fadeVideo: false,
+    bgInterval: 5, bgTransition: "fade",
   };
   const STORE_KEY = "rebroni-visualizer-settings";
   const cfg = Object.assign({}, DEFAULTS);
@@ -220,38 +221,99 @@
     $("#dur").textContent = fmtTime(d);
   }
 
-  // ---------- 배경 ----------
-  let bgImage = null, bgKind = null, bgUrl = null;
+  // ---------- 배경 (여러 장이면 슬라이드쇼) ----------
+  // 최대 개수: 영상은 동시에 디코딩하는 부담이 커서 따로 제한
+  const BG_MAX = 10, BG_MAX_VIDEO = 5;
+  const bgItems = []; // { id, kind: "image"|"video", file, url, name, img, w, h }
+  let bgSeq = 0;
+  // 영상 배경용 <video> 2개: 현재 장면 + 다음 장면(크로스페이드 대비)
+  const bgVideos = [bgVideo, bgVideo.cloneNode()];
+  bgVideos[1].removeAttribute("id");
+  document.body.appendChild(bgVideos[1]);
 
-  function setBackground(file) {
-    clearBackground();
-    bgUrl = URL.createObjectURL(file);
-    if (file.type.startsWith("video/")) {
-      bgKind = "video";
-      bgVideo.src = bgUrl;
-      bgVideo.play().catch(() => { /* 사용자 제스처 후 재시도 */ });
-      bgVideo.onloadedmetadata = () => showBgInfo(file, bgVideo.videoWidth, bgVideo.videoHeight);
-    } else {
-      bgKind = "image";
-      const img = new Image();
-      img.onload = () => { bgImage = img; showBgInfo(file, img.naturalWidth, img.naturalHeight); };
-      img.onerror = () => alert("이미지를 불러올 수 없습니다. (HEIC 등은 JPG/PNG로 변환 후 사용하세요)");
-      img.src = bgUrl;
+  function addBgFiles(files) {
+    const list = Array.from(files).filter((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
+    let skipped = 0;
+    for (const file of list) {
+      const isVideo = file.type.startsWith("video/");
+      const videoCount = bgItems.filter((x) => x.kind === "video").length;
+      if (bgItems.length >= BG_MAX || (isVideo && videoCount >= BG_MAX_VIDEO)) { skipped++; continue; }
+      const item = { id: ++bgSeq, kind: isVideo ? "video" : "image", file, url: URL.createObjectURL(file), name: file.name, img: null, w: 0, h: 0 };
+      if (isVideo) {
+        const probe = document.createElement("video");
+        probe.preload = "metadata"; probe.muted = true;
+        probe.onloadedmetadata = () => { item.w = probe.videoWidth; item.h = probe.videoHeight; item.dur = probe.duration; probe.removeAttribute("src"); renderBgList(); };
+        probe.onerror = () => { removeBg(item.id); alert(`"${file.name}" 영상을 이 브라우저에서 재생할 수 없습니다.`); };
+        probe.src = item.url;
+      } else {
+        const img = new Image();
+        img.onload = () => { item.img = img; item.w = img.naturalWidth; item.h = img.naturalHeight; renderBgList(); };
+        img.onerror = () => { removeBg(item.id); alert(`"${file.name}" 이미지를 불러올 수 없습니다. (HEIC 등은 JPG/PNG로 변환 후 사용하세요)`); };
+        img.src = item.url;
+      }
+      bgItems.push(item);
     }
+    lastSlot = -1;
+    renderBgList();
+    if (skipped) alert(`배경은 최대 ${BG_MAX}개(영상은 ${BG_MAX_VIDEO}개)까지 추가할 수 있어 ${skipped}개는 제외했습니다.`);
   }
-  function showBgInfo(file, w, h) {
-    const ratio = w && h ? (w / h) : 0;
-    const is916 = Math.abs(ratio - 9 / 16) < 0.02;
-    $("#bg-info").textContent = `${w}×${h}` + (is916 ? " · 9:16 ✓" : " · 9:16 아님 (맞춤 옵션 적용)");
+
+  function releaseVideoFor(item) {
+    bgVideos.forEach((v) => {
+      if (v.dataset.item === String(item.id)) { v.pause(); v.removeAttribute("src"); v.load(); delete v.dataset.item; }
+    });
+  }
+  function removeBg(id) {
+    const i = bgItems.findIndex((x) => x.id === id);
+    if (i < 0) return;
+    const [item] = bgItems.splice(i, 1);
+    releaseVideoFor(item);
+    bgCaches.delete(item.id);
+    URL.revokeObjectURL(item.url);
+    lastSlot = -1;
+    renderBgList();
+  }
+  function moveBg(id, dir) {
+    const i = bgItems.findIndex((x) => x.id === id), j = i + dir;
+    if (i < 0 || j < 0 || j >= bgItems.length) return;
+    [bgItems[i], bgItems[j]] = [bgItems[j], bgItems[i]];
+    lastSlot = -1;
+    renderBgList();
   }
   function clearBackground() {
-    bgVideo.pause(); bgVideo.removeAttribute("src"); bgVideo.load();
-    bgImage = null; bgKind = null;
-    if (bgUrl) URL.revokeObjectURL(bgUrl);
-    bgUrl = null;
-    $("#bg-info").textContent = "";
+    [...bgItems].forEach((x) => removeBg(x.id));
   }
-  $("#bg-input").addEventListener("change", (e) => { if (e.target.files[0]) setBackground(e.target.files[0]); e.target.value = ""; });
+
+  function renderBgList() {
+    const ul = $("#bg-list");
+    ul.innerHTML = "";
+    bgItems.forEach((item, i) => {
+      const li = document.createElement("li");
+      const is916 = item.w && item.h && Math.abs(item.w / item.h - 9 / 16) < 0.02;
+      const size = item.w ? `${item.w}×${item.h}${is916 ? " · 9:16 ✓" : ""}` : "불러오는 중…";
+      li.innerHTML = `<span>${item.kind === "video" ? "🎬" : "🖼"}</span><span class="name"></span>
+        <span class="meta">${size}</span>
+        <button class="del" data-act="up" aria-label="위로" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="del" data-act="down" aria-label="아래로" ${i === bgItems.length - 1 ? "disabled" : ""}>↓</button>
+        <button class="del" data-act="del" aria-label="삭제">✕</button>`;
+      li.querySelector(".name").textContent = item.name;
+      li.addEventListener("click", (e) => {
+        const act = e.target.closest("button")?.dataset.act;
+        if (act === "up") moveBg(item.id, -1);
+        else if (act === "down") moveBg(item.id, 1);
+        else if (act === "del") removeBg(item.id);
+      });
+      ul.appendChild(li);
+    });
+    const videos = bgItems.filter((x) => x.kind === "video").length;
+    $("#bg-info").textContent = bgItems.length
+      ? `${bgItems.length} / ${BG_MAX}개 (이미지 ${bgItems.length - videos} · 영상 ${videos}/${BG_MAX_VIDEO})`
+        + (bgItems.length > 1 ? ` · 한 바퀴 ${bgItems.length * cfg.bgInterval}초` : "")
+      : "";
+    $("#slide-opts").hidden = bgItems.length < 2;
+  }
+
+  $("#bg-input").addEventListener("change", (e) => { addBgFiles(e.target.files); e.target.value = ""; });
   $("#bg-clear").addEventListener("click", clearBackground);
 
   // 드래그 앤 드롭 (데스크톱)
@@ -261,7 +323,7 @@
     zone.addEventListener("drop", (e) => {
       e.preventDefault(); zone.classList.remove("dragover");
       if (zone.htmlFor === "audio-input") addAudioFiles(e.dataTransfer.files);
-      else if (e.dataTransfer.files[0]) setBackground(e.dataTransfer.files[0]);
+      else addBgFiles(e.dataTransfer.files);
     });
   });
 
@@ -272,33 +334,103 @@
   // 정적 배경(그라데이션·이미지·블러·어둡게)은 출력 크기 캔버스에 한 번만 그려 두고 매 프레임 재사용합니다.
   // 큰 원본 이미지를 비트 줌으로 매 프레임 다른 배율로 그리면 브라우저가 원본을 매번 다시 축소해
   // 고해상도에서 프레임이 크게 떨어지기 때문입니다 (5MP 이미지 + 4K에서 6fps).
-  const bgCache = document.createElement("canvas");
-  const bgCacheCtx = bgCache.getContext("2d");
-  let bgCacheKey = "";
-  function staticBackground() {
-    const key = [W, H, bgKind === "image" && bgImage ? bgImage.src : "", cfg.fit, cfg.blur, cfg.dim, cfg.bgc1, cfg.bgc2].join("|");
-    if (key !== bgCacheKey) {
-      if (bgCache.width !== W || bgCache.height !== H) { bgCache.width = W; bgCache.height = H; }
+  // 이미지별 캐시 (현재·다음 장면만 유지해 메모리 절약). id 0 = 배경 없음(그라데이션)
+  const bgCaches = new Map(); // id → { canvas, key }
+  function staticBackground(item) {
+    const id = item ? item.id : 0;
+    const key = [W, H, cfg.fit, cfg.blur, cfg.dim, cfg.bgc1, cfg.bgc2].join("|");
+    let c = bgCaches.get(id);
+    if (!c || c.key !== key) {
+      if (!c) { c = { canvas: document.createElement("canvas"), key: "" }; bgCaches.set(id, c); }
+      if (c.canvas.width !== W || c.canvas.height !== H) { c.canvas.width = W; c.canvas.height = H; }
       const prev = ctx;
-      ctx = bgCacheCtx;
-      paintBackground(bgKind === "image" ? bgImage : null, 1);
+      ctx = c.canvas.getContext("2d");
+      paintBackground(item ? item.img : null, 1);
       ctx = prev;
-      bgCacheKey = key;
+      c.key = key;
     }
-    return bgCache;
+    return c.canvas;
+  }
+  function pruneCaches(keepIds) {
+    for (const id of bgCaches.keys()) if (id !== 0 && !keepIds.includes(id)) bgCaches.delete(id);
+  }
+
+  // ---------- 슬라이드쇼 타이밍 ----------
+  // 재생 위치(추출 중에는 추출 시작점 기준)로 장면을 정하므로 미리보기와 추출 결과가 같고,
+  // 일시정지·되감기에도 어긋나지 않습니다.
+  let lastSlot = -1;
+  function slideState() {
+    const n = bgItems.length;
+    if (n < 2) return { cur: bgItems[0] || null, next: null, a: 0, slot: 0, nearEnd: false };
+    const iv = Math.max(1, cfg.bgInterval);
+    const fade = cfg.bgTransition === "fade" ? Math.min(1, iv * 0.3) : 0;
+    const t = Math.max(0, (audio.currentTime || 0) - (exporting ? exStart : 0));
+    const slot = Math.floor(t / iv), within = t - slot * iv;
+    return {
+      cur: bgItems[slot % n], next: bgItems[(slot + 1) % n], slot,
+      a: fade > 0 && within > iv - fade ? (within - (iv - fade)) / fade : 0,
+      nearEnd: within > iv - Math.max(fade, 1.5),
+    };
+  }
+
+  // 영상 장면에 <video>를 배정. 장면이 시작될 때 처음부터 재생
+  function videoFor(item, other) {
+    let v = bgVideos.find((x) => x.dataset.item === String(item.id));
+    if (v) return v;
+    v = bgVideos.find((x) => !other || x.dataset.item !== String(other.id)) || bgVideos[0];
+    v.dataset.item = String(item.id);
+    v.src = item.url;
+    v.currentTime = 0;
+    return v;
+  }
+  function syncSlideVideos(st) {
+    const { cur, next, slot } = st;
+    if (slot !== lastSlot) {
+      lastSlot = slot;
+      if (cur && cur.kind === "video") {
+        const v = videoFor(cur, next);
+        // 크로스페이드로 미리 재생 중이던 영상이 아니면 처음부터
+        if (v.paused) { v.currentTime = 0; }
+      }
+      bgVideos.forEach((v) => {
+        if (v.dataset.item !== String(cur && cur.id) && v.dataset.item !== String(next && next.id)) v.pause();
+      });
+    }
+    if (cur && cur.kind === "video") {
+      const v = videoFor(cur, next);
+      if (v.paused && v.readyState >= 2) v.play().catch(() => {});
+    }
+    if (next && next.kind === "video" && next !== cur && st.nearEnd) {
+      const v = videoFor(next, cur);
+      if (st.a > 0) { if (v.paused) v.play().catch(() => {}); }
+      else if (!v.paused) { v.pause(); v.currentTime = 0; }
+    }
+  }
+
+  function drawLayer(item, zoom) {
+    if (item && item.kind === "video") {
+      const v = bgVideos.find((x) => x.dataset.item === String(item.id));
+      paintBackground(v && v.readyState >= 2 ? v : null, zoom);
+      return;
+    }
+    const cache = staticBackground(item && item.img ? item : null);
+    if (zoom === 1) { ctx.drawImage(cache, 0, 0); return; }
+    const sw = W / zoom, sh = H / zoom;
+    ctx.drawImage(cache, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, W, H);
   }
 
   function drawBackground(bass) {
     const zoom = cfg.beatZoom ? 1 + Math.pow(bass, 2) * 0.07 : 1;
-    if (bgKind === "video") {
-      if (bgVideo.readyState >= 2 && bgVideo.paused) bgVideo.play().catch(() => {});
-      paintBackground(bgVideo.readyState >= 2 ? bgVideo : null, zoom);
-      return;
+    const st = slideState();
+    syncSlideVideos(st);
+    pruneCaches([st.cur, st.next].filter(Boolean).map((x) => x.id));
+    drawLayer(st.cur, zoom);
+    if (st.next && st.a > 0) {
+      ctx.save();
+      ctx.globalAlpha = st.a;
+      drawLayer(st.next, zoom);
+      ctx.restore();
     }
-    const cache = staticBackground();
-    if (zoom === 1) { ctx.drawImage(cache, 0, 0); return; }
-    const sw = W / zoom, sh = H / zoom;
-    ctx.drawImage(cache, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, W, H);
   }
 
   function paintBackground(src, zoom) {
@@ -752,7 +884,9 @@
     audio.pause();
     audio.currentTime = exStart;
     await new Promise((r) => { audio.addEventListener("seeked", r, { once: true }); setTimeout(r, 1500); });
-    if (bgKind === "video") { bgVideo.currentTime = 0; bgVideo.play().catch(() => {}); }
+    // 배경 슬라이드쇼·영상을 처음 장면부터 다시 시작
+    bgVideos.forEach((v) => { v.pause(); v.currentTime = 0; });
+    lastSlot = -1;
 
     exW = cfg.res; exH = Math.round(exW * 16 / 9); exFps = cfg.fps;
     if (W !== exW) { setResolution(exW); particles.length = 0; }
@@ -1070,6 +1204,7 @@
     }));
   }
   bindSeg("position", "position");
+  bindSeg("bg-transition", "bgTransition");
   bindSeg("fit", "fit");
   bindSeg("res", "res", Number, () => { setResolution(previewRes()); checkResSupport(); });
   bindSeg("fps", "fps", Number, checkResSupport);
@@ -1114,10 +1249,14 @@
     ["bands", "bands", (v) => String(v)],
     ["dim", "dim", (v) => Math.round(v * 100) + "%"],
     ["blur", "blur", (v) => v + "px"],
+    ["bg-interval", "bgInterval", (v) => v + "초"],
     ["fade-in", "fadeIn", (v) => v ? v.toFixed(1) + "초" : "없음"],
     ["fade-out", "fadeOut", (v) => v ? v.toFixed(1) + "초" : "없음"],
   ];
-  RANGES.forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => { cfg[key] = +e.target.value; syncUI(); save(); }));
+  RANGES.forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => {
+    cfg[key] = +e.target.value; syncUI(); save();
+    if (key === "bgInterval") { lastSlot = -1; renderBgList(); }
+  }));
 
   [["glow", "glow"], ["show-text", "showText"], ["show-progress", "showProgress"], ["beat-zoom", "beatZoom"], ["loop-one", "loopOne"], ["fade-video", "fadeVideo"]]
     .forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); }));
@@ -1132,7 +1271,7 @@
   function syncUI() {
     $$("#style-grid button").forEach((b) => b.classList.toggle("on", b.dataset.v === cfg.style));
     $$("#palette button").forEach((b, i) => b.classList.toggle("on", PALETTES[i][0] === cfg.color1 && PALETTES[i][1] === cfg.color2));
-    [["position", cfg.position], ["fit", cfg.fit], ["res", String(cfg.res)], ["fps", String(cfg.fps)]]
+    [["position", cfg.position], ["fit", cfg.fit], ["res", String(cfg.res)], ["fps", String(cfg.fps)], ["bg-transition", cfg.bgTransition]]
       .forEach(([id, v]) => $$(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset.v === v)));
     RANGES.forEach(([id, key, fmt]) => { $("#" + id).value = cfg[key]; $("#" + id + "-out").textContent = fmt(cfg[key]); });
     $("#color1").value = cfg.color1; $("#color2").value = cfg.color2;

@@ -131,7 +131,7 @@ input[type=range] { accent-color: var(--accent); }
 .drop span { font-size: 12px; color: var(--muted); }
 .drop.dragover { border-color: var(--accent); background: rgba(0, 229, 255, .07); }
 
-.track-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.track-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .track-list li {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: 10px; background: var(--panel-2); cursor: pointer;
@@ -141,6 +141,8 @@ input[type=range] { accent-color: var(--accent); }
 .track-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .track-list .meta { font-size: 11px; color: var(--muted); }
 .track-list .del { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 16px; }
+.track-list .del:disabled { opacity: .25; cursor: default; }
+.track-list .meta { white-space: nowrap; }
 
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .field { display: grid; gap: 8px; font-size: 13px; color: var(--muted); }
