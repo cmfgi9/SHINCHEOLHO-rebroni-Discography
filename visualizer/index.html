@@ -15,7 +15,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
   <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
-  <link rel="stylesheet" href="viz.css?v=3">
+  <link rel="stylesheet" href="viz.css?v=4">
 </head>
 
 <body>
@@ -128,9 +128,29 @@
           <span>슬라이드쇼 (2개 이상일 때 목록 순서대로 반복)</span>
           <label class="field">장면 전환 간격 <output id="bg-interval-out">5초</output>
             <input id="bg-interval" type="range" min="2" max="30" step="1" value="5"></label>
-          <div class="seg" id="bg-transition">
-            <button data-v="fade" class="on">부드럽게 (크로스페이드)</button><button data-v="cut">바로 전환</button>
-          </div>
+          <label class="field">전환 효과
+            <select id="bg-transition">
+              <optgroup label="잔잔한 분위기 (불교·자연·우주)">
+                <option value="fade">크로스페이드</option>
+                <option value="light">빛으로 번지기</option>
+                <option value="black">어둠으로 페이드</option>
+                <option value="zoomdissolve">줌 디졸브</option>
+              </optgroup>
+              <optgroup label="도시 분위기">
+                <option value="slide">밀어내기</option>
+                <option value="zoompunch">줌 펀치</option>
+                <option value="wipe">네온 와이프</option>
+                <option value="glitch">글리치</option>
+              </optgroup>
+              <optgroup label="기타">
+                <option value="cut">바로 전환</option>
+              </optgroup>
+            </select>
+          </label>
+          <label class="field">전환 시간 <output id="bg-fade-out">1.5초</output>
+            <input id="bg-fade" type="range" min="0.5" max="4" step="0.5" value="1.5"></label>
+          <p class="muted small" id="bg-fade-note"></p>
+          <p class="muted small">추천: 잔잔한 분위기는 2~4초, 도시 분위기는 0.5~1초</p>
           <p class="muted small">영상은 장면이 시작될 때 처음부터 재생되고, 간격보다 짧으면 반복됩니다.</p>
         </div>
         <div class="field">
@@ -144,6 +164,7 @@
         <label class="field">블러 <output id="blur-out">0px</output>
           <input id="blur" type="range" min="0" max="30" step="1" value="0"></label>
         <label class="check"><input id="beat-zoom" type="checkbox" checked> 비트에 맞춰 배경 줌</label>
+        <label class="check"><input id="ken-burns" type="checkbox"> 배경을 천천히 확대·이동 (켄 번즈)</label>
         <div class="field">
           <span>배경 없을 때 색</span>
           <div class="row">
@@ -205,7 +226,7 @@
   <audio id="audio" preload="auto" playsinline></audio>
   <video id="bg-video" muted loop playsinline preload="auto" hidden></video>
 
-  <script src="viz.js?v=9"></script>
+  <script src="viz.js?v=10"></script>
 </body>
 
 </html>

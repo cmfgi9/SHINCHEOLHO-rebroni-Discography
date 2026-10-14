@@ -149,7 +149,7 @@ input[type=range] { accent-color: var(--accent); }
 .field.inline { display: flex; align-items: center; gap: 8px; flex: 1; }
 .field.inline input { flex: 1; }
 .field output { color: var(--text); float: right; }
-.field input[type=text], .field input[type=number] {
+.field input[type=text], .field input[type=number], .field select {
   width: 100%; padding: 10px 12px; border-radius: 10px;
   border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
 }
@@ -197,3 +197,7 @@ input[type=range] { accent-color: var(--accent); }
 .result { display: grid; gap: 10px; }
 .result[hidden] { display: none; }
 .result video { width: 100%; max-height: 50vh; border-radius: 10px; background: #000; }
+
+.field select { font-size: 14px; }
+.field select optgroup { color: var(--muted); }
+.field select option { color: var(--text); background: var(--panel-2); }

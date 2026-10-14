@@ -16,7 +16,7 @@
     fit: "cover", dim: 0.25, blur: 0, beatZoom: true, bgc1: "#14112a", bgc2: "#03030a",
     res: 1080, fps: 30, volume: 1, loopOne: false,
     fadeIn: 0.5, fadeOut: 3, fadeVideo: false,
-    bgInterval: 5, bgTransition: "fade",
+    bgInterval: 5, bgTransition: "fade", bgFade: 1.5, kenBurns: false,
   };
   const STORE_KEY = "rebroni-visualizer-settings";
   const cfg = Object.assign({}, DEFAULTS);
@@ -359,16 +359,28 @@
   // 재생 위치(추출 중에는 추출 시작점 기준)로 장면을 정하므로 미리보기와 추출 결과가 같고,
   // 일시정지·되감기에도 어긋나지 않습니다.
   let lastSlot = -1;
+  // 전환 시간: 설정값(0.5~4초)이되 장면 간격의 절반을 넘지 않음
+  function transitionLength() {
+    if (cfg.bgTransition === "cut") return 0;
+    return Math.min(cfg.bgFade, Math.max(1, cfg.bgInterval) * 0.5);
+  }
   function slideState() {
     const n = bgItems.length;
-    if (n < 2) return { cur: bgItems[0] || null, next: null, a: 0, slot: 0, nearEnd: false };
-    const iv = Math.max(1, cfg.bgInterval);
-    const fade = cfg.bgTransition === "fade" ? Math.min(1, iv * 0.3) : 0;
     const t = Math.max(0, (audio.currentTime || 0) - (exporting ? exStart : 0));
+    const iv = Math.max(1, cfg.bgInterval);
+    const fade = transitionLength();
+    if (n < 2) {
+      // (1장일 때 켄 번즈는 간격마다 확대↔축소를 오가며 끊김 없이 움직임)
+      const slot = Math.floor(t / iv), frac = (t - slot * iv) / iv;
+      return { cur: bgItems[0] || null, next: null, a: 0, slot: 0, kbSlot: 0, kbCur: slot % 2 ? 1 - frac : frac, nearEnd: false };
+    }
     const slot = Math.floor(t / iv), within = t - slot * iv;
+    const a = fade > 0 && within > iv - fade ? (within - (iv - fade)) / fade : 0;
     return {
-      cur: bgItems[slot % n], next: bgItems[(slot + 1) % n], slot,
-      a: fade > 0 && within > iv - fade ? (within - (iv - fade)) / fade : 0,
+      cur: bgItems[slot % n], next: bgItems[(slot + 1) % n], slot, a, kbSlot: slot,
+      // 켄 번즈 진행도: 장면이 처음 보이기 시작한 시점(이전 전환 시작)부터 사라질 때까지 0→1로 이어짐
+      kbCur: (within + fade) / (iv + fade),
+      kbNext: (a * fade) / (iv + fade),
       nearEnd: within > iv - Math.max(fade, 1.5),
     };
   }
@@ -419,18 +431,105 @@
     ctx.drawImage(cache, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, W, H);
   }
 
+  const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2); // easeInOutCubic
+
+  // 켄 번즈: 장면마다 천천히 확대하며 한쪽으로 이동 (장면 번호에 따라 방향을 바꿈)
+  function drawScene(item, zoom, kbProgress, kbSlot) {
+    if (!cfg.kenBurns) { drawLayer(item, zoom); return; }
+    const p = Math.max(0, Math.min(1, kbProgress));
+    const k = 1.04 + 0.1 * p;                       // 1.04 → 1.14배
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1]];
+    const [dx, dy] = dirs[((kbSlot % dirs.length) + dirs.length) % dirs.length];
+    const room = (k - 1) / 2;                        // 가장자리가 비지 않는 이동 범위
+    ctx.save();
+    ctx.translate(W / 2 + dx * (p - 0.5) * room * W * 0.9, H / 2 + dy * (p - 0.5) * room * H * 0.9);
+    ctx.scale(k, k);
+    ctx.translate(-W / 2, -H / 2);
+    drawLayer(item, zoom);
+    ctx.restore();
+  }
+
+  // 전환 효과. p: 0→1 진행도
+  const TRANSITIONS = {
+    fade(cur, next, p) { cur(); ctx.save(); ctx.globalAlpha = p; next(); ctx.restore(); },
+    // 빛으로 번지기: 겹치며 가운데에서 부드러운 빛이 차오름 (명상·우주)
+    light(cur, next, p) {
+      cur(); ctx.save(); ctx.globalAlpha = ease(p); next(); ctx.restore();
+      const glowA = Math.sin(Math.PI * p) * 0.55;
+      const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.75);
+      g.addColorStop(0, `rgba(255,248,230,${glowA})`); g.addColorStop(1, `rgba(255,240,210,${glowA * 0.35})`);
+      ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+    },
+    // 어둠으로 페이드: 검게 사라졌다가 다음 장면이 떠오름
+    black(cur, next, p) {
+      if (p < 0.5) cur(); else next();
+      ctx.fillStyle = `rgba(0,0,0,${1 - Math.abs(p - 0.5) * 2})`; ctx.fillRect(0, 0, W, H);
+    },
+    // 줌 디졸브: 천천히 다가가며 겹침 (자연·우주)
+    zoomdissolve(cur, next, p) {
+      ctx.save(); scaleAround(1 + 0.08 * ease(p)); cur(); ctx.restore();
+      ctx.save(); ctx.globalAlpha = ease(p); scaleAround(1.08 - 0.08 * ease(p)); next(); ctx.restore();
+    },
+    // 밀어내기: 다음 장면이 오른쪽에서 밀고 들어옴 (도시)
+    slide(cur, next, p) {
+      const e = ease(p);
+      ctx.save(); ctx.translate(-e * W, 0); cur(); ctx.restore();
+      ctx.save(); ctx.translate((1 - e) * W, 0); next(); ctx.restore();
+    },
+    // 줌 펀치: 빠르게 확대되며 사라지고 다음 장면이 튀어나옴 (도시)
+    zoompunch(cur, next, p) {
+      const e = ease(p);
+      if (p < 0.5) { ctx.save(); scaleAround(1 + e * 0.6); cur(); ctx.restore(); }
+      else { ctx.save(); scaleAround(1.3 - (e - 0.5) * 0.6); next(); ctx.restore(); }
+      const flash = Math.max(0, 1 - Math.abs(p - 0.5) * 6) * 0.6;
+      if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash})`; ctx.fillRect(0, 0, W, H); }
+    },
+    // 네온 와이프: 빛나는 선이 지나가며 다음 장면을 드러냄 (도시·야경)
+    wipe(cur, next, p) {
+      const e = ease(p), x = e * W;
+      cur();
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, x, H); ctx.clip(); next(); ctx.restore();
+      ctx.save();
+      ctx.shadowColor = cfg.color1; ctx.shadowBlur = 30 * K;
+      ctx.fillStyle = "#fff"; ctx.fillRect(x - 3 * K, 0, 6 * K, H);
+      ctx.fillStyle = cfg.color1; ctx.globalAlpha = 0.6; ctx.fillRect(x - 10 * K, 0, 20 * K, H);
+      ctx.restore();
+    },
+    // 글리치: 가로 띠가 어긋나며 화면이 바뀜 (도시·일렉트로닉)
+    glitch(cur, next, p) {
+      if (p < 0.5) cur(); else next();
+      const strength = Math.sin(Math.PI * p);
+      const bands = 10;
+      for (let i = 0; i < bands; i++) {
+        if (Math.random() > 0.35 + strength * 0.5) continue;
+        const y = Math.random() * H, h = (0.02 + Math.random() * 0.08) * H;
+        const off = (Math.random() - 0.5) * 0.25 * W * strength;
+        ctx.save(); ctx.beginPath(); ctx.rect(0, y, W, h); ctx.clip();
+        ctx.translate(off, 0);
+        (Math.random() < p ? next : cur)();
+        ctx.restore();
+      }
+      if (strength > 0.2) {
+        ctx.save(); ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = 0.25 * strength;
+        ctx.fillStyle = Math.random() < 0.5 ? cfg.color1 : cfg.color2;
+        ctx.fillRect(0, Math.random() * H, W, (0.01 + Math.random() * 0.04) * H);
+        ctx.restore();
+      }
+    },
+  };
+  function scaleAround(k) { ctx.translate(W / 2, H / 2); ctx.scale(k, k); ctx.translate(-W / 2, -H / 2); }
+
   function drawBackground(bass) {
     const zoom = cfg.beatZoom ? 1 + Math.pow(bass, 2) * 0.07 : 1;
     const st = slideState();
     syncSlideVideos(st);
     pruneCaches([st.cur, st.next].filter(Boolean).map((x) => x.id));
-    drawLayer(st.cur, zoom);
-    if (st.next && st.a > 0) {
-      ctx.save();
-      ctx.globalAlpha = st.a;
-      drawLayer(st.next, zoom);
-      ctx.restore();
-    }
+    const cur = () => drawScene(st.cur, zoom, st.kbCur, st.kbSlot);
+    if (!st.next || st.a <= 0) { cur(); return; }
+    const next = () => drawScene(st.next, zoom, st.kbNext, st.kbSlot + 1);
+    // 전환 중 바깥으로 비는 영역은 배경색으로 채움
+    ctx.fillStyle = cfg.bgc2; ctx.fillRect(0, 0, W, H);
+    (TRANSITIONS[cfg.bgTransition] || TRANSITIONS.fade)(cur, next, st.a);
   }
 
   function paintBackground(src, zoom) {
@@ -1204,7 +1303,7 @@
     }));
   }
   bindSeg("position", "position");
-  bindSeg("bg-transition", "bgTransition");
+  $("#bg-transition").addEventListener("change", (e) => { cfg.bgTransition = e.target.value; syncUI(); save(); });
   bindSeg("fit", "fit");
   bindSeg("res", "res", Number, () => { setResolution(previewRes()); checkResSupport(); });
   bindSeg("fps", "fps", Number, checkResSupport);
@@ -1250,6 +1349,7 @@
     ["dim", "dim", (v) => Math.round(v * 100) + "%"],
     ["blur", "blur", (v) => v + "px"],
     ["bg-interval", "bgInterval", (v) => v + "초"],
+    ["bg-fade", "bgFade", (v) => v.toFixed(1) + "초"],
     ["fade-in", "fadeIn", (v) => v ? v.toFixed(1) + "초" : "없음"],
     ["fade-out", "fadeOut", (v) => v ? v.toFixed(1) + "초" : "없음"],
   ];
@@ -1258,7 +1358,7 @@
     if (key === "bgInterval") { lastSlot = -1; renderBgList(); }
   }));
 
-  [["glow", "glow"], ["show-text", "showText"], ["show-progress", "showProgress"], ["beat-zoom", "beatZoom"], ["loop-one", "loopOne"], ["fade-video", "fadeVideo"]]
+  [["glow", "glow"], ["show-text", "showText"], ["show-progress", "showProgress"], ["beat-zoom", "beatZoom"], ["ken-burns", "kenBurns"], ["loop-one", "loopOne"], ["fade-video", "fadeVideo"]]
     .forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); }));
   [["color1", "color1"], ["color2", "color2"], ["bgc1", "bgc1"], ["bgc2", "bgc2"]]
     .forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => { cfg[key] = e.target.value; syncUI(); save(); }));
@@ -1271,13 +1371,18 @@
   function syncUI() {
     $$("#style-grid button").forEach((b) => b.classList.toggle("on", b.dataset.v === cfg.style));
     $$("#palette button").forEach((b, i) => b.classList.toggle("on", PALETTES[i][0] === cfg.color1 && PALETTES[i][1] === cfg.color2));
-    [["position", cfg.position], ["fit", cfg.fit], ["res", String(cfg.res)], ["fps", String(cfg.fps)], ["bg-transition", cfg.bgTransition]]
+    [["position", cfg.position], ["fit", cfg.fit], ["res", String(cfg.res)], ["fps", String(cfg.fps)]]
       .forEach(([id, v]) => $$(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset.v === v)));
     RANGES.forEach(([id, key, fmt]) => { $("#" + id).value = cfg[key]; $("#" + id + "-out").textContent = fmt(cfg[key]); });
     $("#color1").value = cfg.color1; $("#color2").value = cfg.color2;
     $("#bgc1").value = cfg.bgc1; $("#bgc2").value = cfg.bgc2;
     $("#glow").checked = cfg.glow; $("#show-text").checked = cfg.showText;
     $("#show-progress").checked = cfg.showProgress; $("#beat-zoom").checked = cfg.beatZoom;
+    $("#bg-transition").value = cfg.bgTransition;
+    $("#ken-burns").checked = cfg.kenBurns;
+    const tl = transitionLength();
+    $("#bg-fade-note").textContent = cfg.bgTransition === "cut" ? "바로 전환은 전환 시간이 없습니다."
+      : tl < cfg.bgFade ? `장면 간격(${cfg.bgInterval}초)의 절반까지만 적용되어 ${tl.toFixed(1)}초로 전환됩니다.` : "";
     $("#loop-one").checked = cfg.loopOne; $("#fade-video").checked = cfg.fadeVideo; $("#volume").value = cfg.volume;
     $("#artist-text").value = cfg.artist;
     document.documentElement.style.setProperty("--accent", cfg.color1);
