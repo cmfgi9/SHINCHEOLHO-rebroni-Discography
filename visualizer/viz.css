@@ -131,7 +131,7 @@ input[type=range] { accent-color: var(--accent); }
 .drop span { font-size: 12px; color: var(--muted); }
 .drop.dragover { border-color: var(--accent); background: rgba(0, 229, 255, .07); }
 
-.track-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.track-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .track-list li {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: 10px; background: var(--panel-2); cursor: pointer;
@@ -141,13 +141,15 @@ input[type=range] { accent-color: var(--accent); }
 .track-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .track-list .meta { font-size: 11px; color: var(--muted); }
 .track-list .del { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 16px; }
+.track-list .del:disabled { opacity: .25; cursor: default; }
+.track-list .meta { white-space: nowrap; }
 
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .field { display: grid; gap: 8px; font-size: 13px; color: var(--muted); }
 .field.inline { display: flex; align-items: center; gap: 8px; flex: 1; }
 .field.inline input { flex: 1; }
 .field output { color: var(--text); float: right; }
-.field input[type=text], .field input[type=number] {
+.field input[type=text], .field input[type=number], .field select {
   width: 100%; padding: 10px 12px; border-radius: 10px;
   border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
 }
@@ -195,3 +197,7 @@ input[type=range] { accent-color: var(--accent); }
 .result { display: grid; gap: 10px; }
 .result[hidden] { display: none; }
 .result video { width: 100%; max-height: 50vh; border-radius: 10px; background: #000; }
+
+.field select { font-size: 14px; }
+.field select optgroup { color: var(--muted); }
+.field select option { color: var(--text); background: var(--panel-2); }
