@@ -77,11 +77,24 @@ function decodeFields(fields = {}) {
   return out;
 }
 
-// "한국어 제목 (English Title)" → { ko, en }
+const HANGUL = /[가-힣ㄱ-ㆎ]/;
+
+// 트랙 제목 → { ko, en }
+// · 2집 이후 기본: "English (한국어)"  · 1집: "한국어 (English)" — 한글이 있는 쪽을 ko로 판정
+// · "English (English)"(부제)·"English"(단일 제목)는 번역이 아니므로 ko/en 모두 원제목
+// · 1집의 "-Original" 같은 꼬리 표기는 양쪽에 그대로 붙임
 function splitTitle(title) {
-  const m = title.match(/^(.+?)\s*\((.+)\)\s*$/);
-  if (m) return { ko: m[1].trim(), en: m[2].trim() };
-  return { ko: title.trim(), en: title.trim() };
+  const full = title.trim();
+  const m = full.match(/^(.+?)\s*-?\s*\((.+)\)\s*(-.*)?$/);
+  if (m) {
+    const a = m[1].trim(), b = m[2].trim(), tail = (m[3] || "").trim();
+    const aKo = HANGUL.test(a), bKo = HANGUL.test(b);
+    if (aKo !== bKo) {
+      const [ko, en] = aKo ? [a, b] : [b, a];
+      return { ko: ko + tail, en: en + tail };
+    }
+  }
+  return { ko: full, en: full };
 }
 
 function json(body, status) {
