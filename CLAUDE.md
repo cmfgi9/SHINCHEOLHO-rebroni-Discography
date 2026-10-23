@@ -5,8 +5,9 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 ## 스택
 
 - 빌드 도구 없는 정적 사이트: HTML + CSS + 바닐라 JS. `package.json`/번들러 없음.
-- 호스팅: **Cloudflare** — `main`에 push하면 자동 배포. `functions/`는 Pages Functions로 함께 배포됨.
-  (`wrangler.jsonc`, `.gitignore`는 Cloudflare 자동 구성으로 추가된 파일)
+- 호스팅: **Cloudflare Pages** (프로젝트 `shincheolho-rebroni-discography`, 기본 주소 `shincheolho-rebroni-discography.pages.dev`)
+  — `main`에 push하면 자동 배포. `functions/`는 Pages Functions로 함께 배포됨.
+  (`wrangler.jsonc`, `.gitignore`는 Cloudflare 자동 구성 PR로 추가된 파일. 저장소 루트 전체가 배포되므로 이 파일도 공개 URL로 열림)
 - 데이터/인증/파일: **Firebase** 프로젝트 `rebroni-music-web` (Firestore, Google 로그인, Storage).
   SDK는 `gstatic.com` CDN에서 동적 import하며 버전은 `10.12.2`로 고정.
 - 영상/플레이어: YouTube IFrame API.
