@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="fonts/fonts.css?v=1">
   <!-- 스타일은 비주얼라이저와 공유하고 lofi.css로 덧붙임 -->
   <link rel="stylesheet" href="../visualizer/viz.css?v=4">
-  <link rel="stylesheet" href="lofi.css?v=1">
+  <link rel="stylesheet" href="lofi.css?v=2">
 </head>
 
 <body>
@@ -61,9 +61,9 @@
       <div class="tabpane active" data-pane="list">
         <label class="drop" for="audio-input">
           <strong>음원 추가 (여러 곡) · Add tracks</strong>
-          <span>WAV · FLAC · MP3 · M4A · AAC · OGG · 곡 제목은 목록에서 고칠 수 있어요</span>
+          <span>WAV · FLAC · MP3 · M4A · AAC · OGG · 곡 제목은 목록에서 고칠 수 있어요<br>같은 이름의 .lrc 가사 파일을 함께 고르면 가사도 들어가요</span>
         </label>
-        <input id="audio-input" type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.aac,.ogg,.opus" multiple hidden>
+        <input id="audio-input" type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.aac,.ogg,.opus,.lrc,.txt" multiple hidden>
         <ul id="track-list" class="track-list lofi-tracks"></ul>
         <div class="row">
           <button id="tracks-clear" class="btn ghost small">모두 제거</button>
@@ -71,17 +71,62 @@
         </div>
 
         <div class="field">
-          <span>영상 길이 · Target length</span>
-          <div class="seg" id="target">
-            <button data-v="0" class="on">1회 재생</button><button data-v="3600">1시간</button><button data-v="7200">2시간</button><button data-v="10800">3시간</button>
+          <span>영상 길이 · Length</span>
+          <div class="seg" id="length-mode">
+            <button data-v="time" class="on">시간 기준</button><button data-v="count">반복 횟수 기준</button>
           </div>
-          <p class="muted small">목표 길이를 고르면 플레이리스트를 반복해, 그 길이를 넘는 첫 곡 끝에서 마칩니다.</p>
+          <div id="time-opts" class="sub-opts">
+            <div class="seg" id="target">
+              <button data-v="0" class="on">1회 재생</button><button data-v="3600">1시간</button><button data-v="7200">2시간</button><button data-v="10800">3시간</button>
+            </div>
+            <label class="check"><input id="whole-sets" type="checkbox"> 세트 단위로 끝내기 (목표 시간을 넘긴 바퀴를 끝까지 재생)</label>
+            <p class="muted small">목표 길이를 고르면 곡 목록을 반복해, 그 길이를 넘는 첫 곡 끝에서 마칩니다. 세트 단위로 끝내면 곡 목록 전체가 빠짐없이 반복돼요.</p>
+          </div>
+          <div id="count-opts" class="sub-opts" hidden>
+            <label class="field">곡 목록 반복 · Repeat playlist <output id="repeat-count-out">3회</output>
+              <input id="repeat-count" type="range" min="1" max="30" step="1" value="3"></label>
+            <p class="muted small">곡 목록 전체를 정한 횟수만큼 반복합니다. 최종 길이는 위의 곡 목록 아래에 표시돼요.</p>
+          </div>
         </div>
         <label class="check"><input id="shuffle-repeat" type="checkbox"> 반복할 때마다 순서 섞기 (첫 바퀴는 목록 순서)</label>
         <label class="field">곡 사이 간격 <output id="gap-out">2초</output>
           <input id="gap" type="range" min="0" max="8" step="0.5" value="2"></label>
         <label class="field">곡 시작·끝 페이드 <output id="edge-fade-out">1.5초</output>
           <input id="edge-fade" type="range" min="0" max="6" step="0.5" value="1.5"></label>
+
+        <details class="field lyrics-box">
+          <summary>📝 가사 · Lyrics <span id="lyrics-count" class="muted small"></span></summary>
+          <select id="lyrics-track" aria-label="가사를 넣을 곡"></select>
+          <textarea id="lyrics-text" class="chapters" rows="8" spellcheck="false"
+            placeholder="한 줄에 한 소절씩 적어 주세요.&#10;시간을 맞춘 LRC 형식도 됩니다:&#10;[00:12.50] 첫 소절&#10;[00:12.50] First line (같은 시각 = 번역 줄)"></textarea>
+          <p id="lyrics-info" class="muted small"></p>
+          <div class="row">
+            <label id="lyrics-load" class="btn ghost small" for="lyrics-file">LRC·TXT 불러오기</label>
+            <input id="lyrics-file" type="file" accept=".lrc,.txt,text/plain" hidden>
+            <button id="lyrics-sync" class="btn ghost small">⏱ 싱크 맞추기</button>
+            <button id="lyrics-clear" class="btn ghost small">지우기</button>
+          </div>
+          <div id="sync-box" class="sync-box" hidden>
+            <p class="muted small">곡이 처음부터 재생됩니다. 각 줄을 부르기 시작할 때 [이 줄 시작]을 누르세요 (Space·Enter 키, 되돌리기는 Backspace).</p>
+            <p id="sync-prev" class="sync-prev"></p>
+            <p id="sync-line" class="sync-line"></p>
+            <p id="sync-count" class="muted small"></p>
+            <button id="sync-tap" class="btn primary">이 줄 시작 · Tap</button>
+            <div class="row">
+              <button id="sync-blank" class="btn ghost small">간주 (가사 숨기기)</button>
+              <button id="sync-undo" class="btn ghost small">↶ 되돌리기</button>
+              <button id="sync-stop" class="btn ghost small">끝내고 저장</button>
+            </div>
+          </div>
+          <label class="check"><input id="show-lyrics" type="checkbox" checked> 영상에 가사 표시</label>
+          <div class="seg" id="lyrics-pos">
+            <button data-v="bottom" class="on">아래쪽</button><button data-v="center">가운데</button>
+          </div>
+          <div class="seg" id="lyrics-size">
+            <button data-v="sm">작게</button><button data-v="md" class="on">보통</button><button data-v="lg">크게</button>
+          </div>
+          <p class="muted small">가사는 이 기기에만 저장되며, 같은 음원 파일을 다시 넣으면 불러와집니다.</p>
+        </details>
 
         <div class="field">
           <span>유튜브 챕터 · YouTube chapters</span>
@@ -190,7 +235,7 @@
   <audio id="audio" preload="auto"></audio>
   <video id="bg-video" muted loop playsinline preload="auto"></video>
 
-  <script src="lofi.js?v=2"></script>
+  <script src="lofi.js?v=3"></script>
 </body>
 
 </html>

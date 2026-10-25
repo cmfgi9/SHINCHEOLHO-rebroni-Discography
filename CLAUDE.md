@@ -52,7 +52,7 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
   미리 합친 캐시를 프레임마다 돌려 쓰고, 글자 블록(그림자 포함)도 캐시한다. 새 효과를 넣을 때 전체 화면 패스를 늘리지 말 것.
 - 배경 영상은 `CanvasSink.canvases()`로 순서대로 읽고 끝나면 다시 처음부터(반복). 디코딩 불가 코덱이면 첫 장면을 정지 배경으로 사용.
 - 글꼴(Nanum Pen Script, IBM Plex Mono)은 `lofi/fonts/`에 **자체 호스팅**(OFL) — 외부 글꼴 서비스로 요청을 보내지 않기 위함.
-- 설정은 localStorage `rebroni-lofi-settings`. 캐시 버스팅: `lofi/index.html`의 `lofi.js?v=`, `lofi.css?v=`, `fonts/fonts.css?v=`.
+- 설정은 localStorage `rebroni-lofi-settings`, 곡별 가사는 `rebroni-lofi-lyrics`(키: `파일이름|크기`, 최대 200곡). 캐시 버스팅: `lofi/index.html`의 `lofi.js?v=`, `lofi.css?v=`, `fonts/fonts.css?v=`.
 
 ### Mastering (`mastering/`)
 - `dsp.js`(순수 JS 신호처리, `window.RDSP`)를 메인 스레드와 `worker.js`(`importScripts("dsp.js?v=1")`)가 함께 사용.
