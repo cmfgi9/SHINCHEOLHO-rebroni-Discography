@@ -48,6 +48,8 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
   결과는 File System Access API(`showSaveFilePicker`) + `StreamTarget`으로 디스크에 바로 기록(메모리 사용 일정, 1~3시간 가능).
   `showSaveFilePicker`가 없는 브라우저(모바일·Safari·Firefox)는 메모리 버퍼로 **20분 이하만** 허용.
 - 장면 요소(입자·LP 회전 등)는 시간 `t`만으로 결정되게 그린다(미리보기 = 결과). 상태를 프레임 간에 쌓는 효과를 넣지 말 것.
+- 렌더링 속도: 매 프레임 화면 전체에 덧칠하는 작업이 가장 비싸다. 정지 배경은 색감·어둡게·비네팅·그레인(무늬 4종)을
+  미리 합친 캐시를 프레임마다 돌려 쓰고, 글자 블록(그림자 포함)도 캐시한다. 새 효과를 넣을 때 전체 화면 패스를 늘리지 말 것.
 - 배경 영상은 `CanvasSink.canvases()`로 순서대로 읽고 끝나면 다시 처음부터(반복). 디코딩 불가 코덱이면 첫 장면을 정지 배경으로 사용.
 - 글꼴(Nanum Pen Script, IBM Plex Mono)은 `lofi/fonts/`에 **자체 호스팅**(OFL) — 외부 글꼴 서비스로 요청을 보내지 않기 위함.
 - 설정은 localStorage `rebroni-lofi-settings`. 캐시 버스팅: `lofi/index.html`의 `lofi.js?v=`, `lofi.css?v=`, `fonts/fonts.css?v=`.

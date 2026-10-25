@@ -283,18 +283,39 @@
     const cache = { bgKey: "", bg: null, vigKey: "", vig: null, scanKey: "", scan: null, grain: null };
     const mk = (w, h) => (typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(w, h) : Object.assign(document.createElement("canvas"), { width: w, height: h }));
 
-    function grainTiles() {
-      if (cache.grain) return cache.grain;
-      cache.grain = [0, 1, 2].map((s) => {
+    // 그레인 무늬 (256×256 타일 4종)
+    //  - "overlay": 회색 잡음을 overlay로 합성 → 필름 같은 대비감. 정지 배경에 미리 합칠 때 사용(한 번만 계산)
+    //  - "alpha":  밝은/어두운 점을 투명도로 담아 일반 합성 → 가벼움. 매 프레임 덧칠해야 하는 영상 배경에 사용
+    function grainTiles(kind) {
+      const key = kind + "|" + cfg.grain;
+      cache.grainTiles ||= {};
+      if (cache.grainTiles[kind] && cache.grainTiles[kind].key === key) return cache.grainTiles[kind].pats;
+      const pats = [0, 1, 2, 3].map((s) => {
         const c = mk(256, 256), g = c.getContext("2d"), d = g.createImageData(256, 256);
         for (let i = 0; i < d.data.length; i += 4) {
-          const v = Math.floor(hash(i + s * 99991, s) * 255);
-          d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255;
+          const r = hash(i + s * 99991, s);
+          if (kind === "overlay") { d.data[i] = d.data[i + 1] = d.data[i + 2] = Math.floor(r * 255); d.data[i + 3] = 255; }
+          else {
+            const v = r - 0.5;
+            d.data[i] = d.data[i + 1] = d.data[i + 2] = v > 0 ? 255 : 0;
+            d.data[i + 3] = Math.round(Math.min(1, Math.abs(v) * 2 * cfg.grain * 0.3) * 255);
+          }
         }
         g.putImageData(d, 0, 0);
-        return c;
+        return ctx.createPattern(c, "repeat");
       });
-      return cache.grain;
+      cache.grainTiles[kind] = { key, pats };
+      return pats;
+    }
+
+    // 빛 먼지 한 점 (가운데가 밝고 가장자리가 부드럽게 사라지는 따뜻한 빛)
+    function dustSprite() {
+      if (cache.dust) return cache.dust;
+      const c = mk(32, 32), g = c.getContext("2d");
+      const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+      gr.addColorStop(0, "rgba(255,240,210,1)"); gr.addColorStop(0.35, "rgba(255,236,200,0.85)"); gr.addColorStop(1, "rgba(255,236,200,0)");
+      g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+      return (cache.dust = c);
     }
 
     function tintAndDim(g, W, H) {
@@ -319,17 +340,33 @@
     }
 
     // 정적 배경(이미지 또는 기본 그라데이션) + 색감 + 어둡게를 한 번만 그려 둠
-    function staticBg(W, H) {
-      const key = [W, H, bg.img ? bg.url : "", cfg.tint, cfg.dim].join("|");
+    // 정지 배경(이미지/그라데이션 + 색감 + 어둡게 + 비네팅 + 그레인)을 미리 그려 둠.
+    // 그레인은 서로 다른 무늬로 GRAIN_VARIANTS장을 만들어 프레임마다 돌려 쓰므로, 매 프레임 화면 전체를
+    // 다시 덧칠하는 비용이 없음 (그레인이 렌더링 시간의 가장 큰 부분이었음)
+    const GRAIN_VARIANTS = 4;
+    function staticBg(W, H, frame) {
+      const key = [W, H, bg.img ? bg.url : "", cfg.tint, cfg.dim, cfg.vignette, cfg.grain].join("|");
       if (cache.bgKey !== key) {
-        cache.bg = cache.bg && cache.bg.width === W && cache.bg.height === H ? cache.bg : mk(W, H);
-        const g = cache.bg.getContext("2d");
+        const n = cfg.grain > 0 ? GRAIN_VARIANTS : 1;
+        const base = mk(W, H), g = base.getContext("2d");
         if (bg.img) { g.fillStyle = "#000"; g.fillRect(0, 0, W, H); drawCover(g, bg.img, bg.w, bg.h, W, H); }
         else defaultBg(g, W, H);
         tintAndDim(g, W, H);
+        if (cfg.vignette > 0) g.drawImage(vignette(W, H), 0, 0);
+        cache.bgs = [base];
+        for (let v = 1; v < n; v++) { const c = mk(W, H); c.getContext("2d").drawImage(base, 0, 0); cache.bgs.push(c); }
+        if (cfg.grain > 0) cache.bgs.forEach((c, v) => applyGrain(c.getContext("2d"), W, H, v, "overlay"));
         cache.bgKey = key;
       }
-      return cache.bg;
+      return cache.bgs[(frame || 0) % cache.bgs.length];
+    }
+    function applyGrain(g, W, H, f, kind) {
+      const pats = grainTiles(kind);
+      g.save();
+      if (kind === "overlay") { g.globalCompositeOperation = "overlay"; g.globalAlpha = cfg.grain * 0.45; }
+      g.translate(-Math.floor(hash(f, 21) * 256), -Math.floor(hash(f, 22) * 256));
+      g.fillStyle = pats[f % pats.length]; g.fillRect(0, 0, W + 256, H + 256);
+      g.restore();
     }
 
     function vignette(W, H) {
@@ -365,21 +402,18 @@
 
     function drawParticles(t, W, H, K) {
       if (cfg.dust) {
-        const levels = [[], [], []];
+        const spr = dustSprite();
+        ctx.save();
         for (let i = 0; i < 46; i++) {
           const sp = (8 + hash(i, 4) * 14) * K;
           const x = hash(i, 1) * W + Math.sin(t * (0.08 + hash(i, 2) * 0.12) + i) * 50 * K;
           const y = (((hash(i, 3) * H - t * sp) % H) + H) % H;
           const tw = 0.5 + 0.5 * Math.sin(t * (0.6 + hash(i, 5)) + i * 3);
-          levels[Math.min(2, Math.floor(tw * 3))].push([x, y, (1.2 + hash(i, 6) * 2.4) * K]);
+          const r = (1.2 + hash(i, 6) * 2.4) * K * 2.2; // 번짐 포함 크기
+          ctx.globalAlpha = 0.2 + tw * 0.55;
+          ctx.drawImage(spr, x - r, y - r, r * 2, r * 2);
         }
-        levels.forEach((pts, li) => {
-          if (!pts.length) return;
-          ctx.fillStyle = `rgba(255,236,200,${0.12 + li * 0.14})`;
-          ctx.beginPath();
-          pts.forEach(([x, y, r]) => { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2); });
-          ctx.fill();
-        });
+        ctx.restore();
       }
       if (cfg.snow) {
         ctx.fillStyle = "rgba(255,255,255,0.75)";
@@ -475,31 +509,53 @@
       }
     }
 
-    function text(str, x, y, size, color, weight = 400, maxW = 0) {
+    function text(str, x, y, size, color, weight = 400, maxW = 0, g = ctx) {
       const f = FONTS[cfg.font] || FONTS.mono;
-      ctx.font = `${weight} ${Math.round(size * f.scale)}px ${f.family}`;
-      ctx.fillStyle = color;
+      g.font = `${weight} ${Math.round(size * f.scale)}px ${f.family}`;
+      g.fillStyle = color;
       let s = str || "";
-      if (maxW) while (s.length > 1 && ctx.measureText(s).width > maxW) s = s.slice(0, -2) + "…";
-      ctx.fillText(s, x, y);
+      if (maxW) while (s.length > 1 && g.measureText(s).width > maxW) s = s.slice(0, -2) + "…";
+      g.fillText(s, x, y);
+    }
+
+    // 글자 블록을 그림자까지 포함해 작은 캔버스에 한 번만 그림 (글자 그림자 블러는 매 프레임 하면 비쌈)
+    // draw(g, ox, oy): 블록 캔버스 좌표계에서 그리는 함수. 결과를 화면의 (x, y)에 찍음
+    function textBlock(name, key, x, y, w, h, drawFn) {
+      const K = canvas.width / 1920;
+      const slot = (cache.text ||= {});
+      let b = slot[name];
+      if (!b || b.key !== key) {
+        const pad = Math.ceil(24 * K);
+        const c = mk(Math.ceil(w + pad * 2), Math.ceil(h + pad * 2)), g = c.getContext("2d");
+        g.textBaseline = "alphabetic";
+        g.shadowColor = "rgba(0,0,0,0.55)"; g.shadowBlur = 12 * K; g.shadowOffsetY = 2 * K;
+        g.translate(pad - x, pad - y);
+        drawFn(g);
+        b = slot[name] = { key, c, pad };
+      }
+      ctx.drawImage(b.c, x - b.pad, y - b.pad);
     }
 
     function drawText(st, W, H, K) {
       ctx.save();
       ctx.textBaseline = "alphabetic";
-      ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = 12 * K; ctx.shadowOffsetY = 2 * K;
-      const L = 80 * K;
-      if (cfg.showTitle) {
-        if (cfg.title) text(cfg.title, L, 120 * K, 50 * K, "rgba(255,255,255,0.94)", 600, W * 0.6);
-        if (cfg.artist) text(cfg.artist, L, (cfg.title ? 170 : 120) * K, 26 * K, "rgba(255,255,255,0.72)", 400, W * 0.5);
+      const L = 80 * K, fontKey = [W, cfg.font, document.fonts.size, document.fonts.status].join("|");
+      if (cfg.showTitle && (cfg.title || cfg.artist)) {
+        textBlock("title", [fontKey, cfg.title, cfg.artist].join("|"), L, 60 * K, W * 0.62, 130 * K, (g) => {
+          if (cfg.title) text(cfg.title, L, 120 * K, 50 * K, "rgba(255,255,255,0.94)", 600, W * 0.6, g);
+          if (cfg.artist) text(cfg.artist, L, (cfg.title ? 170 : 120) * K, 26 * K, "rgba(255,255,255,0.72)", 400, W * 0.5, g);
+        });
       }
       if (cfg.showNow && st.track) {
         const maxW = cfg.vizStyle === "none" ? W * 0.8 : W * 0.48;
-        text("♪ NOW PLAYING", L, H - 205 * K, 20 * K, rgba(cfg.accent, 0.9), 600);
-        text(st.track, L, H - 150 * K, 40 * K, "rgba(255,255,255,0.95)", 600, maxW);
-        if (cfg.artist) text(cfg.artist, L, H - 112 * K, 22 * K, "rgba(255,255,255,0.7)", 400, maxW);
+        textBlock("now", [fontKey, st.track, cfg.artist, cfg.accent, maxW].join("|"), L, H - 235 * K, maxW + 10 * K, 135 * K, (g) => {
+          text("♪ NOW PLAYING", L, H - 205 * K, 20 * K, rgba(cfg.accent, 0.9), 600, 0, g);
+          text(st.track, L, H - 150 * K, 40 * K, "rgba(255,255,255,0.95)", 600, maxW, g);
+          if (cfg.artist) text(cfg.artist, L, H - 112 * K, 22 * K, "rgba(255,255,255,0.7)", 400, maxW, g);
+        });
         const bw = 520 * K, by = H - 78 * K, p = st.dur ? Math.min(1, st.pos / st.dur) : 0;
-        ctx.shadowBlur = 0;
+        // 진행 바·시간은 매 프레임 바뀌므로 블러 없이 가벼운 그림자만
+        ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 1.5 * K;
         ctx.fillStyle = "rgba(255,255,255,0.22)"; ctx.fillRect(L, by, bw, 4 * K);
         ctx.fillStyle = rgba(cfg.accent, 0.95); ctx.fillRect(L, by, bw * p, 4 * K);
         ctx.beginPath(); ctx.arc(L + bw * p, by + 2 * K, 6 * K, 0, Math.PI * 2); ctx.fill();
@@ -521,24 +577,16 @@
         ctx.restore();
         tintAndDim(ctx, W, H);
       } else {
-        const c = staticBg(W, H);
+        const c = staticBg(W, H, st.frame);
         if (zoom === 1) ctx.drawImage(c, 0, 0);
         else { const sw = W / zoom, sh = H / zoom; ctx.drawImage(c, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, W, H); }
       }
       drawParticles(st.t, W, H, K);
       if (cfg.vizStyle !== "none") drawViz(st.t, st.bands, W, H, K);
       drawText(st, W, H, K);
-      if (cfg.vignette > 0) ctx.drawImage(vignette(W, H), 0, 0);
+      if (cfg.vignette > 0 && bg.kind === "video") ctx.drawImage(vignette(W, H), 0, 0);
       if (cfg.scanlines) { ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = scanPattern(K); ctx.fillRect(0, 0, W, H); ctx.restore(); }
-      if (cfg.grain > 0) {
-        const tiles = grainTiles(), f = st.frame || 0;
-        ctx.save();
-        ctx.globalCompositeOperation = "overlay"; ctx.globalAlpha = cfg.grain * 0.45;
-        const pat = ctx.createPattern(tiles[f % 3], "repeat");
-        ctx.translate(-Math.floor(hash(f, 21) * 256), -Math.floor(hash(f, 22) * 256));
-        ctx.fillStyle = pat; ctx.fillRect(0, 0, W + 256, H + 256);
-        ctx.restore();
-      }
+      if (cfg.grain > 0 && bg.kind === "video") applyGrain(ctx, W, H, st.frame || 0, "alpha");
     }
     return { draw, canvas };
   }
@@ -699,7 +747,7 @@
       await output.start();
 
       // 배경 영상: 처음부터 순서대로 디코딩하며, 출력 시각에 맞는 프레임을 고름. 끝에 닿으면 처음부터 다시(반복)
-      let bgAt = null, lastBg = null;
+      let bgAt = null, lastBg = null, bgClose = null;
       const notes = [];
       if (bg.kind === "video") {
         const input = new mb.Input({ source: new mb.BlobSource(bg.file), formats: mb.ALL_FORMATS });
@@ -729,6 +777,8 @@
             if (!cur && !nxt.done) cur = nxt.value;
             return cur ? cur.canvas : null;
           };
+          // 렌더링이 끝나면 읽던 영상을 정상 종료 (남은 프레임 메모리 해제)
+          bgClose = async () => { try { await it.return?.(); } catch (e) { /* ignore */ } };
         }
       }
 
@@ -795,6 +845,7 @@
         cursor = end;
       }
 
+      if (bgClose) await bgClose();
       if (job.cancelled) {
         await output.cancel();
         $("#render-result-text").textContent = "렌더링을 취소했습니다.";
