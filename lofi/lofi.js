@@ -46,7 +46,7 @@
   function addTracks(files) {
     const all = Array.from(files);
     const list = all.filter((f) => f.type.startsWith("audio/") || /\.(wav|flac|mp3|m4a|aac|ogg|opus)$/i.test(f.name));
-    const lyricFiles = all.filter((f) => /\.(lrc|txt)$/i.test(f.name));
+    const lyricFiles = all.filter((f) => /\.(lrc|srt|vtt|txt)$/i.test(f.name));
     for (const file of list) {
       const t = { id: ++trackSeq, file, url: URL.createObjectURL(file), title: baseName(file.name), dur: 0, lyrics: null };
       setLyrics(t, lyricStore[lyricKey(file)] || "", false);
@@ -193,7 +193,38 @@
   }
   const LRC_TAG = /\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]/g;
   const LRC_INFO = /^\s*\[[a-z]+:[^\]]*\]\s*$/i; // [ar:..] [ti:..] 같은 정보 줄
+  // 자막 파일(SRT·VTT): "00:01:02,500 --> 00:01:05,000" 시간 줄 다음에 오는 글자가 한 장면
+  const CUE_TIME = /(\d{1,2}:)?(\d{1,2}):(\d{2})[,.](\d{1,3})\s*-->\s*(\d{1,2}:)?(\d{1,2}):(\d{2})[,.](\d{1,3})/;
+  const cueSec = (h, m, s, ms) => (h ? parseInt(h, 10) : 0) * 3600 + +m * 60 + +s + +ms.padEnd(3, "0") / 1000;
+  const HANGUL = /[\uac00-\ud7a3]/;
+  function parseCues(raw) {
+    const cues = [];
+    for (const block of raw.replace(/\r/g, "").split(/\n\s*\n/)) {
+      const ls = block.split("\n"), i = ls.findIndex((l) => CUE_TIME.test(l));
+      if (i < 0) continue;
+      const m = ls[i].match(CUE_TIME);
+      // 서식 태그(<i>, {\an8} 등)는 지움
+      const text = ls.slice(i + 1).map((l) => l.replace(/<[^>]+>/g, "").replace(/\{\\[^}]*\}/g, "").trim()).filter(Boolean);
+      cues.push({ start: cueSec(m[1], m[2], m[3], m[4]), end: cueSec(m[5], m[6], m[7], m[8]), lines: cueLines(text) });
+    }
+    return cues.sort((a, b) => a.start - b.start);
+  }
+  // 한 장면의 여러 줄: 한글 줄과 아닌 줄이 섞여 있으면 원문 + 번역 두 줄, 아니면 한 문장이 나뉜 것으로 보고 이어 붙임
+  function cueLines(text) {
+    const ko = text.filter((l) => HANGUL.test(l)), other = text.filter((l) => !HANGUL.test(l));
+    if (ko.length && other.length) return HANGUL.test(text[0]) ? [ko.join(" "), other.join(" ")] : [other.join(" "), ko.join(" ")];
+    return text.length ? [text.join(" ")] : [];
+  }
   function parseLyrics(raw) {
+    if (CUE_TIME.test(raw)) {
+      const groups = [];
+      parseCues(raw).forEach((c, i, all) => {
+        groups.push({ t: c.start, lines: c.lines });
+        // 다음 장면까지 비는 시간에는 가사를 숨김 (자막의 끝 시각)
+        if (!all[i + 1] || all[i + 1].start > c.end + 0.05) groups.push({ t: c.end, lines: [] });
+      });
+      return groups.length ? { synced: true, groups } : null;
+    }
     const synced = [], plain = [];
     let offset = 0;
     for (const line of raw.replace(/\r/g, "").split("\n")) {
@@ -247,7 +278,7 @@
   const selTrack = () => tracks.find((x) => x.id === lyricSel) || tracks[0] || null;
   function lyricsInfo(t) {
     const ly = t && t.lyrics;
-    if (!ly) return "가사 없음 · 가사를 붙여넣거나 LRC 파일을 불러오세요.";
+    if (!ly) return "가사 없음 · 가사를 붙여넣거나 LRC·SRT 파일을 불러오세요.";
     return ly.synced
       ? `⏱ 시간 맞춤 가사 · ${ly.groups.filter((g) => g.lines.length).length}줄`
       : `시간 표시 없음 · ${ly.lines.length}줄 — 곡 길이에 고르게 나눠 보여요. 정확히 맞추려면 [싱크 맞추기]를 눌러 주세요.`;
@@ -270,7 +301,9 @@
 
   // 싱크 맞추기: 곡을 처음부터 재생하며, 각 줄이 시작될 때 [이 줄 시작]을 눌러 시각을 찍음 → LRC로 저장
   const lrcTime = (s) => `[${String(Math.floor(s / 60)).padStart(2, "0")}:${(s % 60).toFixed(2).padStart(5, "0")}]`;
+  // 한 항목에 줄바꿈이 있으면(자막의 원문 + 번역) 같은 시각의 두 줄로 저장됨
   function plainLines(raw) {
+    if (CUE_TIME.test(raw)) return parseCues(raw).filter((c) => c.lines.length).map((c) => c.lines.join("\n"));
     return raw.replace(/\r/g, "").split("\n").filter((l) => !LRC_INFO.test(l)).map((l) => l.replace(LRC_TAG, "").trim()).filter(Boolean);
   }
   function startSync() {
@@ -314,7 +347,7 @@
     $("#sync-box").hidden = true;
     if (s.marks.length) {
       const rest = s.lines.slice(s.next); // 아직 못 찍은 줄은 시간 없이 남겨 둠 (표시되지 않음)
-      const raw = s.marks.map((m) => lrcTime(m.t) + m.text).concat(rest).join("\n");
+      const raw = s.marks.map((m) => (m.text ? m.text.split("\n").map((l) => lrcTime(m.t) + l).join("\n") : lrcTime(m.t))).concat(rest).join("\n");
       setLyrics(s.t, raw);
       if (rest.length) alert(`${rest.length}줄은 시간을 찍지 않아 영상에 표시되지 않아요. 다시 [싱크 맞추기]를 하거나 직접 [mm:ss.xx]를 적어 주세요.`);
     }

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="fonts/fonts.css?v=1">
   <!-- 스타일은 비주얼라이저와 공유하고 lofi.css로 덧붙임 -->
   <link rel="stylesheet" href="../visualizer/viz.css?v=4">
-  <link rel="stylesheet" href="lofi.css?v=2">
+  <link rel="stylesheet" href="lofi.css?v=3">
 </head>
 
 <body>
@@ -61,9 +61,9 @@
       <div class="tabpane active" data-pane="list">
         <label class="drop" for="audio-input">
           <strong>음원 추가 (여러 곡) · Add tracks</strong>
-          <span>WAV · FLAC · MP3 · M4A · AAC · OGG · 곡 제목은 목록에서 고칠 수 있어요<br>같은 이름의 .lrc 가사 파일을 함께 고르면 가사도 들어가요</span>
+          <span>WAV · FLAC · MP3 · M4A · AAC · OGG · 곡 제목은 목록에서 고칠 수 있어요<br>같은 이름의 가사 파일(.lrc·.srt)을 함께 고르면 가사도 들어가요</span>
         </label>
-        <input id="audio-input" type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.aac,.ogg,.opus,.lrc,.txt" multiple hidden>
+        <input id="audio-input" type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.aac,.ogg,.opus,.lrc,.srt,.vtt,.txt" multiple hidden>
         <ul id="track-list" class="track-list lofi-tracks"></ul>
         <div class="row">
           <button id="tracks-clear" class="btn ghost small">모두 제거</button>
@@ -98,11 +98,11 @@
           <summary>📝 가사 · Lyrics <span id="lyrics-count" class="muted small"></span></summary>
           <select id="lyrics-track" aria-label="가사를 넣을 곡"></select>
           <textarea id="lyrics-text" class="chapters" rows="8" spellcheck="false"
-            placeholder="한 줄에 한 소절씩 적어 주세요.&#10;시간을 맞춘 LRC 형식도 됩니다:&#10;[00:12.50] 첫 소절&#10;[00:12.50] First line (같은 시각 = 번역 줄)"></textarea>
+            placeholder="한 줄에 한 소절씩 적어 주세요.&#10;시간을 맞춘 LRC·SRT(자막) 형식도 됩니다:&#10;[00:12.50] 첫 소절&#10;[00:12.50] First line (같은 시각 = 번역 줄)"></textarea>
           <p id="lyrics-info" class="muted small"></p>
           <div class="row">
-            <label id="lyrics-load" class="btn ghost small" for="lyrics-file">LRC·TXT 불러오기</label>
-            <input id="lyrics-file" type="file" accept=".lrc,.txt,text/plain" hidden>
+            <label id="lyrics-load" class="btn ghost small" for="lyrics-file">LRC·SRT 불러오기</label>
+            <input id="lyrics-file" type="file" accept=".lrc,.srt,.vtt,.txt,text/plain" hidden>
             <button id="lyrics-sync" class="btn ghost small">⏱ 싱크 맞추기</button>
             <button id="lyrics-clear" class="btn ghost small">지우기</button>
           </div>
@@ -235,7 +235,7 @@
   <audio id="audio" preload="auto"></audio>
   <video id="bg-video" muted loop playsinline preload="auto"></video>
 
-  <script src="lofi.js?v=3"></script>
+  <script src="lofi.js?v=4"></script>
 </body>
 
 </html>
