@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Lofi Visualizer | Rebroni Music</title>
+  <meta name="description" content="음원 플레이리스트로 1~3시간 길이의 16:9 Lofi 스타일 유튜브 영상을 브라우저에서 만드는 도구">
+  <meta name="theme-color" content="#0b0b12">
+  <link rel="icon" href="../visualizer/icon.svg" type="image/svg+xml">
+  <!-- 글꼴은 자체 호스팅 (외부 글꼴 서비스로 요청을 보내지 않음) -->
+  <link rel="stylesheet" href="fonts/fonts.css?v=1">
+  <!-- 스타일은 비주얼라이저와 공유하고 lofi.css로 덧붙임 -->
+  <link rel="stylesheet" href="../visualizer/viz.css?v=4">
+  <link rel="stylesheet" href="lofi.css?v=1">
+</head>
+
+<body>
+  <header class="topbar">
+    <a href="../" class="back" aria-label="Discography로 돌아가기">←</a>
+    <h1>Lofi Visualizer <span class="en-sub">16:9 · YouTube</span></h1>
+    <span id="env-badge" class="badge"></span>
+  </header>
+
+  <main class="layout lofi">
+    <!-- 16:9 미리보기 -->
+    <section class="stage-wrap">
+      <div class="stage wide">
+        <canvas id="stage" width="1280" height="720" aria-label="Lofi 미리보기"></canvas>
+        <div id="render-overlay" class="rec-overlay" hidden>
+          <div class="rec-dot"></div>
+          <div id="render-text">렌더링 준비 중…</div>
+          <div class="rec-bar"><div id="render-progress"></div></div>
+          <div id="render-eta" class="small"></div>
+          <button id="render-cancel" class="btn ghost small">취소 (Cancel)</button>
+        </div>
+      </div>
+
+      <div class="player">
+        <button id="prev-btn" class="round" aria-label="이전 곡">⏮</button>
+        <button id="play-btn" class="round main" aria-label="재생" disabled>▶</button>
+        <button id="next-btn" class="round" aria-label="다음 곡">⏭</button>
+        <div class="seek">
+          <input id="seek" type="range" min="0" max="0" step="0.01" value="0" aria-label="재생 위치" disabled>
+          <div class="time"><span id="cur">0:00</span><span id="now-title" class="now-title">음원을 추가하세요 · Add tracks</span><span id="dur">0:00</span></div>
+        </div>
+      </div>
+      <p class="muted small preview-note">미리보기는 플레이리스트를 실시간으로 재생합니다. 실제 영상은 [렌더링] 탭에서 빠르게 만들어집니다.</p>
+    </section>
+
+    <!-- 설정 패널 -->
+    <section class="panel">
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="list" role="tab">🎵 플레이리스트</button>
+        <button class="tab" data-tab="look" role="tab">🖼 화면</button>
+        <button class="tab" data-tab="fx" role="tab">✨ 효과</button>
+        <button class="tab" data-tab="render" role="tab">🎬 렌더링</button>
+      </nav>
+
+      <!-- 플레이리스트 -->
+      <div class="tabpane active" data-pane="list">
+        <label class="drop" for="audio-input">
+          <strong>음원 추가 (여러 곡) · Add tracks</strong>
+          <span>WAV · FLAC · MP3 · M4A · AAC · OGG · 곡 제목은 목록에서 고칠 수 있어요</span>
+        </label>
+        <input id="audio-input" type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.aac,.ogg,.opus" multiple hidden>
+        <ul id="track-list" class="track-list lofi-tracks"></ul>
+        <div class="row">
+          <button id="tracks-clear" class="btn ghost small">모두 제거</button>
+          <span id="list-info" class="muted small"></span>
+        </div>
+
+        <div class="field">
+          <span>영상 길이 · Target length</span>
+          <div class="seg" id="target">
+            <button data-v="0" class="on">1회 재생</button><button data-v="3600">1시간</button><button data-v="7200">2시간</button><button data-v="10800">3시간</button>
+          </div>
+          <p class="muted small">목표 길이를 고르면 플레이리스트를 반복해, 그 길이를 넘는 첫 곡 끝에서 마칩니다.</p>
+        </div>
+        <label class="check"><input id="shuffle-repeat" type="checkbox"> 반복할 때마다 순서 섞기 (첫 바퀴는 목록 순서)</label>
+        <label class="field">곡 사이 간격 <output id="gap-out">2초</output>
+          <input id="gap" type="range" min="0" max="8" step="0.5" value="2"></label>
+        <label class="field">곡 시작·끝 페이드 <output id="edge-fade-out">1.5초</output>
+          <input id="edge-fade" type="range" min="0" max="6" step="0.5" value="1.5"></label>
+
+        <div class="field">
+          <span>유튜브 챕터 · YouTube chapters</span>
+          <textarea id="chapters" class="chapters" readonly rows="6"></textarea>
+          <div class="row">
+            <button id="copy-chapters" class="btn ghost small">챕터 복사</button>
+            <span class="muted small">영상 설명란에 붙여넣으면 곡별 챕터가 생깁니다.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 화면 -->
+      <div class="tabpane" data-pane="look">
+        <label class="drop" for="bg-input">
+          <strong>배경 이미지 / 반복 영상 · Background</strong>
+          <span>16:9 권장 · JPG · PNG · WEBP · MP4 · WEBM (영상은 반복 재생)</span>
+        </label>
+        <input id="bg-input" type="file" accept="image/*,video/*" hidden>
+        <div class="row">
+          <button id="bg-clear" class="btn ghost small">배경 제거</button>
+          <span id="bg-info" class="muted small"></span>
+        </div>
+        <label class="field">어둡게 <output id="dim-out">20%</output>
+          <input id="dim" type="range" min="0" max="0.8" step="0.01" value="0.2"></label>
+        <div class="field">
+          <span>색감 · Tone</span>
+          <div class="seg" id="tint">
+            <button data-v="warm" class="on">따뜻하게</button><button data-v="cool">차분하게</button><button data-v="mono">흑백</button><button data-v="none">원본</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span>비주얼라이저 · Visualizer</span>
+          <div class="seg" id="viz-style">
+            <button data-v="bars" class="on">막대</button><button data-v="wave">파형</button><button data-v="vinyl">LP 턴테이블</button><button data-v="none">없음</button>
+          </div>
+        </div>
+        <label class="field">강도 · Sensitivity <output id="sens-out">100%</output>
+          <input id="sens" type="range" min="0.4" max="2" step="0.05" value="1"></label>
+        <div class="row">
+          <label class="color">포인트 색 <input id="accent" type="color" value="#ffd6a5"></label>
+        </div>
+
+        <div class="field">
+          <span>글자 · Text</span>
+          <input id="title-text" type="text" placeholder="영상 제목 (예: Lofi Jazz for Study & Relax)" maxlength="80">
+          <input id="artist-text" type="text" placeholder="아티스트" value="SHINCHEOLHO-rebroni" maxlength="60">
+          <div class="seg" id="font">
+            <button data-v="mono" class="on">타자기</button><button data-v="hand">손글씨</button><button data-v="sans">기본</button>
+          </div>
+          <label class="check"><input id="show-title" type="checkbox" checked> 왼쪽 위 제목 표시</label>
+          <label class="check"><input id="show-now" type="checkbox" checked> Now Playing (현재 곡·진행 바) 표시</label>
+        </div>
+      </div>
+
+      <!-- 효과 -->
+      <div class="tabpane" data-pane="fx">
+        <label class="field">필름 그레인 · Grain <output id="grain-out">35%</output>
+          <input id="grain" type="range" min="0" max="1" step="0.05" value="0.35"></label>
+        <label class="field">비네팅 · Vignette <output id="vignette-out">50%</output>
+          <input id="vignette" type="range" min="0" max="1" step="0.05" value="0.5"></label>
+        <label class="check"><input id="rain" type="checkbox"> 비 내리는 효과 · Rain</label>
+        <label class="check"><input id="dust" type="checkbox" checked> 떠다니는 빛 먼지 · Floating dust</label>
+        <label class="check"><input id="snow" type="checkbox"> 눈 내리는 효과 · Snow</label>
+        <label class="check"><input id="scanlines" type="checkbox"> VHS 주사선 · Scanlines</label>
+        <label class="check"><input id="breathe" type="checkbox" checked> 배경 천천히 숨쉬기 (아주 느린 확대·축소)</label>
+        <p class="muted small">효과는 화면 전체에 매 프레임 그려지므로, 많이 켤수록 렌더링 시간이 조금 늘어납니다.</p>
+      </div>
+
+      <!-- 렌더링 -->
+      <div class="tabpane" data-pane="render">
+        <div class="field">
+          <span>해상도 · Resolution</span>
+          <div class="seg" id="res">
+            <button data-v="720">720p</button><button data-v="1080" class="on">1080p</button><button data-v="1440">1440p</button>
+          </div>
+        </div>
+        <div class="field">
+          <span>프레임 · FPS</span>
+          <div class="seg" id="fps">
+            <button data-v="24" class="on">24</button><button data-v="30">30</button>
+          </div>
+        </div>
+        <div class="field">
+          <span>화질 · Quality</span>
+          <div class="seg" id="quality">
+            <button data-v="std" class="on">표준 (파일 작게)</button><button data-v="high">고화질</button>
+          </div>
+        </div>
+        <p id="render-estimate" class="muted small"></p>
+        <button id="render-btn" class="btn primary" disabled>🎬 MP4 영상 만들기 · Render</button>
+        <button id="thumb-btn" class="btn ghost" disabled>🖼 썸네일 저장 (PNG 1280×720)</button>
+        <p class="muted small" id="render-note">
+          음원을 빠르게 분석하며 프레임을 한 장씩 그려 인코딩하므로, 실제 재생 시간보다 빨리 끝나고 프레임이 빠지지 않습니다.
+          긴 영상은 파일을 컴퓨터에 바로 저장하며 만들어요 (PC용 Chrome·Edge 권장).
+          렌더링 중에는 컴퓨터가 절전 모드로 들어가지 않게 해 주세요.
+        </p>
+        <div id="render-result" class="result" hidden>
+          <p id="render-result-text"></p>
+          <a id="render-dl" class="btn primary" download hidden>⬇ 저장</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <audio id="audio" preload="auto"></audio>
+  <video id="bg-video" muted loop playsinline preload="auto"></video>
+
+  <script src="lofi.js?v=1"></script>
+</body>
+
+</html>

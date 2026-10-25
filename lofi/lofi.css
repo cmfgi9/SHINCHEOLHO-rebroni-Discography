@@ -1,0 +1,42 @@
+/* Lofi Visualizer: ../visualizer/viz.css 위에 16:9 레이아웃만 덧붙임 */
+
+.topbar h1 .en-sub { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+
+.layout.lofi { max-width: 1400px; }
+@media (min-width: 980px) {
+  .layout.lofi { grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr); }
+}
+@media (min-width: 860px) and (max-width: 979px) {
+  .layout.lofi { grid-template-columns: 1fr; }
+  .layout.lofi .stage-wrap { position: static; }
+}
+
+.stage.wide {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.layout.lofi .player { max-width: none; }
+.preview-note { align-self: stretch; }
+
+.rec-overlay .small { color: var(--muted); }
+
+/* 곡 목록: 제목을 바로 고칠 수 있는 입력칸 */
+.lofi-tracks li { gap: 8px; padding: 8px 10px; }
+.lofi-tracks .no { width: 20px; text-align: right; font-size: 12px; color: var(--muted); flex: none; }
+.lofi-tracks input.title {
+  flex: 1; min-width: 0;
+  padding: 6px 8px; border-radius: 8px;
+  border: 1px solid transparent; background: transparent; color: var(--text); font-size: 14px;
+}
+.lofi-tracks input.title:hover, .lofi-tracks input.title:focus { border-color: var(--line); background: var(--panel); outline: none; }
+
+.chapters {
+  width: 100%; resize: vertical;
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+  font: 12px/1.6 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+#render-btn, #thumb-btn { width: 100%; }
