@@ -24,6 +24,7 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 | `/journal.html` | **Journal(창작 노트)** — 공개 노트 타임라인, 태그 필터, 정렬, 노트별 링크 `#note-…` | `journal.html`, `journal.js` |
 | `/privacy.html` | **개인정보 처리방침** (시행일·변경 이력 포함) | `privacy.html` |
 | `/visualizer/` | **쇼츠 영상 제작 Visualizer** — 음원 + 9:16 배경(이미지/영상 슬라이드쇼) + 스펙트럼 → MP4 추출(1080p~4K). PWA | `visualizer/` |
+| `/lofi/` | **Lofi Visualizer** — 음원 플레이리스트 + 16:9 배경(이미지/반복 영상) + Lofi 효과 → 1~3시간 유튜브용 MP4 **오프라인 렌더링**, 유튜브 챕터 생성 | `lofi/` |
 | `/mastering/` | **음원 Mastering** — 라우드니스(BS.1770/EBU R128)·트루피크 분석, 무드/레퍼런스 기반 자동 마스터링, A/B 비교, WAV·리포트 저장 | `mastering/` |
 | `/admin.html` | 관리자: 앨범·트랙·가사·음원·커버, 창작 노트 편집기, 영상 관리, 방명록·구독자 관리 | `admin.html`, `admin.js` |
 | `/api/tracks` | `audioUrl` 있는 곡 목록 JSON (CORS `*`, 외부 게임 등에서 사용) | `functions/api/tracks.js` |
@@ -39,6 +40,19 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
   `vendor/mediabunny.min.mjs`로 MP4 길이 헤더 보정/재다중화. 2K/4K는 `VideoEncoder` 지원 여부를 확인.
 - 설정은 localStorage `rebroni-visualizer-settings`.
 - PWA: `sw.js`가 앱 셸을 캐시. **`viz.js`/`viz.css`를 고치면 `index.html`의 `?v=`, `sw.js`의 `SHELL` 목록 `?v=`, `VERSION`을 모두 올린다.**
+
+### Lofi Visualizer (`lofi/`)
+- 비모듈 IIFE 스크립트(`lofi.js`). 스타일은 `../visualizer/viz.css`를 공유하고 `lofi.css`로 덧붙임.
+- **실시간 녹화가 아닌 오프라인 렌더링**: 곡마다 `OfflineAudioContext`로 48kHz 디코딩 → 직접 FFT(AnalyserNode와 같은 방식)로 스펙트럼 →
+  프레임을 한 장씩 그려 `../visualizer/vendor/mediabunny.min.mjs`의 `CanvasSource`/`AudioBufferSource`로 인코딩.
+  결과는 File System Access API(`showSaveFilePicker`) + `StreamTarget`으로 디스크에 바로 기록(메모리 사용 일정, 1~3시간 가능).
+  `showSaveFilePicker`가 없는 브라우저(모바일·Safari·Firefox)는 메모리 버퍼로 **20분 이하만** 허용.
+- 장면 요소(입자·LP 회전 등)는 시간 `t`만으로 결정되게 그린다(미리보기 = 결과). 상태를 프레임 간에 쌓는 효과를 넣지 말 것.
+- 렌더링 속도: 매 프레임 화면 전체에 덧칠하는 작업이 가장 비싸다. 정지 배경은 색감·어둡게·비네팅·그레인(무늬 4종)을
+  미리 합친 캐시를 프레임마다 돌려 쓰고, 글자 블록(그림자 포함)도 캐시한다. 새 효과를 넣을 때 전체 화면 패스를 늘리지 말 것.
+- 배경 영상은 `CanvasSink.canvases()`로 순서대로 읽고 끝나면 다시 처음부터(반복). 디코딩 불가 코덱이면 첫 장면을 정지 배경으로 사용.
+- 글꼴(Nanum Pen Script, IBM Plex Mono)은 `lofi/fonts/`에 **자체 호스팅**(OFL) — 외부 글꼴 서비스로 요청을 보내지 않기 위함.
+- 설정은 localStorage `rebroni-lofi-settings`. 캐시 버스팅: `lofi/index.html`의 `lofi.js?v=`, `lofi.css?v=`, `fonts/fonts.css?v=`.
 
 ### Mastering (`mastering/`)
 - `dsp.js`(순수 JS 신호처리, `window.RDSP`)를 메인 스레드와 `worker.js`(`importScripts("dsp.js?v=1")`)가 함께 사용.
@@ -118,7 +132,7 @@ python -m http.server 8000
 - **공개 저장소**다. Firebase 웹 설정(`apiKey` 등)은 공개돼도 되지만, 그 외 토큰·비밀번호·서비스 계정 키는 절대 커밋하지 않는다.
 - `main`으로 push = 즉시 운영 배포. push 전에 로컬에서 동작을 확인한다.
 - `albums.json`과 Firestore 데이터는 자동 동기화되지 않는다. 폴백 데이터가 오래될 수 있음.
-- `visualizer/vendor/mediabunny.min.mjs`는 외부 라이브러리 번들(라이선스 파일 동봉) — 직접 수정하지 않는다.
+- `visualizer/vendor/mediabunny.min.mjs`는 외부 라이브러리 번들(라이선스 파일 동봉) — 직접 수정하지 않는다. `lofi/`도 이 파일을 import한다.
 
 ## 관련 도구
 
