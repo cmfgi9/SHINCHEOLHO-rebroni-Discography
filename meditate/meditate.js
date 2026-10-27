@@ -1,6 +1,6 @@
 // Rebroni Meditate — 명상 타이머 · 슬립 타이머 · 가이드 명상 · 자연의 소리 믹서 · 생성형/스템 음악 · 호흡 가이드
-import { Engine, NATURE, BELLS, holdAt, curve } from "./audio-engine.js?v=2";
-import { GenerativeMusic, StemMusic, AlbumPlayer, VoicePlayer, MOODS, STEM_ROLES } from "./music.js?v=2";
+import { Engine, NATURE, BELLS, holdAt, curve } from "./audio-engine.js?v=3";
+import { GenerativeMusic, StemMusic, AlbumPlayer, VoicePlayer, MOODS, STEM_ROLES } from "./music.js?v=3";
 import { loadAlbums, firebaseConfigReady } from "../data-service.js";
 import { firebaseConfig } from "../firebase-config.js";
 
@@ -20,7 +20,7 @@ const DEFAULTS = {
   sleep: { dur: 30, fade: 5, autoNight: true },
   guided: { id: null },
   breath: { pattern: "relax", custom: [4, 2, 6, 0], cue: "tone", vibrate: true, withSession: false },
-  prefs: { wake: "breath", night: false, nightAsk: true, remindTime: "21:30" }
+  prefs: { wake: "breath", night: false, nightAsk: true, remindTime: "21:30", quality: "auto" }
 };
 
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -51,6 +51,7 @@ function setPath(path, v) {
 
 // ---------- 오디오 ----------
 const engine = new Engine();
+engine.setQuality(state.prefs.quality); // auto | rich | lite
 const gen = new GenerativeMusic(engine);
 const stems = new StemMusic(engine);
 const album = new AlbumPlayer(engine);
@@ -912,6 +913,7 @@ function bind() {
       const v = el.type === "checkbox" ? el.checked : el.hasAttribute("data-num") ? Number(el.value) : el.value;
       setPath(el.dataset.key, v);
       if (el.dataset.key === "prefs.wake") syncWake();
+      if (el.dataset.key === "prefs.quality") engine.setQuality(v); // 잔향은 바로, 생성형 음은 다음 음부터 바뀜
       if (el.dataset.key === "breath.cue" && breath) { engine.cancelScheduled("cue"); restartBreathCues(); }
     });
   });
