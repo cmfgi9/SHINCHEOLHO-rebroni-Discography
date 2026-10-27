@@ -280,7 +280,14 @@
           <div class="row wrap toggles">
             <label class="check"><input type="checkbox" id="p-nightask" data-key="prefs.nightAsk"> 밤에 야간 모드 제안 <span class="en-sub">Suggest at night</span></label>
           </div>
+          <label class="field"><span class="lbl">음질 <span class="en-sub">Sound quality</span></span>
+            <select id="p-quality" class="select" data-key="prefs.quality">
+              <option value="auto">자동 (기기에 맞춤)</option><option value="rich">풍부하게 (PC와 같은 소리)</option><option value="lite">가볍게 (지직거릴 때)</option>
+            </select>
+          </label>
         </div>
+        <p class="muted small">휴대폰은 '자동'에서 가볍게 동작합니다. '풍부하게'에서 소리가 지직거리면 '자동'이나 '가볍게'로 바꾸세요.
+          <span class="en-sub">Phones use the light engine on Auto. If Rich crackles, switch back.</span></p>
         <button id="install-btn" class="btn small" hidden>📲 홈 화면에 설치 <span class="en-sub">Install app</span></button>
       </section>
     </div>
@@ -298,7 +305,7 @@
     </section>
   </main>
 
-  <script type="module" src="meditate.js?v=2"></script>
+  <script type="module" src="meditate.js?v=3"></script>
 </body>
 
 </html>

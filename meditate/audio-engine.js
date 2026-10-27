@@ -40,8 +40,22 @@ export class Engine {
     this.buffers = {};
     this.playing = false;
     this.onstate = null;       // 재생 상태 변화 콜백
-    // 가벼운 모드: 휴대폰(터치 화면)은 연산 여유가 적어 잔향을 짧게, 생성형 음악의 음을 단순하게 → 지직거림 방지
-    this.lite = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+    // 음질: auto(휴대폰=가볍게, PC=풍부하게) | rich | lite
+    // 가벼운 모드는 연산 여유가 적은 휴대폰용 — 컨볼버 잔향을 짧게 + 가벼운 꼬리(FDN), 생성형 음악의 음을 단순하게
+    this.quality = "auto";
+    this.lite = Engine.autoLite();
+  }
+
+  static autoLite() {
+    return typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+  }
+
+  setQuality(q) {
+    this.quality = q;
+    const lite = q === "lite" || (q === "auto" && Engine.autoLite());
+    if (lite === this.lite) return;
+    this.lite = lite;
+    if (this.ctx) this._buildReverbs();
   }
 
   // 사용자 탭 안에서 호출해야 한다 (모바일 자동 재생 정책)
@@ -73,26 +87,73 @@ export class Engine {
 
     // 벨은 세션 페이드를 거치지 않는다 → 소리가 모두 줄어든 뒤에도 종료 벨이 들림
     this.bellBus = this._gain(0.9, this.master);
-    const bellVerb = ctx.createConvolver();
-    bellVerb.buffer = this._impulse(this.lite ? 2.5 : 3, 1.8);
-    this.bellBus.connect(bellVerb);
-    bellVerb.connect(this._gain(0.35, this.master));
 
-    // 생성형 음악용 잔향 (음악 버스로 돌아감)
-    // 잔향 길이가 연산량을 좌우한다 (6초 → 3초로 줄여 휴대폰에서 지직거림 방지)
-    const ir = this._impulse(this.lite ? 2 : 3, 2);
-    this.reverb = ctx.createConvolver();
-    this.reverb.buffer = ir;
-    this.reverb.connect(this._gain(1, this.musicBus));
-    // 자연의 소리용 잔향 보내기 (새소리 등) — 음악 볼륨과 무관하게 자연의 소리 버스로 돌아감
-    this.natureVerb = this._gain(0.5);
-    const natureWet = ctx.createConvolver();
-    natureWet.buffer = ir;
-    this.natureVerb.connect(natureWet);
-    natureWet.connect(this._gain(0.6, this.natureBus));
+    // 잔향 보내기 입구 (고정) — 실제 잔향은 _buildReverbs()가 음질에 맞춰 만든다
+    this.reverb = this._gain(1);          // 생성형 음악 → 음악 버스로
+    this.natureVerb = this._gain(0.5);    // 새소리 등 → 자연의 소리 버스로 (음악 볼륨과 무관)
+    // 잔향 돌아오는 소리의 고역을 깎아 '쉬익' 하는 잡음처럼 들리지 않게
+    this.reverbTone = this._filter("lowpass", 4500, 0.5, this._gain(1, this.musicBus));
+    this._buildReverbs();
 
     this._keepAliveEl = this._makeKeepAlive();
     this._timer = setInterval(() => this._tick(), 250);
+  }
+
+  // 잔향 길이가 연산량을 좌우한다. 풍부하게: 컨볼버 3초 / 가볍게: 컨볼버 2초 + 가벼운 꼬리(FDN)로 울림을 길게
+  _buildReverbs() {
+    const old = this._verb;
+    if (old) {
+      this.reverb.disconnect();
+      this.natureVerb.disconnect();
+      this.bellBus.disconnect(old.bell);
+      for (const n of old.nodes) { try { n.disconnect(); } catch (e) { /* 무시 */ } }
+    }
+    const ctx = this.ctx, lite = this.lite;
+    const nodes = [];
+    const conv = (buf, src, dest, level) => {
+      const c = ctx.createConvolver();
+      c.buffer = buf;
+      const g = this._gain(level, dest);
+      src.connect(c);
+      c.connect(g);
+      nodes.push(c, g);
+      return c;
+    };
+    const ir = this._impulse(lite ? 2 : 3, 2);
+    conv(ir, this.reverb, this.reverbTone, 1);
+    conv(ir, this.natureVerb, this.natureBus, 0.6);
+    const bell = conv(this._impulse(lite ? 2.5 : 3, 1.8), this.bellBus, this.master, 0.35);
+    if (lite) nodes.push(...this._fdnTail(this.reverb, this.reverbTone, 4.5, 0.55));
+    this._verb = { nodes, bell };
+  }
+
+  // 가벼운 꼬리: 지연선 4개를 하우스홀더 행렬로 섞어 되먹이는 FDN 잔향. 컨볼버보다 훨씬 가볍다
+  _fdnTail(input, output, rt60, level) {
+    const ctx = this.ctx, nodes = [];
+    const inG = this._gain(0.35);
+    input.connect(inG);
+    const sum = this._gain(1);
+    const mix = this._gain(-0.5); // (I − ½·11ᵀ): 직교 행렬 → 되먹임 이득 < 1이면 안정
+    sum.connect(mix);
+    const out = this._gain(level, output);
+    nodes.push(inG, sum, mix, out);
+    [0.0797, 0.1013, 0.1229, 0.1471].forEach((dt, i) => {
+      const d = ctx.createDelay(1);
+      d.delayTime.value = dt;
+      // 주의: Web Audio의 lowpass Q는 dB 단위. 0보다 크면 공진(증폭)이 생겨 되먹임 안에서 소리가 점점 커진다 → −3dB
+      const lp = this._filter("lowpass", 3000, -3);
+      const g = this._gain(Math.pow(10, -3 * dt / rt60)); // rt60초 동안 −60dB
+      inG.connect(d);
+      d.connect(lp).connect(g);
+      g.connect(d);
+      g.connect(sum);
+      mix.connect(d);
+      const pan = ctx.createStereoPanner();
+      pan.pan.value = [-0.7, 0.7, -0.35, 0.35][i];
+      lp.connect(pan).connect(out);
+      nodes.push(d, lp, g, pan);
+    });
+    return nodes;
   }
 
   _gain(v, dest) {
@@ -273,8 +334,9 @@ export class Engine {
       const d = buf.getChannelData(ch);
       let lp = 0;
       for (let i = 0; i < len; i++) {
-        const x = i / len;
-        lp += (Math.random() * 2 - 1 - lp) * (0.9 - 0.75 * x); // 뒤로 갈수록 어두워지는 잔향
+        const x = i / len, t = i / sr;
+        // 뒤로 갈수록 어두워지는 잔향. 밝기를 '초' 기준으로 줄여 짧은 잔향도 고역이 쉬익거리지 않게
+        lp += (Math.random() * 2 - 1 - lp) * Math.max(0.035, 0.38 * Math.exp(-t / 0.45));
         d[i] = lp * Math.pow(1 - x, decay);
       }
     }

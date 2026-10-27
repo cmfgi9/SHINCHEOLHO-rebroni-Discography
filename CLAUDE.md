@@ -69,7 +69,10 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 - 자연의 소리·벨·생성형 음악은 **파일 없이 합성**(외부 요청 없음). 새 소리를 추가할 때도 가능하면 합성으로.
 - **휴대폰 연산 부담 주의**: 실시간 합성이 오디오 처리 시간을 넘기면 휴대폰에서 볼륨에 비례한 지직거림이 난다.
   잔향(ConvolverNode) 길이가 연산량을 좌우하므로 짧게 유지하고, 음마다 필터·패너를 만들지 말고 공유한다.
-  터치 화면 기기는 `engine.lite`(가벼운 모드: 잔향 2초, 패드 음당 오실레이터 1개). 새 소리·효과는 lite 모드에서도 가볍게.
+  음질 설정 `prefs.quality`(auto|rich|lite) → `engine.setQuality()`. auto면 터치 화면 기기가 `engine.lite`
+  (가벼운 모드: 컨볼버 잔향 2초 + 가벼운 꼬리 FDN `_fdnTail`, 패드 음당 오실레이터 1개). 새 소리·효과는 lite 모드에서도 가볍게.
+  잔향 돌아오는 소리는 `reverbTone`(lowpass 4.5kHz)로 고역을 깎아 쉬익거림을 막는다.
+- **Web Audio `lowpass`/`highpass`의 `Q`는 dB 단위**다. 0보다 크면 공진이 생기므로 되먹임 루프(FDN·딜레이) 안에서는 0 이하(−3)로.
 - 백그라운드 재생은 **Android Chrome 기준**(무음 `<audio>` 반복으로 미디어 세션 유지). iOS 전용 대응은 넣지 않고 제약으로 안내.
 - 콘텐츠: 앨범 음원은 `loadAlbums()`의 `audioUrl`(비발매 제외), 가이드 명상·스템은 Firestore `meditate`(`published == true`로 조회).
 - 설정 localStorage `rebroni-meditate-settings`, 내 프리셋 `rebroni-meditate-presets`. 공유 링크는 `#src=…&n=rain:60,…`.

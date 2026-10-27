@@ -2,7 +2,7 @@
 // - GenerativeMusic: 브라우저에서 실시간 합성하는 생성형 앰비언트 (무한, 파일·서버 없음, 시드로 재현)
 // - StemMusic: 아티스트가 올린 스템(트랙 조각)을 역할별로 무작위 재조합
 // - AlbumPlayer: 업로드된 앨범 음원(audioUrl)을 두 개의 <audio>로 크로스페이드 재생
-import { holdAt, curve } from "./audio-engine.js?v=2";
+import { holdAt, curve } from "./audio-engine.js?v=3";
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
