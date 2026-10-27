@@ -114,7 +114,8 @@ h1 .en-sub, .card-head .en-sub, .field .en-sub, .check .en-sub, .field-label .en
 }
 @media (min-width: 900px) {
   .mlayout { grid-template-columns: 420px 1fr; align-items: start; }
-  .hero { grid-row: span 3; position: sticky; top: 76px; }
+  /* 플레이어 카드는 화면보다 길어 고정(sticky)하면 아래 카드와 겹친다 → 고정하지 않음 */
+  .hero { grid-row: span 3; }
   .notes { grid-column: 1 / -1; }
 }
 
