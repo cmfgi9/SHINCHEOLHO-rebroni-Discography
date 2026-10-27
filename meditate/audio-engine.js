@@ -40,6 +40,8 @@ export class Engine {
     this.buffers = {};
     this.playing = false;
     this.onstate = null;       // 재생 상태 변화 콜백
+    // 가벼운 모드: 휴대폰(터치 화면)은 연산 여유가 적어 잔향을 짧게, 생성형 음악의 음을 단순하게 → 지직거림 방지
+    this.lite = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
   }
 
   // 사용자 탭 안에서 호출해야 한다 (모바일 자동 재생 정책)
@@ -72,12 +74,13 @@ export class Engine {
     // 벨은 세션 페이드를 거치지 않는다 → 소리가 모두 줄어든 뒤에도 종료 벨이 들림
     this.bellBus = this._gain(0.9, this.master);
     const bellVerb = ctx.createConvolver();
-    bellVerb.buffer = this._impulse(4.5, 2.2);
+    bellVerb.buffer = this._impulse(this.lite ? 2.5 : 3, 1.8);
     this.bellBus.connect(bellVerb);
     bellVerb.connect(this._gain(0.35, this.master));
 
     // 생성형 음악용 잔향 (음악 버스로 돌아감)
-    const ir = this._impulse(6, 2.6);
+    // 잔향 길이가 연산량을 좌우한다 (6초 → 3초로 줄여 휴대폰에서 지직거림 방지)
+    const ir = this._impulse(this.lite ? 2 : 3, 2);
     this.reverb = ctx.createConvolver();
     this.reverb.buffer = ir;
     this.reverb.connect(this._gain(1, this.musicBus));

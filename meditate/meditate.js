@@ -1,6 +1,6 @@
 // Rebroni Meditate — 명상 타이머 · 슬립 타이머 · 가이드 명상 · 자연의 소리 믹서 · 생성형/스템 음악 · 호흡 가이드
-import { Engine, NATURE, BELLS, holdAt, curve } from "./audio-engine.js?v=1";
-import { GenerativeMusic, StemMusic, AlbumPlayer, VoicePlayer, MOODS, STEM_ROLES } from "./music.js?v=1";
+import { Engine, NATURE, BELLS, holdAt, curve } from "./audio-engine.js?v=2";
+import { GenerativeMusic, StemMusic, AlbumPlayer, VoicePlayer, MOODS, STEM_ROLES } from "./music.js?v=2";
 import { loadAlbums, firebaseConfigReady } from "../data-service.js";
 import { firebaseConfig } from "../firebase-config.js";
 

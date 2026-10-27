@@ -2,7 +2,7 @@
 // - GenerativeMusic: 브라우저에서 실시간 합성하는 생성형 앰비언트 (무한, 파일·서버 없음, 시드로 재현)
 // - StemMusic: 아티스트가 올린 스템(트랙 조각)을 역할별로 무작위 재조합
 // - AlbumPlayer: 업로드된 앨범 음원(audioUrl)을 두 개의 <audio>로 크로스페이드 재생
-import { holdAt, curve } from "./audio-engine.js?v=1";
+import { holdAt, curve } from "./audio-engine.js?v=2";
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -108,7 +108,15 @@ export class GenerativeMusic {
       const n = this.mood.scale.length;
       const chord = [base, base + 2, base + 4];
       if (R() < 0.5) chord.push(base + n); // 옥타브 위
-      chord.forEach((d, i) => this._pad(t + i * 0.4, len, this.freq(d, R() < 0.3 ? 1 : 0)));
+      // 화음마다 필터·패너를 좌우 2개만 만들어 음들이 나눠 쓴다 (음마다 만들면 휴대폰에서 연산이 밀려 지직거림)
+      const sides = [-0.55, 0.55].map(pv => {
+        const lp = this.e._filter("lowpass", this._cut(), 0.6);
+        const pan = this.e.ctx.createStereoPanner();
+        pan.pan.value = pv + (R() * 0.3 - 0.15);
+        lp.connect(pan).connect(this.out);
+        return lp;
+      });
+      chord.forEach((d, i) => this._pad(t + i * 0.4, len, this.freq(d, R() < 0.3 ? 1 : 0), sides[i % 2]));
       this.nextChord = t + len * 0.75; // 앞 화음의 여운과 겹치며 넘어감
     }
     while (this.nextNote < until) {
@@ -125,8 +133,8 @@ export class GenerativeMusic {
     }
   }
 
-  _pad(t, len, f) {
-    const e = this.e, ctx = e.ctx;
+  _pad(t, len, f, dest) {
+    const ctx = this.e.ctx;
     const g = ctx.createGain();
     const atk = 5 + this.rand() * 3, rel = 8;
     const peak = 0.045;
@@ -134,16 +142,14 @@ export class GenerativeMusic {
     g.gain.linearRampToValueAtTime(peak, t + atk);
     g.gain.setValueAtTime(peak, t + len);
     g.gain.linearRampToValueAtTime(0, t + len + rel);
-    const lp = e._filter("lowpass", this._cut(), 0.6);
-    const pan = ctx.createStereoPanner();
-    pan.pan.value = this.rand() * 1.4 - 0.7;
-    lp.connect(g).connect(pan).connect(this.out);
-    for (const [type, cents] of [["triangle", -5], ["sine", 5]]) {
+    g.connect(dest);
+    // 가벼운 모드(휴대폰): 음마다 오실레이터 1개
+    for (const [type, cents] of this.e.lite ? [["triangle", 0]] : [["triangle", -5], ["sine", 5]]) {
       const o = ctx.createOscillator();
       o.type = type;
       o.frequency.value = f;
       o.detune.value = cents;
-      o.connect(lp);
+      o.connect(g);
       o.start(t);
       o.stop(t + len + rel + 0.1);
     }

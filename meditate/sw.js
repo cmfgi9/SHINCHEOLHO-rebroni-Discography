@@ -1,9 +1,9 @@
 // 앱 셸 캐시 — 파일 수정 배포 시 VERSION과 SHELL의 ?v= 를 함께 올려주세요
 // 자연의 소리·벨·생성형 음악은 브라우저에서 합성하므로 셸만 캐시되면 오프라인에서도 동작한다.
 // (앨범 음원·스템·가이드 음성 오프라인 저장은 2단계에서 추가 예정)
-const VERSION = "meditate-v3";
+const VERSION = "meditate-v4";
 const SHELL = [
-  "./", "index.html", "meditate.css?v=3", "meditate.js?v=1", "audio-engine.js?v=1", "music.js?v=1",
+  "./", "index.html", "meditate.css?v=3", "meditate.js?v=2", "audio-engine.js?v=2", "music.js?v=2",
   "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png",
   "../data-service.js", "../firebase-config.js"
 ];
