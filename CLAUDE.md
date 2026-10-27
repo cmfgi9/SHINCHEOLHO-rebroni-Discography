@@ -9,6 +9,8 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
   — `main`에 push하면 자동 배포. `functions/`는 Pages Functions로 함께 배포됨.
   저장소 루트 전체가 그대로 배포되므로 `CLAUDE.md`·`*.rules` 등 모든 파일이 공개 URL로 열린다.
   Workers 배포는 쓰지 않는다 (예전에 자동 생성됐던 Worker와 `wrangler.jsonc`는 삭제함 — 다시 추가하지 말 것).
+- 음원 파일: **Cloudflare R2** 버킷(Pages 바인딩 이름 `MEDIA`)이 연결돼 있으면 R2, 아니면 Firebase Storage (admin이 자동 판별).
+  R2 파일은 Pages Function이 같은 도메인 `/media/…`로 제공(Range 지원). 바인딩은 Pages 프로젝트 설정이며 Workers 배포와 무관.
 - 데이터/인증/파일: **Firebase** 프로젝트 `rebroni-music-web` (Firestore, Google 로그인, Storage).
   SDK는 `gstatic.com` CDN에서 동적 import하며 버전은 `10.12.2`로 고정.
 - 영상/플레이어: YouTube IFrame API.
@@ -25,9 +27,12 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 | `/privacy.html` | **개인정보 처리방침** (시행일·변경 이력 포함) | `privacy.html` |
 | `/visualizer/` | **쇼츠 영상 제작 Visualizer** — 음원 + 9:16 배경(이미지/영상 슬라이드쇼) + 스펙트럼 → MP4 추출(1080p~4K). PWA | `visualizer/` |
 | `/lofi/` | **Lofi Visualizer** — 음원 플레이리스트 + 16:9 배경(이미지/반복 영상) + Lofi 효과 → 1~3시간 유튜브용 MP4 **오프라인 렌더링**, 유튜브 챕터 생성 | `lofi/` |
+| `/meditate/` | **Meditate(명상)** — 자연의 소리 믹서(브라우저 합성), 생성형 앰비언트·스템 재조합·앨범 음원, 명상/슬립 타이머·벨, 가이드 명상, 호흡 가이드, 야간 모드, 프리셋·공유 링크, 캘린더 알림. PWA | `meditate/` |
 | `/mastering/` | **음원 Mastering** — 라우드니스(BS.1770/EBU R128)·트루피크 분석, 무드/레퍼런스 기반 자동 마스터링, A/B 비교, WAV·리포트 저장 | `mastering/` |
 | `/admin.html` | 관리자: 앨범·트랙·가사·음원·커버, 창작 노트 편집기, 영상 관리, 방명록·구독자 관리 | `admin.html`, `admin.js` |
 | `/api/tracks` | `audioUrl` 있는 곡 목록 JSON (CORS `*`, 외부 게임 등에서 사용) | `functions/api/tracks.js` |
+| `/api/media` | R2 음원 업로드·삭제 (관리자 전용: Firebase ID 토큰 → Firestore `admins/{uid}` 읽기로 확인), `GET`은 R2 연결 여부 | `functions/api/media.js` |
+| `/media/*` | R2 음원 제공 (`tracks/`, `meditate/`만, Range·CORS `*`) | `functions/media/[[path]].js` |
 
 공용 모듈:
 - `data-service.js` — 앨범 로딩: Firestore 우선 → 실패/빈 컬렉션이면 `albums.json` 폴백. `firebaseConfigReady()` 제공.
@@ -53,6 +58,20 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 - 배경 영상은 `CanvasSink.canvases()`로 순서대로 읽고 끝나면 다시 처음부터(반복). 디코딩 불가 코덱이면 첫 장면을 정지 배경으로 사용.
 - 글꼴(Nanum Pen Script, IBM Plex Mono)은 `lofi/fonts/`에 **자체 호스팅**(OFL) — 외부 글꼴 서비스로 요청을 보내지 않기 위함.
 - 설정은 localStorage `rebroni-lofi-settings`. 캐시 버스팅: `lofi/index.html`의 `lofi.js?v=`, `lofi.css?v=`, `fonts/fonts.css?v=`.
+
+### Meditate (`meditate/`)
+- ES 모듈 3개: `audio-engine.js`(AudioContext·버스·자연의 소리/벨/신호음 합성·페이드), `music.js`(GenerativeMusic·StemMusic·AlbumPlayer·VoicePlayer),
+  `meditate.js`(UI·세션·호흡·프리셋·공유·Media Session). 스타일은 자체 `meditate.css`(dark/nature + `data-night` 야간 모드).
+- 오디오 그래프: 소스 → musicBus/natureBus → duck(가이드 음성 중 낮춤) → transport(일시정지 페이드) → session(세션 페이드) → master → 리미터.
+  벨(`bellBus`)은 session을 거치지 않아 페이드 아웃 뒤에도 종료 벨이 들린다.
+- **시간 이벤트(벨·페이드·호흡 신호음)는 `ctx.currentTime` 기준으로 예약**한다 — 화면이 꺼져 JS 타이머가 느려져도 정확.
+  일시정지는 `ctx.suspend()`라 세션 시계도 함께 멈춘다. 반복 예약은 `engine.tickers`(3초 앞서 예약)에 등록.
+- 자연의 소리·벨·생성형 음악은 **파일 없이 합성**(외부 요청 없음). 새 소리를 추가할 때도 가능하면 합성으로.
+- 백그라운드 재생은 **Android Chrome 기준**(무음 `<audio>` 반복으로 미디어 세션 유지). iOS 전용 대응은 넣지 않고 제약으로 안내.
+- 콘텐츠: 앨범 음원은 `loadAlbums()`의 `audioUrl`(비발매 제외), 가이드 명상·스템은 Firestore `meditate`(`published == true`로 조회).
+- 설정 localStorage `rebroni-meditate-settings`, 내 프리셋 `rebroni-meditate-presets`. 공유 링크는 `#src=…&n=rain:60,…`.
+- 캐시 버스팅: `index.html`의 `meditate.css?v=`·`meditate.js?v=`, 모듈 import의 `audio-engine.js?v=`·`music.js?v=`,
+  **`sw.js`의 `SHELL` 목록과 `VERSION`도 함께** 올린다.
 
 ### Mastering (`mastering/`)
 - `dsp.js`(순수 JS 신호처리, `window.RDSP`)를 메인 스레드와 `worker.js`(`importScripts("dsp.js?v=1")`)가 함께 사용.
@@ -86,9 +105,11 @@ python -m http.server 8000
 | `guestbook/{id}` | 방명록 (비밀번호 해시로 셀프 soft delete) | 공개 / 누구나 작성 |
 | `subscribers/{email}` | 뉴스레터 구독자 (문서 ID = 이메일) | 관리자 / 누구나 등록·해지 |
 | `admins/{uid}` | 존재하면 관리자 (콘솔에서만 추가) | 본인 / 불가 |
-| Storage `tracks/`, `journal/`, 커버 | 음원, 노트 첨부(사진·음원 스케치), 커버 이미지 | 공개 / 관리자 |
+| `meditate/{autoId}` | 명상 콘텐츠: `kind(guided\|stem), title, titleEn, description, url, path, role, set, duration, order, published, …` | `published`만 공개 / 관리자 |
+| Storage `tracks/`, `journal/`, `meditate/`, 커버 | 음원, 노트 첨부(사진·음원 스케치), 명상 콘텐츠(R2 미연결 시), 커버 이미지 | 공개 / 관리자 |
+| R2 `tracks/`, `meditate/` | R2 연결 시 음원 저장소. `audioPath`/`path`가 `r2:`로 시작 | 공개(`/media/`) / 관리자(`/api/media`) |
 
-- `notes`, `videos`는 공개 페이지에서 **반드시 `where('published', '==', true)`로 조회**해야 보안 규칙을 통과한다.
+- `notes`, `videos`, `meditate`는 공개 페이지에서 **반드시 `where('published', '==', true)`로 조회**해야 보안 규칙을 통과한다.
 - 앨범 ID 규칙: 정규 `a1`…`a9`, EP `ep1`. 정렬은 `order`(숫자) 우선, 없으면 `release` 내림차순.
 - `tracks[]`: `no, title, isrc, links{spotify, apple, youtube}, lyrics{ko,en}, audioUrl, audioPath, unlisted`.
   `unlisted: true` 곡은 공개 목록에 노출하지 않음. 음원 포맷: mp3·wav·opus·ogg·m4a·aac (20MB 이하).
@@ -99,7 +120,7 @@ python -m http.server 8000
   - 화면(`app.js`, `playlist.js`)은 저장된 순서대로 "주제목 (부제)"로 표시만 한다.
   - `functions/api/tracks.js`의 `splitTitle`은 **한글이 있는 쪽을 `titleKo`로** 판정하고,
     한쪽에만 한글이 있는 경우가 아니면 `titleKo`/`titleEn` 모두 원제목을 그대로 쓴다.
-- 상세 필드·설정 절차는 `FIREBASE-SETUP.md` 참고 (Phase1~3, 10-1 개인정보, 12 Journal, 13 Videos).
+- 상세 필드·설정 절차는 `FIREBASE-SETUP.md` 참고 (Phase1~3, 10-1 개인정보, 12 Journal, 13 Videos, 14 Meditate, 15 Cloudflare R2).
 
 새 앨범·영상·노트 등록은 보통 **코드 수정 없이 admin 페이지에서** 처리한다. 코드 작업은 기능 추가·UI 변경 위주.
 
@@ -111,9 +132,9 @@ python -m http.server 8000
   - `index.html` → `styles.css`, `app.js`, `playlist.js`, `community.js`
   - `videos.html` → `videos.js` / `journal.html` → `journal.js`
   - 모듈 import에도 `?v=`가 붙은 곳이 있음: `youtube.js?v=`, `journal-format.js?v=` — 고치면 import하는 파일들도 갱신
-  - `visualizer/`는 위 Visualizer 항목 참고 (sw.js 포함), `mastering/`은 `index.html`과 `worker.js`의 `dsp.js?v=`
+  - `visualizer/`·`meditate/`는 위 각 항목 참고 (sw.js 포함), `mastering/`은 `index.html`과 `worker.js`의 `dsp.js?v=`
   - 주의: `data-service.js`, `firebase-config.js`는 `?v=` 없이 import됨
-- **Firebase SDK 버전**은 Firebase를 쓰는 모든 파일(`data-service.js`, `community.js`, `admin.js`, `videos.js`, `journal.js`)에서 같은 값(`10.12.2`)을 유지한다.
+- **Firebase SDK 버전**은 Firebase를 쓰는 모든 파일(`data-service.js`, `community.js`, `admin.js`, `videos.js`, `journal.js`, `meditate/meditate.js`)에서 같은 값(`10.12.2`)을 유지한다.
 - **보안 규칙 변경은 git push만으로 반영되지 않는다.** `firestore.rules` / `storage.rules`를 고치면
   Firebase Console에서 직접 재게시해야 하고, `cors.json`은 `gsutil cors set`으로 적용해야 한다.
   변경 시 사용자에게 이 수동 단계를 반드시 안내하고, `FIREBASE-SETUP.md`에도 절차를 추가한다.

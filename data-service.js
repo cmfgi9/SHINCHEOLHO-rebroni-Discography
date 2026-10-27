@@ -38,7 +38,8 @@ async function loadFromFirestore() {
 }
 
 async function loadFromJson() {
-  const res = await fetch("albums.json", {
+  // 하위 경로(/meditate/ 등)에서 불러도 사이트 루트의 albums.json을 읽도록 모듈 위치 기준으로
+  const res = await fetch(new URL("albums.json", import.meta.url), {
     cache: "default",
     headers: { "Cache-Control": "max-age=3600" }
   });

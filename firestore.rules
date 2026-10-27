@@ -110,6 +110,29 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // 명상 콘텐츠 (Meditate): 가이드 명상 음성(kind: guided)과 스템 재조합용 소리 조각(kind: stem).
+    //   url = 음원 주소(Cloudflare R2의 /media/… 또는 Firebase Storage), path = 삭제용 저장 경로("r2:"로 시작하면 R2)
+    //   공개(published == true) 항목은 누구나 읽기, 비공개는 관리자만.
+    //   공개 페이지는 반드시 where('published', '==', true) 조건으로 조회해야 규칙을 통과함
+    match /meditate/{itemId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['kind', 'title', 'titleEn', 'description', 'url', 'path', 'role', 'set', 'duration', 'order', 'published', 'createdAt', 'updatedAt'])
+        && request.resource.data.kind in ['guided', 'stem']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.url is string
+        && request.resource.data.url.matches('^https://.+')
+        && request.resource.data.url.size() <= 1000
+        && (request.resource.data.kind == 'guided' || request.resource.data.role in ['drone', 'pad', 'melody', 'texture'])
+        && (!('description' in request.resource.data) || (request.resource.data.description is string && request.resource.data.description.size() <= 500))
+        && (!('duration' in request.resource.data) || request.resource.data.duration is number)
+        && (!('order' in request.resource.data) || request.resource.data.order is number)
+        && request.resource.data.published is bool;
+      allow delete: if isAdmin();
+    }
+
     // 향후 확장 예약 (커머스):
     // match /products/{productId} { allow read: if true; allow write: if isAdmin(); }
     // match /orders/{orderId} { ... 구매자 본인 + 관리자만 ... }

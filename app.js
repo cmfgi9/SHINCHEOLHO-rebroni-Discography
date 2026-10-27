@@ -188,12 +188,19 @@ async function main() {
         ? `<button class="tbtn yt-album-play" data-album="${a.id}" data-ytpl="${escapeHtml(plId)}" aria-expanded="false">Play Album</button>`
         : "";
 
+      // 업로드된 음원이 있는 앨범은 명상 페이지에서 바로 들을 수 있음
+      const hasAudio = (a.tracks || []).some(t => t.audioUrl && !t.unlisted);
+      const meditateBtn = hasAudio
+        ? `<a href="meditate/?album=${encodeURIComponent(a.id)}" class="tbtn" title="명상 모드로 듣기 (타이머·자연의 소리와 함께)">🧘 Meditate</a>`
+        : "";
+
       const linksHtml = `
         <div class="links">
           ${links.spotify_album ? `<a href="${escapeHtml(links.spotify_album)}" target="_blank" rel="noopener" class="tbtn">Spotify</a>` : ""}
           ${links.apple_album ? `<a href="${escapeHtml(links.apple_album)}" target="_blank" rel="noopener" class="tbtn">Apple Music</a>` : ""}
           ${links.youtube_album ? `<a href="${escapeHtml(links.youtube_album)}" target="_blank" rel="noopener" class="tbtn">YouTube</a>` : ""}
           ${albumPlayBtn}
+          ${meditateBtn}
         </div>
       `;
 

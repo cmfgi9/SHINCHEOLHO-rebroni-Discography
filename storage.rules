@@ -35,6 +35,15 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // 명상 콘텐츠(가이드 명상·스템): Cloudflare R2가 연결되지 않았을 때만 사용. 누구나 읽기, 관리자만 업로드/삭제 (50MB 이하 오디오)
+    match /meditate/{fileName} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.size < 50 * 1024 * 1024
+        && request.resource.contentType.matches('audio/.*');
+      allow delete: if isAdmin();
+    }
+
     // 그 외 경로 차단
     match /{allPaths=**} {
       allow read, write: if false;

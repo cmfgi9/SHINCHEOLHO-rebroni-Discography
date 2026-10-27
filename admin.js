@@ -18,13 +18,13 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 const $ = id => document.getElementById(id);
-const views = ["view-signin", "view-noauth", "view-list", "view-notes", "view-note", "view-videos", "view-video", "view-edit"];
+const views = ["view-signin", "view-noauth", "view-list", "view-notes", "view-note", "view-videos", "view-video", "view-meditate", "view-med", "view-edit"];
 function show(...ids) {
   views.forEach(v => $(v).classList.toggle("hidden", !ids.includes(v)));
 }
-// 관리자 첫 화면: 앨범 목록 + 창작 노트 목록 + 영상 목록
+// 관리자 첫 화면: 앨범 목록 + 창작 노트 목록 + 영상 목록 + 명상 콘텐츠
 function showHome() {
-  show("view-list", "view-notes", "view-videos");
+  show("view-list", "view-notes", "view-videos", "view-meditate");
 }
 function setStatus(id, msg, cls = "") {
   const el = $(id);
@@ -46,6 +46,71 @@ const AUDIO_TYPES = {
 };
 // 다른 포맷으로 다시 올려 경로가 바뀐 기존 음원 — [저장]이 끝난 뒤에 Storage에서 삭제
 const replacedAudioPaths = new Set();
+
+// ---------- 음원 저장소: Cloudflare R2(연결되어 있으면) / Firebase Storage ----------
+// R2 업로드·삭제는 Pages Function /api/media 가 처리하고, 파일은 /media/… 주소로 제공된다.
+// 저장 경로(audioPath)가 "r2:"로 시작하면 R2, 아니면 Firebase Storage 경로.
+const MEDIA_API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+  ? "https://music.rebroni.com/api/media" // 로컬에서도 운영 R2에 올림 (관리자 인증 필요)
+  : "/api/media";
+const R2_URL_RE = /^https:\/\/music\.rebroni\.com\/media\/((?:tracks|meditate)\/[A-Za-z0-9][A-Za-z0-9._-]*)/;
+let r2Ready = null;
+
+async function r2Enabled() {
+  if (r2Ready === null) {
+    try {
+      const res = await fetch(MEDIA_API, { cache: "no-store" });
+      r2Ready = res.ok && (await res.json()).r2 === true;
+    } catch (e) {
+      r2Ready = false;
+    }
+  }
+  return r2Ready;
+}
+
+async function r2Request(method, path, body, contentType) {
+  const token = await currentUser.getIdToken();
+  const res = await fetch(`${MEDIA_API}?path=${encodeURIComponent(path)}`, {
+    method,
+    body,
+    headers: { Authorization: `Bearer ${token}`, ...(contentType ? { "Content-Type": contentType } : {}) }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// → { url, path }
+async function uploadAudioFile(path, file, contentType) {
+  if (await r2Enabled()) return r2Request("PUT", path, file, contentType);
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file, { contentType });
+  return { url: await getDownloadURL(storageRef), path };
+}
+
+// 파일이 이미 없으면 조용히 넘어감
+async function deleteAudioFile(path) {
+  if (!path) return;
+  if (path.startsWith("r2:")) {
+    await r2Request("DELETE", path.slice(3));
+    return;
+  }
+  try {
+    await deleteObject(ref(storage, path));
+  } catch (err) {
+    if (err.code !== "storage/object-not-found") throw err;
+  }
+}
+
+// 붙여넣은 주소가 R2 음원이면 저장 경로를 알아낸다
+function audioPathFromUrl(url) {
+  const m = String(url).match(R2_URL_RE);
+  return m ? "r2:" + m[1] : "";
+}
+
+async function storageLabel() {
+  return (await r2Enabled()) ? "Cloudflare R2" : "Firebase Storage";
+}
 
 // ---------- 인증 ----------
 $("btn-signin").addEventListener("click", async () => {
@@ -78,6 +143,7 @@ onAuthStateChanged(auth, async user => {
   await refreshList();
   await refreshNotes();
   await refreshVideos();
+  await refreshMeditate();
 });
 
 async function checkAdmin(uid) {
@@ -181,7 +247,7 @@ function openEdit(albumId) {
 
   if (albumId) {
     getDoc(doc(db, "albums", albumId)).then(snap => {
-      if (snap.exists()) fillForm({ ...snap.data(), id: snap.id });
+      if (snap.exists()) { fillForm({ ...snap.data(), id: snap.id }); updateMigrateBtn(); }
       else setStatus("edit-status", "문서를 찾을 수 없습니다.", "err");
     });
   } else {
@@ -189,6 +255,57 @@ function openEdit(albumId) {
     renumberTracks();
   }
 }
+
+// ----- Firebase Storage 음원 → Cloudflare R2 이전 -----
+function firebaseAudioRows() {
+  return [...document.querySelectorAll("#tracks .track-item")].filter(row => {
+    const p = row.querySelector(".t-audio-path").value.trim();
+    return p && !p.startsWith("r2:");
+  });
+}
+
+async function updateMigrateBtn() {
+  const visible = firebaseAudioRows().length > 0 && await r2Enabled();
+  $("btn-migrate-r2").classList.toggle("hidden", !visible);
+}
+
+$("btn-migrate-r2").addEventListener("click", async e => {
+  e.preventDefault();
+  const rows = firebaseAudioRows();
+  if (!rows.length) return;
+  if (!confirm(`${rows.length}곡의 음원을 Firebase Storage에서 Cloudflare R2로 옮깁니다.\n끝난 뒤 [저장]을 누르면 Firebase의 기존 파일은 삭제됩니다. 진행할까요?`)) return;
+  const btn = $("btn-migrate-r2");
+  btn.disabled = true;
+  let done = 0, failed = 0;
+  for (const row of rows) {
+    const urlEl = row.querySelector(".t-audio-url");
+    const pathEl = row.querySelector(".t-audio-path");
+    const st = row.querySelector(".t-audio-status");
+    const oldPath = pathEl.value.trim();
+    try {
+      st.textContent = "R2로 옮기는 중…";
+      const res = await fetch(urlEl.value.trim());
+      if (!res.ok) throw new Error(`기존 파일 다운로드 실패 (HTTP ${res.status})`);
+      const blob = await res.blob();
+      const name = oldPath.split("/").pop();
+      const ext = (name.split(".").pop() || "").toLowerCase();
+      const { url, path } = await r2Request("PUT", `tracks/${name}`, blob, AUDIO_TYPES[ext] || blob.type);
+      replacedAudioPaths.add(oldPath);
+      urlEl.value = url;
+      pathEl.value = path;
+      st.textContent = "R2로 이전 완료";
+      done++;
+    } catch (err) {
+      st.textContent = "이전 실패: " + err.message;
+      failed++;
+    }
+  }
+  setStatus("edit-status",
+    `${done}곡 이전 완료${failed ? ` · 실패 ${failed}곡` : ""}. [저장]을 눌러야 반영되고, 그때 Firebase의 기존 파일이 삭제됩니다.`,
+    failed ? "err" : "ok");
+  btn.disabled = false;
+  updateMigrateBtn();
+});
 
 function clearForm() {
   ["f-id", "f-ordinal", "f-upc", "f-title", "f-upload", "f-release", "f-cover",
@@ -263,7 +380,7 @@ function addTrackRow(t = {}) {
       <button class="btn small danger t-audio-del ${t.audioUrl ? "" : "hidden"}">음원 삭제</button>
       <span class="muted t-audio-status"></span>
     </div>
-    <input type="url" class="t-audio-url" readonly placeholder="업로드하면 다운로드 URL이 자동 입력됩니다" value="${escAttr(t.audioUrl || "")}">
+    <input type="url" class="t-audio-url" placeholder="업로드하면 자동 입력 · R2에 직접 올린 파일은 주소(https://music.rebroni.com/media/…)를 붙여넣기" value="${escAttr(t.audioUrl || "")}">
     <input type="hidden" class="t-audio-path" value="${escAttr(t.audioPath || "")}">
     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
       <input type="checkbox" class="t-unlisted" style="width:auto;" ${t.unlisted ? "checked" : ""}>
@@ -274,14 +391,12 @@ function addTrackRow(t = {}) {
     e.preventDefault();
     const audioPath = div.querySelector(".t-audio-path").value.trim();
     if (audioPath) {
-      if (!confirm("이 곡의 음원 파일도 Storage에서 함께 삭제됩니다. 진행할까요?")) return;
+      if (!confirm("이 곡의 음원 파일도 저장소에서 함께 삭제됩니다. 진행할까요?")) return;
       try {
-        await deleteObject(ref(storage, audioPath));
+        await deleteAudioFile(audioPath);
       } catch (err) {
-        if (err.code !== "storage/object-not-found") {
-          setStatus("edit-status", "음원 파일 삭제 실패: " + err.message, "err");
-          return;
-        }
+        setStatus("edit-status", "음원 파일 삭제 실패: " + err.message, "err");
+        return;
       }
     }
     div.remove();
@@ -329,22 +444,32 @@ function addTrackRow(t = {}) {
     }
 
     try {
-      audioStatus.textContent = "업로드 중…";
-      const path = `tracks/${slug}.${ext}`;
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file, { contentType: AUDIO_TYPES[ext] });
-      const url = await getDownloadURL(storageRef);
+      audioStatus.textContent = `업로드 중… (${await storageLabel()})`;
+      const { url, path } = await uploadAudioFile(`tracks/${slug}.${ext}`, file, AUDIO_TYPES[ext]);
       const oldPath = audioPathEl.value.trim();
       if (oldPath && oldPath !== path) replacedAudioPaths.add(oldPath);
       audioUrlEl.value = url;
       audioPathEl.value = path;
       syncAudioButtons();
-      audioStatus.textContent = `업로드 완료 (${Math.round(file.size / 1024)}KB)`;
+      audioStatus.textContent = `업로드 완료 (${Math.round(file.size / 1024)}KB · ${await storageLabel()})`;
       setStatus("edit-status", "음원 업로드 완료. [저장]을 눌러야 앨범에 반영됩니다.", "ok");
     } catch (err) {
       audioStatus.textContent = "";
       setStatus("edit-status", "음원 업로드 실패: " + err.message, "err");
     }
+  });
+
+  // 주소를 직접 붙여넣은 경우 (R2 대시보드에서 올린 파일 등)
+  audioUrlEl.addEventListener("change", () => {
+    const url = audioUrlEl.value.trim();
+    const newPath = audioPathFromUrl(url);
+    const oldPath = audioPathEl.value.trim();
+    if (oldPath && oldPath !== newPath) replacedAudioPaths.add(oldPath);
+    audioPathEl.value = newPath;
+    syncAudioButtons();
+    audioStatus.textContent = oldPath && oldPath !== newPath
+      ? "주소 변경됨 — [저장]하면 기존 음원 파일은 삭제됩니다."
+      : "주소 변경됨 — [저장]을 눌러야 반영됩니다.";
   });
 
   btnCopy.addEventListener("click", async e => {
@@ -359,24 +484,17 @@ function addTrackRow(t = {}) {
 
   btnAudioDel.addEventListener("click", async e => {
     e.preventDefault();
-    if (!confirm("이 곡의 음원 파일을 Storage에서 삭제할까요?")) return;
+    if (!confirm("이 곡의 음원 파일을 저장소에서 삭제할까요?")) return;
     const path = audioPathEl.value.trim();
     try {
-      if (path) await deleteObject(ref(storage, path));
+      await deleteAudioFile(path);
       audioUrlEl.value = "";
       audioPathEl.value = "";
       syncAudioButtons();
-      audioStatus.textContent = "음원 삭제 완료.";
+      audioStatus.textContent = path ? "음원 삭제 완료." : "URL을 제거했습니다.";
       setStatus("edit-status", "음원 삭제 완료. [저장]을 눌러야 앨범에 반영됩니다.", "ok");
     } catch (err) {
-      if (err.code === "storage/object-not-found") {
-        audioUrlEl.value = "";
-        audioPathEl.value = "";
-        syncAudioButtons();
-        audioStatus.textContent = "파일이 이미 없어 URL만 제거했습니다.";
-      } else {
-        setStatus("edit-status", "음원 삭제 실패: " + err.message, "err");
-      }
+      setStatus("edit-status", "음원 삭제 실패: " + err.message, "err");
     }
   });
   div.querySelector(".t-up").addEventListener("click", e => {
@@ -483,9 +601,9 @@ $("btn-save").addEventListener("click", async () => {
     for (const path of replacedAudioPaths) {
       if (inUse.has(path)) continue;
       try {
-        await deleteObject(ref(storage, path));
+        await deleteAudioFile(path);
       } catch (err) {
-        if (err.code !== "storage/object-not-found") console.warn("기존 음원 삭제 실패:", path, err);
+        console.warn("기존 음원 삭제 실패:", path, err);
       }
     }
     replacedAudioPaths.clear();
@@ -503,7 +621,7 @@ $("btn-save").addEventListener("click", async () => {
 
 $("btn-delete").addEventListener("click", async () => {
   if (!editingId) return;
-  if (!confirm(`앨범 "${editingId}"을(를) 삭제합니다. 등록된 음원 파일도 Storage에서 함께 삭제되며, 되돌릴 수 없습니다. 진행할까요?`)) return;
+  if (!confirm(`앨범 "${editingId}"을(를) 삭제합니다. 등록된 음원 파일도 저장소에서 함께 삭제되며, 되돌릴 수 없습니다. 진행할까요?`)) return;
   try {
     // 앨범에 등록된 음원 파일 Storage 정리
     const snap = await getDoc(doc(db, "albums", editingId));
@@ -512,9 +630,9 @@ $("btn-delete").addEventListener("click", async () => {
       for (const t of tracks) {
         if (!t.audioPath) continue;
         try {
-          await deleteObject(ref(storage, t.audioPath));
+          await deleteAudioFile(t.audioPath);
         } catch (err) {
-          if (err.code !== "storage/object-not-found") console.warn("음원 삭제 실패:", t.audioPath, err);
+          console.warn("음원 삭제 실패:", t.audioPath, err);
         }
       }
     }
@@ -1284,6 +1402,214 @@ $("btn-video-delete").addEventListener("click", async () => {
   }
 });
 
+// ---------- 명상 콘텐츠 (가이드 명상 · 스템) ----------
+const MED_KIND = { guided: "가이드 명상", stem: "스템" };
+const MED_ROLE = { drone: "바탕", pad: "패드", melody: "멜로디", texture: "질감" };
+let medCache = [];
+let editingMedId = null;       // null = 새 콘텐츠
+let medSavedPath = "";         // 저장된 문서의 파일 경로
+let medSessionUploads = [];    // 이번 편집에서 올린 파일 (저장하지 않고 나가면 정리)
+
+async function refreshMeditate() {
+  const listEl = $("med-list");
+  listEl.innerHTML = '<p class="muted">불러오는 중…</p>';
+  setStatus("med-list-status", "");
+  storageLabel().then(l => { $("med-store").textContent = `현재 업로드 저장소: ${l}`; });
+  try {
+    const snap = await getDocs(collection(db, "meditate"));
+    medCache = snap.docs.map(d => ({ ...d.data(), id: d.id }))
+      .sort((a, b) => String(a.kind).localeCompare(String(b.kind)) || (a.order ?? 999) - (b.order ?? 999) || String(a.title).localeCompare(String(b.title)));
+    renderMeditate();
+  } catch (e) {
+    listEl.innerHTML = "";
+    setStatus("med-list-status", "명상 콘텐츠 로드 실패: " + e.message + rulesHint(e), "err");
+  }
+}
+
+function fmtSec(sec) {
+  sec = Math.round(Number(sec) || 0);
+  return sec ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}` : "";
+}
+
+function renderMeditate() {
+  const listEl = $("med-list");
+  if (!medCache.length) {
+    listEl.innerHTML = '<p class="muted">아직 등록된 콘텐츠가 없습니다. [+ 콘텐츠 추가]로 가이드 명상 음성이나 스템을 올려 보세요.</p>';
+    return;
+  }
+  listEl.innerHTML = medCache.map(m => {
+    const meta = [MED_KIND[m.kind] || m.kind, m.kind === "stem" ? `${MED_ROLE[m.role] || m.role} · ${m.set || "default"}` : "",
+      fmtSec(m.duration), m.path?.startsWith("r2:") ? "R2" : m.path ? "Firebase" : "외부 주소"].filter(Boolean).join(" · ");
+    return `<div class="vid-row">
+      <div class="t" style="flex:1;">
+        <strong>${esc(m.title || "(제목 없음)")}</strong>
+        <small>${esc(meta)} <span class="badge ${m.published ? "pub" : ""}">${m.published ? "공개" : "비공개"}</span></small>
+      </div>
+      <button class="btn small" data-med="${esc(m.id)}">편집</button>
+    </div>`;
+  }).join("");
+  listEl.querySelectorAll("[data-med]").forEach(btn => btn.addEventListener("click", () => openMed(btn.getAttribute("data-med"))));
+}
+
+function syncMedKind() {
+  const stem = $("m-kind").value === "stem";
+  document.querySelectorAll(".m-stem-only").forEach(el => el.classList.toggle("hidden", !stem));
+  document.querySelectorAll(".m-guided-only").forEach(el => el.classList.toggle("hidden", stem));
+}
+
+function readMedForm() {
+  const kind = $("m-kind").value;
+  const data = {
+    kind,
+    title: $("m-title").value.trim(),
+    titleEn: $("m-title-en").value.trim(),
+    description: kind === "guided" ? $("m-desc").value.trim() : "",
+    url: $("m-url").value.trim(),
+    path: $("m-path").value.trim(),
+    role: kind === "stem" ? $("m-role").value : "",
+    set: kind === "stem" ? ($("m-set").value.trim() || "default") : "",
+    duration: Math.max(0, Math.round(Number($("m-duration").value) || 0)),
+    published: $("m-published").checked
+  };
+  const order = $("m-order").value.trim();
+  if (order !== "") data.order = Number(order);
+  return data;
+}
+
+function openMed(id) {
+  const m = id ? medCache.find(x => x.id === id) : null;
+  editingMedId = id;
+  medSavedPath = m?.path || "";
+  medSessionUploads = [];
+  $("med-edit-title").textContent = m ? "명상 콘텐츠 편집" : "명상 콘텐츠 추가";
+  $("btn-med-delete").classList.toggle("hidden", !m);
+  $("m-kind").value = m?.kind || "guided";
+  $("m-role").value = m?.role || "pad";
+  $("m-set").value = m?.set || "";
+  $("m-title").value = m?.title || "";
+  $("m-title-en").value = m?.titleEn || "";
+  $("m-desc").value = m?.description || "";
+  $("m-url").value = m?.url || "";
+  $("m-path").value = m?.path || "";
+  $("m-duration").value = m?.duration || "";
+  $("m-order").value = m?.order ?? "";
+  $("m-published").checked = m ? !!m.published : false;
+  $("m-preview").src = m?.url || "";
+  $("m-upload-status").textContent = "";
+  syncMedKind();
+  setStatus("med-edit-status", "");
+  show("view-med");
+  window.scrollTo(0, 0);
+}
+
+function detectDuration(src) {
+  const a = new Audio();
+  a.preload = "metadata";
+  a.addEventListener("loadedmetadata", () => {
+    if (isFinite(a.duration)) $("m-duration").value = Math.round(a.duration);
+  }, { once: true });
+  a.src = src;
+}
+
+$("btn-new-med").addEventListener("click", () => openMed(null));
+$("m-kind").addEventListener("change", syncMedKind);
+$("btn-med-upload").addEventListener("click", () => $("m-file").click());
+
+$("m-file").addEventListener("change", async e => {
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file) return;
+  const st = $("m-upload-status");
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  if (!AUDIO_TYPES[ext]) { st.textContent = "mp3 · wav · opus · ogg · m4a · aac 파일만 올릴 수 있습니다."; return; }
+  if (file.size > 50 * 1024 * 1024) { st.textContent = `파일이 50MB를 초과합니다 (${Math.round(file.size / 1024 / 1024)}MB).`; return; }
+  const slug = slugify(file.name.replace(/\.[^.]+$/, "")) || slugify($("m-title-en").value) || "audio";
+  try {
+    st.textContent = `업로드 중… (${await storageLabel()})`;
+    const { url, path } = await uploadAudioFile(`meditate/${slug}-${Date.now().toString(36)}.${ext}`, file, AUDIO_TYPES[ext]);
+    medSessionUploads.push(path);
+    $("m-url").value = url;
+    $("m-path").value = path;
+    $("m-preview").src = url;
+    if (!$("m-title").value.trim()) $("m-title").value = file.name.replace(/\.[^.]+$/, "");
+    const local = URL.createObjectURL(file);
+    detectDuration(local);
+    st.textContent = `업로드 완료 (${Math.round(file.size / 1024)}KB · ${await storageLabel()}) — [저장]을 눌러야 반영됩니다.`;
+  } catch (err) {
+    st.textContent = "";
+    setStatus("med-edit-status", "업로드 실패: " + err.message + rulesHint(err), "err");
+  }
+});
+
+$("m-url").addEventListener("change", () => {
+  const url = $("m-url").value.trim();
+  $("m-path").value = audioPathFromUrl(url);
+  $("m-preview").src = url;
+  if (url) detectDuration(url);
+});
+
+async function cleanupMedUploads(keep) {
+  for (const p of medSessionUploads) {
+    if (p === keep) continue;
+    try { await deleteAudioFile(p); } catch (err) { console.warn("업로드 정리 실패:", p, err); }
+  }
+  medSessionUploads = [];
+}
+
+$("btn-med-cancel").addEventListener("click", async () => {
+  if (medSessionUploads.length && !confirm("저장하지 않은 업로드 파일은 삭제됩니다. 목록으로 돌아갈까요?")) return;
+  await cleanupMedUploads(medSavedPath);
+  $("m-preview").pause();
+  showHome();
+});
+
+$("btn-med-save").addEventListener("click", async () => {
+  const btn = $("btn-med-save");
+  const data = readMedForm();
+  if (!data.title) return setStatus("med-edit-status", "제목(한국어)은 필수입니다.", "err");
+  if (!/^https:\/\//.test(data.url)) return setStatus("med-edit-status", "음원 파일을 업로드하거나 https:// 주소를 입력하세요.", "err");
+  btn.disabled = true;
+  setStatus("med-edit-status", "저장 중…");
+  try {
+    const now = new Date().toISOString();
+    const prev = editingMedId ? medCache.find(x => x.id === editingMedId) : null;
+    const payload = { ...data, createdAt: prev?.createdAt || now, updatedAt: now };
+    if (editingMedId) await setDoc(doc(db, "meditate", editingMedId), payload);
+    else editingMedId = (await addDoc(collection(db, "meditate"), payload)).id;
+    // 파일을 바꿨으면 이전 파일과 이번에 올렸다가 안 쓰게 된 파일 정리
+    if (medSavedPath && medSavedPath !== data.path) {
+      try { await deleteAudioFile(medSavedPath); } catch (err) { console.warn("이전 파일 삭제 실패:", err); }
+    }
+    await cleanupMedUploads(data.path);
+    medSavedPath = data.path;
+    $("med-edit-title").textContent = "명상 콘텐츠 편집";
+    $("btn-med-delete").classList.remove("hidden");
+    await refreshMeditate();
+    setStatus("med-edit-status", data.published ? "저장 완료. 명상 페이지에 공개되었습니다." : "저장 완료 (비공개).", "ok");
+  } catch (e) {
+    setStatus("med-edit-status", "저장 실패: " + e.message + rulesHint(e), "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("btn-med-delete").addEventListener("click", async () => {
+  if (!editingMedId) return;
+  if (!confirm("이 콘텐츠와 음원 파일을 삭제할까요? 되돌릴 수 없습니다.")) return;
+  try {
+    await deleteDoc(doc(db, "meditate", editingMedId));
+    await cleanupMedUploads(null);
+    if (medSavedPath) await deleteAudioFile(medSavedPath).catch(err => console.warn(err));
+    editingMedId = null;
+    $("m-preview").pause();
+    showHome();
+    await refreshMeditate();
+    setStatus("med-list-status", "삭제 완료.", "ok");
+  } catch (e) {
+    setStatus("med-edit-status", "삭제 실패: " + e.message, "err");
+  }
+});
+
 // ---------- 커버 이미지 업로드 ----------
 $("btn-upload-cover").addEventListener("click", e => {
   e.preventDefault();
@@ -1366,6 +1692,7 @@ function slugify(s) {
     .normalize("NFKD")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 80) // R2 경로 길이 제한 안쪽으로
     .replace(/^-+|-+$/g, "");
 }
 
