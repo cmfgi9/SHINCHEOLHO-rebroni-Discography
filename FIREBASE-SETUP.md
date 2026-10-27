@@ -291,8 +291,13 @@ R2 버킷 공개 설정·별도 도메인·CORS 설정이 필요 없습니다.
 - **R2 대시보드에서 직접 업로드** (대량 업로드 시): 버킷에 `tracks/파일명.mp3`(또는 `meditate/…`) 경로로 올린 뒤,
   admin의 트랙 음원 주소 칸에 `https://music.rebroni.com/media/tracks/파일명.mp3`를 붙여넣고 [저장].
   파일명은 영문·숫자·`-`·`_`·`.`만 사용하세요.
-- **기존 Firebase 음원 옮기기** (3집 등): admin → 앨범 편집 → 트랙 목록 아래 **[Firebase 음원 → Cloudflare R2로 옮기기]**
-  → 완료 후 **[저장]** → 이때 Firebase Storage의 기존 파일이 삭제됩니다. (Firebase Storage의 `cors.json`이 적용되어 있어야 함)
+- **기존 Firebase 음원 복사** (3집 등): admin → 앨범 편집 → 트랙 목록 아래 **[Firebase 음원 → Cloudflare R2로 복사]**
+  → 완료 후 **[저장]** → 사이트(`audioUrl`)는 R2 주소로 바뀌고, **Firebase Storage의 기존 파일은 그대로 남습니다.**
+  (Firebase Storage의 `cors.json`이 적용되어 있어야 함)
+  - interstellar.rebroni.com 등 Firebase 음원 주소를 직접 쓰는 서비스가 계속 동작하도록 일부러 남깁니다.
+    Firebase 음원을 R2 주소로 바꾸는 경우(복사 버튼·주소 붙여넣기·새 파일 업로드 모두)는 Firebase 파일을 자동 삭제하지 않습니다.
+  - 이후 admin에서 그 곡을 삭제·교체해도 R2 파일만 정리되며, 남겨 둔 Firebase 파일은 필요 없어지면 Firebase Console → Storage에서 직접 지웁니다.
+  - `/api/tracks`로 곡 목록을 받는 서비스는 복사·저장 후 자동으로 R2 주소를 받게 됩니다(`/media/`는 CORS `*`).
 - R2를 연결하지 않으면 지금처럼 Firebase Storage에 저장됩니다(자동 전환).
 
 ### 참고

@@ -108,6 +108,15 @@ function audioPathFromUrl(url) {
   return m ? "r2:" + m[1] : "";
 }
 
+// 교체된 기존 음원을 [저장] 후 삭제 대상으로. 단, Firebase 음원을 R2로 바꾸는 경우(이전)는
+// Firebase 파일을 남긴다 — interstellar.rebroni.com 등 다른 서비스가 Firebase 주소를 직접 쓸 수 있음
+function retireAudioPath(oldPath, newPath) {
+  if (!oldPath || oldPath === newPath) return false;
+  if (!oldPath.startsWith("r2:") && String(newPath).startsWith("r2:")) return false;
+  replacedAudioPaths.add(oldPath);
+  return true;
+}
+
 async function storageLabel() {
   return (await r2Enabled()) ? "Cloudflare R2" : "Firebase Storage";
 }
@@ -273,7 +282,7 @@ $("btn-migrate-r2").addEventListener("click", async e => {
   e.preventDefault();
   const rows = firebaseAudioRows();
   if (!rows.length) return;
-  if (!confirm(`${rows.length}곡의 음원을 Firebase Storage에서 Cloudflare R2로 옮깁니다.\n끝난 뒤 [저장]을 누르면 Firebase의 기존 파일은 삭제됩니다. 진행할까요?`)) return;
+  if (!confirm(`${rows.length}곡의 음원을 Cloudflare R2로 복사하고 사이트의 음원 주소를 R2로 바꿉니다.\nFirebase Storage의 기존 파일은 삭제하지 않고 그대로 둡니다. 진행할까요?`)) return;
   const btn = $("btn-migrate-r2");
   btn.disabled = true;
   let done = 0, failed = 0;
@@ -290,7 +299,6 @@ $("btn-migrate-r2").addEventListener("click", async e => {
       const name = oldPath.split("/").pop();
       const ext = (name.split(".").pop() || "").toLowerCase();
       const { url, path } = await r2Request("PUT", `tracks/${name}`, blob, AUDIO_TYPES[ext] || blob.type);
-      replacedAudioPaths.add(oldPath);
       urlEl.value = url;
       pathEl.value = path;
       st.textContent = "R2로 이전 완료";
@@ -301,7 +309,7 @@ $("btn-migrate-r2").addEventListener("click", async e => {
     }
   }
   setStatus("edit-status",
-    `${done}곡 이전 완료${failed ? ` · 실패 ${failed}곡` : ""}. [저장]을 눌러야 반영되고, 그때 Firebase의 기존 파일이 삭제됩니다.`,
+    `${done}곡 R2 복사 완료${failed ? ` · 실패 ${failed}곡` : ""}. [저장]을 눌러야 사이트 주소가 R2로 바뀝니다 (Firebase 파일은 그대로 유지).`,
     failed ? "err" : "ok");
   btn.disabled = false;
   updateMigrateBtn();
@@ -447,7 +455,7 @@ function addTrackRow(t = {}) {
       audioStatus.textContent = `업로드 중… (${await storageLabel()})`;
       const { url, path } = await uploadAudioFile(`tracks/${slug}.${ext}`, file, AUDIO_TYPES[ext]);
       const oldPath = audioPathEl.value.trim();
-      if (oldPath && oldPath !== path) replacedAudioPaths.add(oldPath);
+      retireAudioPath(oldPath, path);
       audioUrlEl.value = url;
       audioPathEl.value = path;
       syncAudioButtons();
@@ -464,10 +472,10 @@ function addTrackRow(t = {}) {
     const url = audioUrlEl.value.trim();
     const newPath = audioPathFromUrl(url);
     const oldPath = audioPathEl.value.trim();
-    if (oldPath && oldPath !== newPath) replacedAudioPaths.add(oldPath);
+    const retired = retireAudioPath(oldPath, newPath);
     audioPathEl.value = newPath;
     syncAudioButtons();
-    audioStatus.textContent = oldPath && oldPath !== newPath
+    audioStatus.textContent = retired
       ? "주소 변경됨 — [저장]하면 기존 음원 파일은 삭제됩니다."
       : "주소 변경됨 — [저장]을 눌러야 반영됩니다.";
   });
