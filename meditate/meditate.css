@@ -112,10 +112,20 @@ h1 .en-sub, .card-head .en-sub, .field .en-sub, .check .en-sub, .field-label .en
   padding: 16px; padding-bottom: calc(32px + env(safe-area-inset-bottom));
   max-width: 1080px; margin: 0 auto;
 }
+/* 모바일: 열 묶음을 풀고 카드 순서를 지정 (세션 → 음악 → 믹서 → 호흡 → 프리셋 → 설정 → 안내) */
+.col { display: contents; }
+.hero { order: 1; }
+.card[aria-label="음악"] { order: 2; }
+.card[aria-label="자연의 소리 믹서"] { order: 3; }
+.card[aria-label="호흡 가이드"] { order: 4; }
+.card[aria-label="프리셋"] { order: 5; }
+.card[aria-label="알림과 설정"] { order: 6; }
+.notes { order: 7; }
 @media (min-width: 900px) {
+  /* PC: 왼쪽(세션·프리셋)과 오른쪽(음악·믹서·호흡·설정)이 서로의 높이와 상관없이 쌓임 → 가운데 빈 공간 없음.
+     플레이어 카드는 화면보다 길어 고정(sticky)하면 아래 카드와 겹친다 → 고정하지 않음 */
   .mlayout { grid-template-columns: 420px 1fr; align-items: start; }
-  /* 플레이어 카드는 화면보다 길어 고정(sticky)하면 아래 카드와 겹친다 → 고정하지 않음 */
-  .hero { grid-row: span 3; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
   .notes { grid-column: 1 / -1; }
 }
 
