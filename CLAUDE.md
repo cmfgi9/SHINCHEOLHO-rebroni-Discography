@@ -67,6 +67,9 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 - **시간 이벤트(벨·페이드·호흡 신호음)는 `ctx.currentTime` 기준으로 예약**한다 — 화면이 꺼져 JS 타이머가 느려져도 정확.
   일시정지는 `ctx.suspend()`라 세션 시계도 함께 멈춘다. 반복 예약은 `engine.tickers`(3초 앞서 예약)에 등록.
 - 자연의 소리·벨·생성형 음악은 **파일 없이 합성**(외부 요청 없음). 새 소리를 추가할 때도 가능하면 합성으로.
+- **휴대폰 연산 부담 주의**: 실시간 합성이 오디오 처리 시간을 넘기면 휴대폰에서 볼륨에 비례한 지직거림이 난다.
+  잔향(ConvolverNode) 길이가 연산량을 좌우하므로 짧게 유지하고, 음마다 필터·패너를 만들지 말고 공유한다.
+  터치 화면 기기는 `engine.lite`(가벼운 모드: 잔향 2초, 패드 음당 오실레이터 1개). 새 소리·효과는 lite 모드에서도 가볍게.
 - 백그라운드 재생은 **Android Chrome 기준**(무음 `<audio>` 반복으로 미디어 세션 유지). iOS 전용 대응은 넣지 않고 제약으로 안내.
 - 콘텐츠: 앨범 음원은 `loadAlbums()`의 `audioUrl`(비발매 제외), 가이드 명상·스템은 Firestore `meditate`(`published == true`로 조회).
 - 설정 localStorage `rebroni-meditate-settings`, 내 프리셋 `rebroni-meditate-presets`. 공유 링크는 `#src=…&n=rain:60,…`.
