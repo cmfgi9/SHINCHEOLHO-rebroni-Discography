@@ -45,6 +45,8 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
   `vendor/mediabunny.min.mjs`로 MP4 길이 헤더 보정/재다중화. 2K/4K는 `VideoEncoder` 지원 여부를 확인.
 - 설정은 localStorage `rebroni-visualizer-settings`.
 - PWA: `sw.js`가 앱 셸을 캐시. **`viz.js`/`viz.css`를 고치면 `index.html`의 `?v=`, `sw.js`의 `SHELL` 목록 `?v=`, `VERSION`을 모두 올린다.**
+  캐시 저장소(Cache Storage)는 사이트 전체가 공유하므로, 서비스 워커는 **자기 접두어 캐시만 지운다**
+  (Visualizer `viz-…`, Meditate `meditate-…`). 다른 페이지 캐시를 지우는 `k !== VERSION` 같은 조건을 쓰지 말 것.
 
 ### Lofi Visualizer (`lofi/`)
 - 비모듈 IIFE 스크립트(`lofi.js`). 스타일은 `../visualizer/viz.css`를 공유하고 `lofi.css`로 덧붙임.
@@ -57,7 +59,7 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
   미리 합친 캐시를 프레임마다 돌려 쓰고, 글자 블록(그림자 포함)도 캐시한다. 새 효과를 넣을 때 전체 화면 패스를 늘리지 말 것.
 - 배경 영상은 `CanvasSink.canvases()`로 순서대로 읽고 끝나면 다시 처음부터(반복). 디코딩 불가 코덱이면 첫 장면을 정지 배경으로 사용.
 - 글꼴(Nanum Pen Script, IBM Plex Mono)은 `lofi/fonts/`에 **자체 호스팅**(OFL) — 외부 글꼴 서비스로 요청을 보내지 않기 위함.
-- 설정은 localStorage `rebroni-lofi-settings`. 캐시 버스팅: `lofi/index.html`의 `lofi.js?v=`, `lofi.css?v=`, `fonts/fonts.css?v=`.
+- 설정은 localStorage `rebroni-lofi-settings`, 곡별 가사는 `rebroni-lofi-lyrics`(키: `파일이름|크기`, 최대 200곡). 캐시 버스팅: `lofi/index.html`의 `lofi.js?v=`, `lofi.css?v=`, `fonts/fonts.css?v=`.
 
 ### Meditate (`meditate/`)
 - ES 모듈 3개: `audio-engine.js`(AudioContext·버스·자연의 소리/벨/신호음 합성·페이드), `music.js`(GenerativeMusic·StemMusic·AlbumPlayer·VoicePlayer),

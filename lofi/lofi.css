@@ -40,3 +40,20 @@
 }
 
 #render-btn, #thumb-btn { width: 100%; }
+
+.sub-opts { display: grid; gap: 8px; }
+
+/* 가사 */
+.lyrics-box { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.lyrics-box summary { cursor: pointer; font-weight: 600; }
+.lyrics-box[open] summary { margin-bottom: 4px; }
+.lyrics-box select { width: 100%; }
+.lyrics-box textarea { font-size: 13px; }
+label.btn.off { opacity: .4; pointer-events: none; }
+.sync-box { display: grid; gap: 6px; padding: 10px; border-radius: 10px; background: var(--panel-2); }
+.sync-box p { margin: 0; }
+.sync-prev { color: var(--muted); font-size: 13px; min-height: 1.2em; }
+.sync-line { font-size: 17px; font-weight: 600; min-height: 1.4em; }
+#sync-tap { width: 100%; }
+.sub-opts[hidden], .sync-box[hidden] { display: none; }
+.sync-line { white-space: pre-line; }

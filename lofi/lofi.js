@@ -16,7 +16,8 @@
 
   // ---------- 설정 (localStorage) ----------
   const DEFAULTS = {
-    target: 0, shuffleRepeat: false, gap: 2, edgeFade: 1.5,
+    lengthMode: "time", target: 0, wholeSets: false, repeatCount: 3, shuffleRepeat: false, gap: 2, edgeFade: 1.5,
+    showLyrics: true, lyricsPos: "bottom", lyricsSize: "md",
     dim: 0.2, tint: "warm", vizStyle: "bars", sens: 1, accent: "#ffd6a5",
     title: "", artist: "SHINCHEOLHO-rebroni", font: "mono", showTitle: true, showNow: true,
     grain: 0.35, vignette: 0.5, rain: false, dust: true, snow: false, scanlines: false, breathe: true,
@@ -43,9 +44,12 @@
   let trackSeq = 0;
 
   function addTracks(files) {
-    const list = Array.from(files).filter((f) => f.type.startsWith("audio/") || /\.(wav|flac|mp3|m4a|aac|ogg|opus)$/i.test(f.name));
+    const all = Array.from(files);
+    const list = all.filter((f) => f.type.startsWith("audio/") || /\.(wav|flac|mp3|m4a|aac|ogg|opus)$/i.test(f.name));
+    const lyricFiles = all.filter((f) => /\.(lrc|srt|vtt|txt)$/i.test(f.name));
     for (const file of list) {
-      const t = { id: ++trackSeq, file, url: URL.createObjectURL(file), title: baseName(file.name), dur: 0 };
+      const t = { id: ++trackSeq, file, url: URL.createObjectURL(file), title: baseName(file.name), dur: 0, lyrics: null };
+      setLyrics(t, lyricStore[lyricKey(file)] || "", false);
       const probe = new Audio();
       probe.preload = "metadata";
       probe.onloadedmetadata = () => { t.dur = probe.duration || 0; probe.removeAttribute("src"); refreshList(); };
@@ -54,6 +58,11 @@
       tracks.push(t);
     }
     if (current < 0 && tracks.length) selectTrack(0, false);
+    // 음원과 같은 이름의 .lrc/.txt를 함께 고르면 그 곡의 가사로 넣음
+    lyricFiles.forEach(async (f) => {
+      const t = tracks.find((x) => baseName(x.file.name).toLowerCase() === baseName(f.name).toLowerCase());
+      if (t) { setLyrics(t, await f.text()); refreshList(); }
+    });
     refreshList();
     loadFonts();
   }
@@ -81,14 +90,14 @@
       const li = document.createElement("li");
       if (i === current) li.className = "on";
       li.innerHTML = `<span class="no">${i + 1}</span><input class="title" type="text" maxlength="100" aria-label="곡 제목">
-        <span class="meta">${t.dur ? fmtTime(t.dur) : "…"}</span>
+        <span class="meta">${t.lyrics ? "📝 " : ""}${t.dur ? fmtTime(t.dur) : "…"}</span>
         <button class="del" data-act="play" aria-label="재생">▶</button>
         <button class="del" data-act="up" aria-label="위로" ${i === 0 ? "disabled" : ""}>↑</button>
         <button class="del" data-act="down" aria-label="아래로" ${i === tracks.length - 1 ? "disabled" : ""}>↓</button>
         <button class="del" data-act="del" aria-label="삭제">✕</button>`;
       const input = li.querySelector("input.title");
       input.value = t.title;
-      input.addEventListener("input", () => { t.title = input.value; updateChapters(); if (i === current) $("#now-title").textContent = t.title; });
+      input.addEventListener("input", () => { t.title = input.value; updateChapters(); if (i === current) $("#now-title").textContent = t.title; const o = [...$("#lyrics-track").options].find((x) => +x.value === t.id); if (o) o.text = `${i + 1}. ${t.title}${t.lyrics ? " 📝" : ""}`; });
       input.addEventListener("change", () => loadFonts());
       li.addEventListener("click", (e) => {
         const act = e.target.closest("button")?.dataset.act;
@@ -111,10 +120,14 @@
   }
 
   // 영상 타임라인: [{ ti(곡 index), start, dur }]. durOf로 곡 길이를 바꿔 끼울 수 있음(렌더링 시 실제 디코딩 길이)
+  //  - 시간 기준: 목표 길이를 넘는 첫 곡에서 마침 (세트 단위면 그 바퀴를 끝까지)
+  //  - 반복 횟수 기준: 곡 목록 전체를 정확히 N바퀴
   function buildTimeline(durOf = (i) => tracks[i].dur) {
     const segs = [];
     const n = tracks.length;
     if (!n) return { segs, total: 0, loops: 0 };
+    const byCount = cfg.lengthMode === "count";
+    const target = byCount ? 0 : cfg.target, cutMid = target && !cfg.wholeSets;
     let cursor = 0, loops = 0;
     while (true) {
       const order = loops > 0 && cfg.shuffleRepeat ? seededOrder(n, loops) : [...Array(n).keys()];
@@ -122,12 +135,18 @@
         const d = durOf(ti) || 0;
         segs.push({ ti, start: cursor, dur: d });
         cursor += d + cfg.gap;
-        if (cfg.target && cursor - cfg.gap >= cfg.target) break;
+        if (cutMid && cursor - cfg.gap >= target) break;
       }
       loops++;
       const total = cursor - cfg.gap;
-      if (!cfg.target || total >= cfg.target || segs.length > 3000) return { segs, total: Math.max(0, total), loops };
+      const done = byCount ? loops >= Math.max(1, cfg.repeatCount) : !target || total >= target;
+      if (done || segs.length > 3000) return { segs, total: Math.max(0, total), loops };
     }
+  }
+  // "3바퀴 + 2곡" 처럼 몇 번 반복되는지 설명
+  function loopText(tl) {
+    const n = tracks.length, full = Math.floor(tl.segs.length / n), rem = tl.segs.length % n;
+    return (full ? `${full}바퀴` : "") + (full && rem ? " + " : "") + (rem ? `${rem}곡` : "");
   }
 
   function chapterText(tl) {
@@ -154,10 +173,185 @@
     const one = tracks.reduce((a, t) => a + (t.dur || 0), 0) + Math.max(0, tracks.length - 1) * cfg.gap;
     const tl = buildTimeline();
     $("#list-info").textContent = has
-      ? `${tracks.length}곡 · 한 바퀴 ${fmtTime(one)} · 최종 영상 ${fmtTime(tl.total)}` + (tl.loops > 1 ? ` (${tl.loops}바퀴 반복)` : "")
+      ? `${tracks.length}곡 · 한 바퀴 ${fmtTime(one)} · 최종 영상 ${fmtTime(tl.total)} (${loopText(tl)} · ${tl.segs.length}곡 재생)`
       : "";
+    renderLyricsEditor();
     updateChapters();
     updateEstimate();
+  }
+
+  // ---------- 가사 ----------
+  // LRC([mm:ss.xx] 가사)면 그 시각에 맞춰, 시간 표시가 없으면 곡 길이에 고르게 나눠 한 줄씩 보여 줌.
+  // 같은 시각의 여러 줄(예: 한국어 + 영어)은 함께 표시. 가사는 이 기기에만 저장(파일 이름·크기로 구분)
+  const LYRIC_KEY = "rebroni-lofi-lyrics";
+  const lyricStore = (() => { try { return JSON.parse(localStorage.getItem(LYRIC_KEY) || "{}"); } catch (e) { return {}; } })();
+  const lyricKey = (f) => f.name + "|" + f.size;
+  function saveLyricStore() {
+    const keys = Object.keys(lyricStore);
+    keys.slice(0, Math.max(0, keys.length - 200)).forEach((k) => delete lyricStore[k]);
+    try { localStorage.setItem(LYRIC_KEY, JSON.stringify(lyricStore)); } catch (e) { /* ignore */ }
+  }
+  const LRC_TAG = /\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]/g;
+  const LRC_INFO = /^\s*\[[a-z]+:[^\]]*\]\s*$/i; // [ar:..] [ti:..] 같은 정보 줄
+  // 자막 파일(SRT·VTT): "00:01:02,500 --> 00:01:05,000" 시간 줄 다음에 오는 글자가 한 장면
+  const CUE_TIME = /(\d{1,2}:)?(\d{1,2}):(\d{2})[,.](\d{1,3})\s*-->\s*(\d{1,2}:)?(\d{1,2}):(\d{2})[,.](\d{1,3})/;
+  const cueSec = (h, m, s, ms) => (h ? parseInt(h, 10) : 0) * 3600 + +m * 60 + +s + +ms.padEnd(3, "0") / 1000;
+  const HANGUL = /[\uac00-\ud7a3]/;
+  function parseCues(raw) {
+    const cues = [];
+    for (const block of raw.replace(/\r/g, "").split(/\n\s*\n/)) {
+      const ls = block.split("\n"), i = ls.findIndex((l) => CUE_TIME.test(l));
+      if (i < 0) continue;
+      const m = ls[i].match(CUE_TIME);
+      // 서식 태그(<i>, {\an8} 등)는 지움
+      const text = ls.slice(i + 1).map((l) => l.replace(/<[^>]+>/g, "").replace(/\{\\[^}]*\}/g, "").trim()).filter(Boolean);
+      cues.push({ start: cueSec(m[1], m[2], m[3], m[4]), end: cueSec(m[5], m[6], m[7], m[8]), lines: cueLines(text) });
+    }
+    return cues.sort((a, b) => a.start - b.start);
+  }
+  // 한 장면의 여러 줄: 한글 줄과 아닌 줄이 섞여 있으면 원문 + 번역 두 줄, 아니면 한 문장이 나뉜 것으로 보고 이어 붙임
+  function cueLines(text) {
+    const ko = text.filter((l) => HANGUL.test(l)), other = text.filter((l) => !HANGUL.test(l));
+    if (ko.length && other.length) return HANGUL.test(text[0]) ? [ko.join(" "), other.join(" ")] : [other.join(" "), ko.join(" ")];
+    return text.length ? [text.join(" ")] : [];
+  }
+  function parseLyrics(raw) {
+    if (CUE_TIME.test(raw)) {
+      const groups = [];
+      parseCues(raw).forEach((c, i, all) => {
+        groups.push({ t: c.start, lines: c.lines });
+        // 다음 장면까지 비는 시간에는 가사를 숨김 (자막의 끝 시각)
+        if (!all[i + 1] || all[i + 1].start > c.end + 0.05) groups.push({ t: c.end, lines: [] });
+      });
+      return groups.length ? { synced: true, groups } : null;
+    }
+    const synced = [], plain = [];
+    let offset = 0;
+    for (const line of raw.replace(/\r/g, "").split("\n")) {
+      const off = line.match(/^\s*\[offset:\s*([+-]?\d+)\s*\]/i);
+      if (off) { offset = +off[1] / 1000; continue; }
+      if (LRC_INFO.test(line)) continue;
+      const times = [];
+      for (const m of line.matchAll(LRC_TAG)) times.push(+m[1] * 60 + parseFloat(m[2].replace(":", ".")));
+      const text = line.replace(LRC_TAG, "").trim();
+      if (times.length) times.forEach((t) => synced.push({ t: Math.max(0, t - offset), text }));
+      else if (text) plain.push(text);
+    }
+    if (!synced.length) return plain.length ? { synced: false, lines: plain } : null;
+    synced.sort((a, b) => a.t - b.t);
+    const groups = [];
+    for (const { t, text } of synced) {
+      const g = groups[groups.length - 1];
+      if (g && t - g.t < 0.05) { if (text) g.lines.push(text); }
+      else groups.push({ t, lines: text ? [text] : [] }); // 빈 줄 = 가사 숨김(간주)
+    }
+    return { synced: true, groups };
+  }
+  // 곡 안의 위치(pos)에 보일 가사 { lines, alpha } 또는 null
+  function lyricAt(ly, pos, dur) {
+    if (!ly || !dur || pos < 0 || pos >= dur) return null;
+    let start, end, lines;
+    if (ly.synced) {
+      const gs = ly.groups;
+      let i = -1;
+      while (i + 1 < gs.length && gs[i + 1].t <= pos) i++;
+      if (i < 0 || !gs[i].lines.length) return null;
+      start = gs[i].t; end = Math.min(i + 1 < gs.length ? gs[i + 1].t : dur, start + 15, dur); lines = gs[i].lines;
+    } else {
+      const a = dur * 0.06, step = (dur * 0.88) / ly.lines.length, i = Math.floor((pos - a) / step);
+      if (i < 0 || i >= ly.lines.length) return null;
+      start = a + i * step; end = start + step; lines = [ly.lines[i]];
+    }
+    const F = 0.4, alpha = Math.max(0, Math.min(1, (pos - start) / F, (end - pos) / F));
+    return alpha > 0 ? { lines, alpha } : null;
+  }
+  function setLyrics(t, raw, persist = true) {
+    t.lyricsRaw = raw;
+    t.lyrics = raw.trim() ? parseLyrics(raw) : null;
+    if (!persist) return;
+    if (raw.trim()) lyricStore[lyricKey(t.file)] = raw; else delete lyricStore[lyricKey(t.file)];
+    saveLyricStore();
+  }
+
+  // 가사 편집기 (플레이리스트 탭)
+  let lyricSel = 0, syncState = null;
+  const selTrack = () => tracks.find((x) => x.id === lyricSel) || tracks[0] || null;
+  function lyricsInfo(t) {
+    const ly = t && t.lyrics;
+    if (!ly) return "가사 없음 · 가사를 붙여넣거나 LRC·SRT 파일을 불러오세요.";
+    return ly.synced
+      ? `⏱ 시간 맞춤 가사 · ${ly.groups.filter((g) => g.lines.length).length}줄`
+      : `시간 표시 없음 · ${ly.lines.length}줄 — 곡 길이에 고르게 나눠 보여요. 정확히 맞추려면 [싱크 맞추기]를 눌러 주세요.`;
+  }
+  function renderLyricsEditor() {
+    const sel = $("#lyrics-track"), ta = $("#lyrics-text");
+    const t = selTrack();
+    lyricSel = t ? t.id : 0;
+    sel.innerHTML = "";
+    tracks.forEach((x, i) => sel.add(new Option(`${i + 1}. ${x.title}${x.lyrics ? " 📝" : ""}`, x.id, false, x.id === lyricSel)));
+    sel.disabled = ta.disabled = !t || !!syncState;
+    if (document.activeElement !== ta) ta.value = t ? t.lyricsRaw || "" : "";
+    $("#lyrics-info").textContent = t ? lyricsInfo(t) : "";
+    const n = tracks.filter((x) => x.lyrics).length;
+    $("#lyrics-count").textContent = n ? `${n}곡` : "";
+    const off = !t || !!syncState;
+    $("#lyrics-sync").disabled = $("#lyrics-clear").disabled = off;
+    $("#lyrics-load").classList.toggle("off", off);
+  }
+
+  // 싱크 맞추기: 곡을 처음부터 재생하며, 각 줄이 시작될 때 [이 줄 시작]을 눌러 시각을 찍음 → LRC로 저장
+  const lrcTime = (s) => `[${String(Math.floor(s / 60)).padStart(2, "0")}:${(s % 60).toFixed(2).padStart(5, "0")}]`;
+  // 한 항목에 줄바꿈이 있으면(자막의 원문 + 번역) 같은 시각의 두 줄로 저장됨
+  function plainLines(raw) {
+    if (CUE_TIME.test(raw)) return parseCues(raw).filter((c) => c.lines.length).map((c) => c.lines.join("\n"));
+    return raw.replace(/\r/g, "").split("\n").filter((l) => !LRC_INFO.test(l)).map((l) => l.replace(LRC_TAG, "").trim()).filter(Boolean);
+  }
+  function startSync() {
+    const t = selTrack();
+    if (!t || rendering) return;
+    const lines = plainLines(t.lyricsRaw || "");
+    if (!lines.length) { alert("먼저 가사를 입력해 주세요. 한 줄에 한 소절씩 적으면 됩니다."); return; }
+    selectTrack(tracks.indexOf(t), false);
+    syncState = { t, lines, marks: [], next: 0 };
+    audio.currentTime = 0;
+    play();
+    $("#sync-box").hidden = false;
+    renderLyricsEditor(); showSync();
+  }
+  function showSync() {
+    const s = syncState;
+    if (!s) return;
+    $("#sync-prev").textContent = s.next > 0 ? s.lines[s.next - 1] : "";
+    $("#sync-line").textContent = s.next < s.lines.length ? s.lines[s.next] : "모든 줄을 맞췄어요 ✓";
+    $("#sync-count").textContent = `${s.next} / ${s.lines.length}`;
+  }
+  function syncTap(blank) {
+    const s = syncState;
+    if (!s || (!blank && s.next >= s.lines.length)) return;
+    s.marks.push({ t: audio.currentTime, text: blank ? "" : s.lines[s.next++] });
+    showSync();
+  }
+  function syncUndo() {
+    const s = syncState;
+    if (!s || !s.marks.length) return;
+    const m = s.marks.pop();
+    if (m.text) s.next--;
+    audio.currentTime = Math.max(0, m.t - 3);
+    showSync();
+  }
+  function stopSync() {
+    const s = syncState;
+    if (!s) return;
+    syncState = null;
+    audio.pause();
+    $("#sync-box").hidden = true;
+    if (s.marks.length) {
+      const rest = s.lines.slice(s.next); // 아직 못 찍은 줄은 시간 없이 남겨 둠 (표시되지 않음)
+      const raw = s.marks.map((m) => (m.text ? m.text.split("\n").map((l) => lrcTime(m.t) + l).join("\n") : lrcTime(m.t))).concat(rest).join("\n");
+      setLyrics(s.t, raw);
+      if (rest.length) alert(`${rest.length}줄은 시간을 찍지 않아 영상에 표시되지 않아요. 다시 [싱크 맞추기]를 하거나 직접 [mm:ss.xx]를 적어 주세요.`);
+    }
+    refreshList();
   }
 
   // ---------- 배경 ----------
@@ -272,7 +466,7 @@
   // 화면에 쓰일 글자의 글꼴 조각(한글은 글자 범위별로 나뉨)을 미리 불러옴. 오프라인 렌더 첫 프레임부터 맞는 글꼴로 그리기 위함
   async function loadFonts(extra = "") {
     const f = FONTS[cfg.font] || FONTS.mono;
-    const textAll = [cfg.title, cfg.artist, "♪ NOW PLAYING 0123456789:/ …", extra, ...tracks.map((t) => t.title)].join(" ");
+    const textAll = [cfg.title, cfg.artist, "♪ NOW PLAYING 0123456789:/ …", extra, ...tracks.map((t) => t.title + " " + (t.lyricsRaw || "").replace(LRC_TAG, ""))].join(" ");
     try {
       await Promise.all([400, 600].map((w) => document.fonts.load(`${w} 40px ${f.family}`, textAll)));
     } catch (e) { /* 글꼴을 못 불러오면 대체 글꼴로 그림 */ }
@@ -536,10 +730,43 @@
       ctx.drawImage(b.c, x - b.pad, y - b.pad);
     }
 
+    // 가사 줄 배치: 첫 줄(원문)은 크게, 같은 시각의 다음 줄(번역 등)은 작게. 너비를 넘으면 단어 단위로 줄바꿈
+    function lyricLayout(lines, key, maxW, K) {
+      if (cache.lyric && cache.lyric.key === key) return cache.lyric;
+      const f = FONTS[cfg.font] || FONTS.mono, base = { sm: 34, md: 44, lg: 58 }[cfg.lyricsSize] * K;
+      const rows = [];
+      lines.forEach((ln, li) => {
+        const size = li ? base * 0.7 : base, weight = li ? 400 : 600;
+        ctx.font = `${weight} ${Math.round(size * f.scale)}px ${f.family}`;
+        let cur = "";
+        for (const w of ln.split(/\s+/)) {
+          const s = cur ? cur + " " + w : w;
+          if (cur && ctx.measureText(s).width > maxW) { rows.push({ s: cur, size, weight, li }); cur = w; } else cur = s;
+        }
+        if (cur) rows.push({ s: cur, size, weight, li });
+      });
+      let y = 0;
+      rows.slice(0, 6).forEach((r) => { r.y = y + r.size; y += r.size * 1.4; });
+      return (cache.lyric = { key, rows: rows.slice(0, 6), h: y });
+    }
+
     function drawText(st, W, H, K) {
       ctx.save();
       ctx.textBaseline = "alphabetic";
       const L = 80 * K, fontKey = [W, cfg.font, document.fonts.size, document.fonts.status].join("|");
+      if (cfg.showLyrics && st.lyric) {
+        // LP 턴테이블은 오른쪽을 차지하므로 가사를 왼쪽으로 조금 옮김
+        const vinyl = cfg.vizStyle === "vinyl", cx = vinyl ? W * 0.42 : W * 0.5, maxW = vinyl ? W * 0.56 : W * 0.78;
+        const key = [fontKey, cfg.lyricsSize, cfg.lyricsPos, vinyl, st.lyric.lines.join("\n")].join("|");
+        const lay = lyricLayout(st.lyric.lines, key, maxW, K);
+        const y0 = cfg.lyricsPos === "center" ? H * 0.5 - lay.h / 2 : H * 0.745 - lay.h;
+        ctx.globalAlpha = st.lyric.alpha;
+        textBlock("lyric", key, cx - maxW / 2, y0, maxW, lay.h + 10 * K, (g) => {
+          g.textAlign = "center";
+          lay.rows.forEach((r) => text(r.s, cx, y0 + r.y, r.size, r.li ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.96)", r.weight, maxW, g));
+        });
+        ctx.globalAlpha = 1;
+      }
       if (cfg.showTitle && (cfg.title || cfg.artist)) {
         textBlock("title", [fontKey, cfg.title, cfg.artist].join("|"), L, 60 * K, W * 0.62, 130 * K, (g) => {
           if (cfg.title) text(cfg.title, L, 120 * K, 50 * K, "rgba(255,255,255,0.94)", 600, W * 0.6, g);
@@ -564,7 +791,7 @@
       ctx.restore();
     }
 
-    // st: { t, frame, bands, bgFrame(영상 배경의 현재 프레임), track, pos, dur }
+    // st: { t, frame, bands, bgFrame(영상 배경의 현재 프레임), track, pos, dur, lyric({ lines, alpha } | null) }
     function draw(st) {
       const W = canvas.width, H = canvas.height, K = W / 1920;
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.shadowBlur = 0;
@@ -610,6 +837,7 @@
   }
   function selectTrack(i, autoplay) {
     if (i < 0 || i >= tracks.length) return;
+    if (syncState && tracks[i] !== syncState.t) stopSync();
     clearTimeout(gapTimer);
     current = i;
     audio.src = tracks[i].url;
@@ -625,6 +853,7 @@
     $("#cur").textContent = fmtTime(audio.currentTime); $("#dur").textContent = fmtTime(audio.duration);
   });
   audio.addEventListener("ended", () => {
+    if (syncState) { stopSync(); return; }
     if (!tracks.length) return;
     gapTimer = setTimeout(() => selectTrack((current + 1) % tracks.length, true), cfg.gap * 1000);
   });
@@ -647,6 +876,7 @@
         t: playing ? t : now / 1000, frame: previewFrame++, bands: previewBands,
         bgFrame: bg.kind === "video" && bgVideo.readyState >= 2 ? bgVideo : null,
         track: current >= 0 ? tracks[current].title : "Lofi Visualizer", pos: audio.currentTime || 0, dur: audio.duration || (current >= 0 ? tracks[current].dur : 0),
+        lyric: current >= 0 ? lyricAt(tracks[current].lyrics, audio.currentTime || 0, audio.duration || tracks[current].dur) : null,
       });
     }
     requestAnimationFrame(previewLoop);
@@ -686,6 +916,7 @@
 
   async function startRender() {
     if (renderJob || !tracks.length) return;
+    if (syncState) stopSync();
     const est = buildTimeline();
     // 파일 저장 창은 클릭 직후(await 전)에 열어야 브라우저가 허용함
     let fileHandle = null;
@@ -827,7 +1058,7 @@
           const bytes = analyzer.analyze(inTrack ? ch0 : null, ch1, Math.floor(local * SR));
           updateBands(bytes, SR, bands, 1 / fps);
           if (bgAt) lastBg = (await bgAt(tt)) || lastBg;
-          scene.draw({ t: tt, frame, bands, bgFrame: lastBg, track: t.title, pos: Math.max(0, Math.min(local, dur)), dur });
+          scene.draw({ t: tt, frame, bands, bgFrame: lastBg, track: t.title, pos: Math.max(0, Math.min(local, dur)), dur, lyric: inTrack ? lyricAt(t.lyrics, local, dur) : null });
           await vSource.add(tt, 1 / fps);
 
           const now = performance.now();
@@ -912,7 +1143,8 @@
     const fake = new Float32Array(N_BANDS).map((_, i) => 0.25 + 0.45 * Math.abs(Math.sin(i * 0.45)) * (1 - i / N_BANDS * 0.5));
     sc.draw({ t: 12, frame: 1, bands: previewBands.some((v) => v > 0.05) ? previewBands : fake,
       bgFrame: bg.kind === "video" && bgVideo.readyState >= 2 ? bgVideo : null,
-      track: current >= 0 ? tracks[current].title : "", pos: audio.currentTime || 0, dur: current >= 0 ? tracks[current].dur : 0 });
+      track: current >= 0 ? tracks[current].title : "", pos: audio.currentTime || 0, dur: current >= 0 ? tracks[current].dur : 0,
+      lyric: current >= 0 ? lyricAt(tracks[current].lyrics, audio.currentTime || 0, tracks[current].dur) : null });
     c.toBlob((blob) => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -948,19 +1180,51 @@
     setTimeout(() => { $("#copy-chapters").textContent = "챕터 복사"; }, 1500);
   });
 
-  const SEGS = [["target", "target", Number], ["tint", "tint"], ["viz-style", "vizStyle"], ["font", "font"], ["res", "res", Number], ["fps", "fps", Number], ["quality", "quality"]];
+  // 가사 편집기
+  $("#lyrics-track").addEventListener("change", (e) => { lyricSel = +e.target.value; renderLyricsEditor(); });
+  $("#lyrics-text").addEventListener("input", (e) => {
+    const t = selTrack(); if (!t) return;
+    const had = !!t.lyrics;
+    setLyrics(t, e.target.value);
+    $("#lyrics-info").textContent = lyricsInfo(t);
+    if (had !== !!t.lyrics) refreshList();
+  });
+  $("#lyrics-text").addEventListener("change", () => loadFonts());
+  $("#lyrics-file").addEventListener("change", async (e) => {
+    const t = selTrack(), f = e.target.files[0]; e.target.value = "";
+    if (!t || !f) return;
+    setLyrics(t, await f.text()); refreshList(); loadFonts();
+  });
+  $("#lyrics-clear").addEventListener("click", () => {
+    const t = selTrack();
+    if (!t || !t.lyricsRaw || !confirm(`"${t.title}" 가사를 지울까요?`)) return;
+    setLyrics(t, ""); refreshList();
+  });
+  $("#lyrics-sync").addEventListener("click", startSync);
+  // 누른 뒤 포커스를 풀어 둬야 Space 키가 버튼을 한 번 더 누르지 않음
+  $("#sync-tap").addEventListener("click", (e) => { e.currentTarget.blur(); syncTap(false); });
+  $("#sync-blank").addEventListener("click", (e) => { e.currentTarget.blur(); syncTap(true); });
+  $("#sync-undo").addEventListener("click", syncUndo);
+  $("#sync-stop").addEventListener("click", stopSync);
+  document.addEventListener("keydown", (e) => {
+    if (!syncState || e.repeat || e.target.matches("input[type=text], textarea")) return;
+    if (e.code === "Space" || e.key === "Enter") { e.preventDefault(); syncTap(false); }
+    else if (e.key === "Backspace") { e.preventDefault(); syncUndo(); }
+  });
+
+  const SEGS = [["length-mode", "lengthMode"], ["target", "target", Number], ["lyrics-pos", "lyricsPos"], ["lyrics-size", "lyricsSize"], ["tint", "tint"], ["viz-style", "vizStyle"], ["font", "font"], ["res", "res", Number], ["fps", "fps", Number], ["quality", "quality"]];
   SEGS.forEach(([id, key, parse = (v) => v]) => $$(`#${id} button`).forEach((b) => b.addEventListener("click", () => {
     if (rendering) return;
     cfg[key] = parse(b.dataset.v); syncUI(); save(); refreshList();
   })));
   const RANGES = [
-    ["gap", "gap", (v) => v + "초"], ["edge-fade", "edgeFade", (v) => (v ? v + "초" : "없음")],
+    ["repeat-count", "repeatCount", (v) => v + "회"], ["gap", "gap", (v) => v + "초"], ["edge-fade", "edgeFade", (v) => (v ? v + "초" : "없음")],
     ["dim", "dim", (v) => Math.round(v * 100) + "%"], ["sens", "sens", (v) => Math.round(v * 100) + "%"],
     ["grain", "grain", (v) => Math.round(v * 100) + "%"], ["vignette", "vignette", (v) => Math.round(v * 100) + "%"],
   ];
-  RANGES.forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => { cfg[key] = +e.target.value; syncUI(); save(); if (key === "gap") refreshList(); }));
-  const CHECKS = [["shuffle-repeat", "shuffleRepeat"], ["show-title", "showTitle"], ["show-now", "showNow"], ["rain", "rain"], ["dust", "dust"], ["snow", "snow"], ["scanlines", "scanlines"], ["breathe", "breathe"]];
-  CHECKS.forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); if (key === "shuffleRepeat") refreshList(); }));
+  RANGES.forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => { cfg[key] = +e.target.value; syncUI(); save(); if (key === "gap" || key === "repeatCount") refreshList(); }));
+  const CHECKS = [["shuffle-repeat", "shuffleRepeat"], ["whole-sets", "wholeSets"], ["show-lyrics", "showLyrics"], ["show-title", "showTitle"], ["show-now", "showNow"], ["rain", "rain"], ["dust", "dust"], ["snow", "snow"], ["scanlines", "scanlines"], ["breathe", "breathe"]];
+  CHECKS.forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); if (key === "shuffleRepeat" || key === "wholeSets") refreshList(); }));
   $("#accent").addEventListener("input", (e) => { cfg.accent = e.target.value; save(); });
   $("#title-text").addEventListener("input", (e) => { cfg.title = e.target.value; save(); });
   $("#artist-text").addEventListener("input", (e) => { cfg.artist = e.target.value; save(); });
@@ -972,6 +1236,8 @@
     RANGES.forEach(([id, key, fmt]) => { $("#" + id).value = cfg[key]; $("#" + id + "-out").textContent = fmt(cfg[key]); });
     CHECKS.forEach(([id, key]) => { $("#" + id).checked = cfg[key]; });
     $("#accent").value = cfg.accent; $("#title-text").value = cfg.title; $("#artist-text").value = cfg.artist;
+    $("#time-opts").hidden = cfg.lengthMode === "count";
+    $("#count-opts").hidden = cfg.lengthMode !== "count";
   }
 
   (function showEnv() {
