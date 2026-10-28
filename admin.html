@@ -401,6 +401,86 @@
       <div class="status" id="video-edit-status"></div>
     </section>
 
+    <!-- 3-5) 명상 콘텐츠 목록 (Meditate: 가이드 명상 · 스템) -->
+    <section class="card hidden" id="view-meditate">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h2 style="flex:1; margin:8px 0;">명상 콘텐츠 (Meditate)</h2>
+        <button class="btn primary" id="btn-new-med">+ 콘텐츠 추가</button>
+        <a class="btn" href="meditate/" target="_blank" style="text-decoration:none;">공개 페이지 보기</a>
+      </div>
+      <p class="muted">명상 페이지의 <b>가이드 명상</b>(음성 세션)과 <b>스템 재조합</b>용 소리 조각을 관리합니다.
+        스템은 역할(바탕·패드·멜로디·질감)별로 여러 개를 올리면 페이지가 무작위로 이어 붙입니다.
+        같은 키·분위기끼리 <b>세트</b> 이름을 같게 맞추면 잘 어울립니다. <span id="med-store"></span></p>
+      <div id="med-list"></div>
+      <div class="status" id="med-list-status"></div>
+    </section>
+
+    <!-- 3-6) 명상 콘텐츠 편집 -->
+    <section class="card hidden" id="view-med">
+      <h2 id="med-edit-title">콘텐츠 추가</h2>
+      <div class="grid3">
+        <div>
+          <label>종류 *</label>
+          <select id="m-kind">
+            <option value="guided">가이드 명상 (음성)</option>
+            <option value="stem">스템 (소리 조각)</option>
+          </select>
+        </div>
+        <div class="m-stem-only">
+          <label>역할 *</label>
+          <select id="m-role">
+            <option value="drone">바탕 (Drone) — 길게 반복</option>
+            <option value="pad">패드 (Pad) — 길게 반복</option>
+            <option value="melody">멜로디 (Melody) — 한 번 재생 후 쉼</option>
+            <option value="texture">질감 (Texture) — 가끔 반복</option>
+          </select>
+        </div>
+        <div class="m-stem-only">
+          <label>세트 이름 <span class="muted">(예: dharma-D)</span></label>
+          <input type="text" id="m-set" maxlength="40" placeholder="default">
+        </div>
+      </div>
+      <label>제목 (한국어) *</label>
+      <input type="text" id="m-title" maxlength="120">
+      <label>제목 (English)</label>
+      <input type="text" id="m-title-en" maxlength="120">
+      <div class="m-guided-only">
+        <label>설명 (선택)</label>
+        <textarea id="m-desc" maxlength="500" placeholder="예: 잠들기 전 10분, 몸의 긴장을 차례로 풀어 줍니다."></textarea>
+      </div>
+      <label>음원 파일 * <span class="muted">(mp3 · m4a · ogg · opus · wav, 최대 50MB — 스템은 끝과 시작이 자연스럽게 이어지는 루프 권장)</span></label>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <input type="file" id="m-file" class="hidden" accept=".mp3,.m4a,.aac,.ogg,.opus,.wav,audio/*">
+        <button class="btn small" id="btn-med-upload" type="button">파일 업로드</button>
+        <span class="muted" id="m-upload-status"></span>
+      </div>
+      <input type="url" id="m-url" placeholder="업로드하면 자동 입력 · R2에 직접 올린 파일은 주소를 붙여넣기">
+      <input type="hidden" id="m-path">
+      <audio id="m-preview" controls preload="none" style="width:100%; margin-top:8px;"></audio>
+      <div class="grid3">
+        <div>
+          <label>길이 (초) <span class="muted">(자동)</span></label>
+          <input type="number" id="m-duration" min="0" step="1">
+        </div>
+        <div>
+          <label>순서 <span class="muted">(작을수록 위)</span></label>
+          <input type="number" id="m-order" step="1" placeholder="999">
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text); margin:8px 0 0;">
+            <input type="checkbox" id="m-published" style="width:auto;"> 공개
+          </label>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="btn-med-save">저장</button>
+        <button class="btn" id="btn-med-cancel">목록으로</button>
+        <button class="btn danger hidden" id="btn-med-delete">삭제 (파일 포함)</button>
+      </div>
+      <div class="status" id="med-edit-status"></div>
+    </section>
+
     <!-- 3-2) 창작 노트 편집 -->
     <section class="card hidden" id="view-note">
       <h2 id="note-edit-title">새 노트</h2>
@@ -552,7 +632,9 @@
         <div id="tracks"></div>
         <div style="margin-top:12px;">
           <button class="btn small" id="btn-add-track">+ 트랙 추가</button>
+          <button class="btn small hidden" id="btn-migrate-r2" title="Firebase Storage에 있는 이 앨범의 음원을 Cloudflare R2로 복사하고 사이트 주소를 R2로 바꿉니다 (Firebase 파일은 유지)">Firebase 음원 → Cloudflare R2로 복사</button>
         </div>
+        <p class="muted" id="audio-store-note">음원 파일은 Cloudflare R2가 연결되어 있으면 R2에, 아니면 Firebase Storage에 저장됩니다.</p>
       </fieldset>
 
       <div class="actions">

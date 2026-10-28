@@ -234,6 +234,78 @@ admin에서 곡별 음원(mp3/wav/opus/m4a·aac) 업로드 → 공개 다운로�
 - **창작 노트에 영상 넣기**: 노트 편집기의 **▶ 유튜브** 버튼 → 주소 붙여넣기. 공개 Journal에서 눌러서 재생됩니다.
 - 앨범 수록곡의 YouTube 링크가 Shorts(`/shorts/…`) 주소여도 곡별 **Play** 버튼과 플레이리스트에서 재생됩니다.
 
+## 14. 명상 (Meditate)
+
+`/meditate/`(상단 메뉴 **Meditate**) — 자연의 소리 믹서, 생성형 앰비언트, 스템 재조합, 앨범 음원, 명상·슬립 타이머,
+가이드 명상, 호흡 가이드. 자연의 소리·벨·생성형 음악은 브라우저에서 합성하므로 **콘텐츠 없이도 바로 동작**합니다.
+가이드 명상과 스템은 admin에서 올린 콘텐츠가 있어야 나타납니다.
+
+1. Firebase Console → Firestore Database → 규칙 탭 → `firestore.rules` 최신본 **게시**
+   - 추가된 규칙: `meditate` 컬렉션 (관리자만 작성, 공개 항목만 누구나 읽기)
+2. Firebase Console → Storage → 규칙 탭 → `storage.rules` 최신본 **게시**
+   - 추가된 규칙: `meditate/` 경로 (R2를 연결하지 않았을 때 쓰는 대비용, 50MB 이하 오디오)
+3. git push로 배포
+
+### 사용법
+
+- **앨범 음원**: 트랙에 음원(`audioUrl`)이 있는 곡이 명상 페이지의 [앨범 음원]에 나타납니다(비발매 곡 제외).
+  음원이 있는 앨범에는 디스코그래피에 **🧘 Meditate** 버튼이 생기고 `meditate/?album=앨범ID`로 연결됩니다.
+- **명상 콘텐츠 추가**: admin → **명상 콘텐츠 (Meditate)** → **+ 콘텐츠 추가**
+  - **가이드 명상**: 음성 파일 업로드 → 제목(한/영)·설명 → 공개. 재생 중 배경음은 자동으로 작아지고, 음성이 끝나면 25초에 걸쳐 줄어들며 종료 벨.
+  - **스템**: 역할(바탕·패드·멜로디·질감)과 **세트 이름**을 지정. 바탕·패드·질감은 45~120초씩 반복하며 크로스페이드,
+    멜로디는 한 번 재생 후 8~33초 쉽니다. 같은 키·템포끼리 세트 이름을 맞추면 어울리게 섞입니다.
+    스템은 **끝과 시작이 자연스럽게 이어지는 루프**(30초~3분, 무음 꼬리 없이)로 만들어 올리면 좋습니다.
+  - 길이(초)는 파일에서 자동으로 채워집니다. 순서는 작을수록 위.
+- **공유 링크**: 명상 페이지의 [🔗 지금 믹스 공유 링크 복사] → `meditate/#src=gen&mood=calm&seed=…&n=rain:60,…` 형태.
+
+### 제약 (Android Chrome 기준으로 구현)
+
+- 화면을 끄거나 다른 앱을 써도 재생되며 잠금 화면에 재생 컨트롤이 표시됩니다(Media Session).
+- iPhone·iPad(Safari)는 화면 잠금·앱 전환 시 소리가 멈출 수 있고, 무음 스위치가 켜져 있으면 소리가 나지 않으며, 진동을 지원하지 않습니다 (구현하지 않음, 페이지에 안내 표시).
+- 오프라인: 페이지 셸이 캐시되므로 자연의 소리·생성형 음악·타이머·호흡 가이드는 오프라인에서도 동작합니다.
+  앨범 음원·가이드 명상·스템의 **오프라인 다운로드는 2단계**에서 추가 예정.
+
+## 15. 음원 저장소를 Cloudflare R2로 (비용 절감)
+
+R2는 **다운로드 트래픽 요금이 없는** Cloudflare의 파일 저장소입니다(무료 범위: 저장 10GB/월, 쓰기 100만 회·읽기 1,000만 회/월).
+명상 음원처럼 길게·반복해서 재생되는 파일을 Firebase Storage 대신 R2에 두면 트래픽 비용이 들지 않습니다.
+파일은 **사이트와 같은 주소** `https://music.rebroni.com/media/…`로 제공되므로(Pages Function `functions/media/[[path]].js`)
+R2 버킷 공개 설정·별도 도메인·CORS 설정이 필요 없습니다.
+
+### 운영자 설정 (최초 1회)
+
+1. Cloudflare 대시보드 → **R2 Object Storage** → (처음이면 R2 사용 신청 — 무료 범위라도 결제 수단 등록을 요구할 수 있음)
+   → **Create bucket** → 이름 예: `rebroni-media` (위치 Automatic) → 생성
+2. **Workers & Pages** → `shincheolho-rebroni-discography` → **Settings** → **Bindings**(또는 Functions → R2 bucket bindings)
+   → **Add** → **R2 bucket** → 변수 이름 **`MEDIA`**(정확히 이 이름), 버킷 `rebroni-media` 선택 → 저장
+   - Production 환경에 추가 (미리보기 배포에서도 쓰려면 Preview에도 추가)
+3. 바인딩은 **다음 배포부터** 적용됩니다 → Deployments에서 최신 배포 **Retry deployment** 또는 아무 커밋이나 push
+4. 확인: 브라우저에서 `https://music.rebroni.com/api/media` → `{"r2":true}` 이면 연결 완료
+   (admin의 명상 콘텐츠 목록에도 "현재 업로드 저장소: Cloudflare R2"로 표시)
+
+### 업로드 방법 (연결 후)
+
+- **admin에서 그대로 업로드** (권장): 트랙 음원·명상 콘텐츠 업로드가 **자동으로 R2에 저장**됩니다. 작업 방식은 지금과 같습니다.
+  - 업로드는 `/api/media`가 처리하며, admin에 로그인한 **관리자(admins 컬렉션)만** 가능합니다(Firebase 로그인 토큰을 Firestore로 확인).
+  - R2에 저장된 항목은 `audioPath`가 `r2:tracks/…` 형태로 기록되고, 삭제·교체 시 R2에서도 지워집니다.
+- **R2 대시보드에서 직접 업로드** (대량 업로드 시): 버킷에 `tracks/파일명.mp3`(또는 `meditate/…`) 경로로 올린 뒤,
+  admin의 트랙 음원 주소 칸에 `https://music.rebroni.com/media/tracks/파일명.mp3`를 붙여넣고 [저장].
+  파일명은 영문·숫자·`-`·`_`·`.`만 사용하세요.
+- **기존 Firebase 음원 복사** (3집 등): admin → 앨범 편집 → 트랙 목록 아래 **[Firebase 음원 → Cloudflare R2로 복사]**
+  → 완료 후 **[저장]** → 사이트(`audioUrl`)는 R2 주소로 바뀌고, **Firebase Storage의 기존 파일은 그대로 남습니다.**
+  (Firebase Storage의 `cors.json`이 적용되어 있어야 함)
+  - interstellar.rebroni.com 등 Firebase 음원 주소를 직접 쓰는 서비스가 계속 동작하도록 일부러 남깁니다.
+    Firebase 음원을 R2 주소로 바꾸는 경우(복사 버튼·주소 붙여넣기·새 파일 업로드 모두)는 Firebase 파일을 자동 삭제하지 않습니다.
+  - 이후 admin에서 그 곡을 삭제·교체해도 R2 파일만 정리되며, 남겨 둔 Firebase 파일은 필요 없어지면 Firebase Console → Storage에서 직접 지웁니다.
+  - `/api/tracks`로 곡 목록을 받는 서비스는 복사·저장 후 자동으로 R2 주소를 받게 됩니다(`/media/`는 CORS `*`).
+- R2를 연결하지 않으면 지금처럼 Firebase Storage에 저장됩니다(자동 전환).
+
+### 참고
+
+- `/media/…` 요청은 Pages Functions 요청 수에 포함됩니다(무료: 하루 10만 건, 곡 1회 재생에 보통 2~5건).
+  넘으면 Workers Paid($5/월)로 올리거나 R2 버킷에 사용자 지정 도메인을 연결하는 방식으로 바꿀 수 있습니다.
+- `/api/tracks`(외부 게임용)는 저장소와 상관없이 `audioUrl`을 그대로 돌려주며, `/media/…`도 CORS `*`로 열려 있어 그대로 재생됩니다.
+
 ## 이후 운영 방법 (새 앨범 발매 시)
 
 1. admin.html 접속 → **+ 새 앨범** → 폼 입력
@@ -259,6 +331,11 @@ Storage journal/ — 창작 노트 첨부 사진·음원
 videos (컬렉션) — 유튜브 영상
  └─ {유튜브 영상 ID} 문서: youtubeId, title, kind(album|unreleased|etc), albumId, track,
                          date(YYYY-MM-DD), description, isShort, published, createdAt, updatedAt
+meditate (컬렉션) — 명상 콘텐츠
+ └─ {autoId} 문서: kind(guided|stem), title, titleEn, description, url, path("r2:…" 또는 Storage 경로),
+                   role(drone|pad|melody|texture — 스템), set(스템 세트 이름), duration(초), order,
+                   published, createdAt, updatedAt
+Cloudflare R2 버킷(바인딩 MEDIA) tracks/ · meditate/ — 연결 시 음원 저장소 (/media/… 로 제공)
 
 향후 확장 (Phase2+): products, orders, users 컬렉션을 같은 층위에 추가
 ```

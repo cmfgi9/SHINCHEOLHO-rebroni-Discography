@@ -1,5 +1,5 @@
 // 앱 셸 캐시 — 파일 수정 배포 시 VERSION을 올려주세요
-const VERSION = "viz-v10";
+const VERSION = "viz-v11";
 const SHELL = ["./", "index.html", "viz.css?v=4", "viz.js?v=10", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -7,7 +7,8 @@ self.addEventListener("install", (e) => {
 });
 
 self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+  // 캐시 저장소는 사이트 전체가 함께 쓰므로 비주얼라이저 캐시(viz-…)만 지움 (명상 페이지의 meditate-… 캐시 보호)
+  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith("viz-") && k !== VERSION).map((k) => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
