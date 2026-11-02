@@ -359,6 +359,8 @@
   // 재생 위치(추출 중에는 추출 시작점 기준)로 장면을 정하므로 미리보기와 추출 결과가 같고,
   // 일시정지·되감기에도 어긋나지 않습니다.
   let lastSlot = -1;
+  // 추출 준비 중: 슬라이드 시계를 추출 시작점(0초)에 고정하고, 배경 영상은 소리와 함께 시작하도록 재생을 보류
+  let exPreparing = false, holdVideos = false;
   // 전환 시간: 설정값(0.5~4초)이되 장면 간격의 절반을 넘지 않음
   function transitionLength() {
     if (cfg.bgTransition === "cut") return 0;
@@ -366,7 +368,7 @@
   }
   function slideState() {
     const n = bgItems.length;
-    const t = Math.max(0, (audio.currentTime || 0) - (exporting ? exStart : 0));
+    const t = Math.max(0, (audio.currentTime || 0) - (exporting || exPreparing ? exStart : 0));
     const iv = Math.max(1, cfg.bgInterval);
     const fade = transitionLength();
     if (n < 2) {
@@ -408,6 +410,7 @@
         if (v.dataset.item !== String(cur && cur.id) && v.dataset.item !== String(next && next.id)) v.pause();
       });
     }
+    if (holdVideos) return;
     if (cur && cur.kind === "video") {
       const v = videoFor(cur, next);
       if (v.paused && v.readyState >= 2) v.play().catch(() => {});
@@ -417,6 +420,24 @@
       if (st.a > 0) { if (v.paused) v.play().catch(() => {}); }
       else if (!v.paused) { v.pause(); v.currentTime = 0; }
     }
+  }
+
+  // 추출 시작 전: 슬라이드쇼를 첫 장면으로 돌리고, 배경 영상을 처음으로 되감아 첫 프레임이 준비될 때까지 기다림
+  // (되감기가 끝나기 전에 녹화가 시작되면 이전 장면이나 빈 화면이 찍힘. 큰 영상은 휴대폰에서 되감기가 느림)
+  async function rewindBackground() {
+    exPreparing = true; holdVideos = true; lastSlot = -1;
+    syncSlideVideos(slideState()); // 첫 장면(과 바로 다음 장면)에 쓸 영상을 배정
+    const waits = bgVideos.filter((v) => v.getAttribute("src")).map((v) => new Promise((resolve) => {
+      v.pause();
+      const done = () => { clearTimeout(timer); v.removeEventListener("seeked", check); v.removeEventListener("loadeddata", check); resolve(); };
+      const check = () => { if (!v.seeking && v.readyState >= 2) done(); };
+      const timer = setTimeout(done, 4000);
+      v.addEventListener("seeked", check);
+      v.addEventListener("loadeddata", check);
+      v.currentTime = 0;
+      setTimeout(check, 50); // 이미 0초에 준비된 경우
+    }));
+    await Promise.all(waits);
   }
 
   function drawLayer(item, zoom) {
@@ -983,9 +1004,6 @@
     audio.pause();
     audio.currentTime = exStart;
     await new Promise((r) => { audio.addEventListener("seeked", r, { once: true }); setTimeout(r, 1500); });
-    // 배경 슬라이드쇼·영상을 처음 장면부터 다시 시작
-    bgVideos.forEach((v) => { v.pause(); v.currentTime = 0; });
-    lastSlot = -1;
 
     exW = cfg.res; exH = Math.round(exW * 16 / 9); exFps = cfg.fps;
     if (W !== exW) { setResolution(exW); particles.length = 0; }
@@ -994,12 +1012,23 @@
       setResolution(previewRes()); particles.length = 0;
       return;
     }
+    // 배경 슬라이드쇼·영상을 처음 장면부터 (2K/4K 시험 녹화가 영상을 움직인 뒤이므로 그 다음에)
+    $("#rec-overlay").hidden = false;
+    $("#rec-cancel").hidden = true;
+    $("#rec-text").textContent = "배경 준비 중…";
+    $("#rec-progress").style.width = "0%";
+    await rewindBackground();
+    $("#rec-cancel").hidden = false;
     const vStream = canvas.captureStream(exFps);
     const stream = new MediaStream([...vStream.getVideoTracks(), ...recDest.stream.getAudioTracks()]);
     const opts = { videoBitsPerSecond: videoBitrate(exW, exFps), audioBitsPerSecond: 256_000 };
     if (mime) opts.mimeType = mime;
     try { recorder = new MediaRecorder(stream, opts); }
-    catch (e) { delete opts.mimeType; recorder = new MediaRecorder(stream, opts); }
+    catch (e) {
+      delete opts.mimeType;
+      try { recorder = new MediaRecorder(stream, opts); }
+      catch (e2) { endExportState(); alert("녹화를 시작할 수 없습니다: " + e2.message); return; }
+    }
 
     chunks = []; cancelled = false;
     recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
@@ -1010,7 +1039,7 @@
       if (!cancelled) finalizeVideo(raw).then((r) => { if (r) showResult(r); });
     };
 
-    exporting = true;
+    exporting = true; exPreparing = false;
     document.body.classList.add("exporting");
     $("#rec-overlay").hidden = false;
     $("#export-btn").disabled = true;
@@ -1020,6 +1049,7 @@
     fadeGain.gain.cancelScheduledValues(actx.currentTime);
     fadeGain.gain.setValueAtTime(cfg.fadeIn > 0 ? 0 : 1, actx.currentTime);
     recorder.start(1000);
+    holdVideos = false; // 배경 영상은 다음 프레임부터 소리와 함께 재생
     try { await audio.play(); } catch (e) { cancelExport(); alert("재생을 시작할 수 없습니다: " + e.message); }
   }
 
@@ -1113,7 +1143,7 @@
   }
 
   function endExportState() {
-    exporting = false;
+    exporting = false; exPreparing = false; holdVideos = false;
     audio.pause();
     if (W !== previewRes()) { setResolution(previewRes()); particles.length = 0; }
     if (fadeGain) { fadeGain.gain.cancelScheduledValues(actx.currentTime); fadeGain.gain.setValueAtTime(1, actx.currentTime); }
