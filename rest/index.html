@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Rebroni Rest · 쉼터</title>
+  <meta name="description" content="Rebroni Universe의 쉼터 — 촛불의 방, 소원의 뜰, 나를 찾는 명상, 숲길 산책, 푸른 바다 수영. 설치 없이 브라우저에서 바로 쉬어 가는 온라인 공간">
+  <meta name="theme-color" content="#0b0d14">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <meta property="og:title" content="Rebroni Rest · 쉼터">
+  <meta property="og:description" content="잠시 쉬어 가는 온라인 공간 · Candles, wishes, meditation, a forest walk and an ocean swim by SHINCHEOLHO-rebroni">
+  <meta property="og:image" content="https://music.rebroni.com/album4-journey-serenity.jpg">
+  <meta property="og:url" content="https://music.rebroni.com/rest/">
+  <script>
+    try { document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "dark"); }
+    catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
+  </script>
+  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주세요 (rest.js 안의 scenes.js?v=, sound.js?v= 도 함께) -->
+  <link rel="stylesheet" href="rest.css?v=1">
+</head>
+
+<body>
+  <!-- ===== 쉼터 입구 ===== -->
+  <div id="hub" class="hub">
+    <header class="topbar">
+      <a href="../" class="back" aria-label="Discography로 돌아가기">←</a>
+      <h1>Rest <span class="en-sub">쉼터</span></h1>
+      <a href="../meditate/" class="textlink" title="자연의 소리 믹서 · 타이머 · 호흡 가이드">Meditate</a>
+      <button id="theme-btn" class="iconbtn" aria-label="테마 전환" title="테마 전환">🌿</button>
+    </header>
+
+    <main class="hub-main">
+      <section class="intro">
+        <p class="eyebrow">Rebroni Universe</p>
+        <h2>잠시 쉬어 가세요 <span class="en-sub">Take a little rest</span></h2>
+        <p class="lead">마음이 고단한 날, 들어와 촛불을 켜고, 소원을 띄우고, 천천히 숨을 고르고, 숲길을 걷고, 바닷속을 헤엄쳐 보세요.
+          <span class="en-sub">Light a candle, send a wish, breathe, walk through a forest, swim with the sea. No install, no sign-up.</span></p>
+      </section>
+
+      <nav class="rooms" aria-label="쉼터 공간">
+        <a class="room-card c-candle" href="#candle">
+          <span class="rc-icon" aria-hidden="true">🕯️</span>
+          <span class="rc-title">촛불의 방 <span class="en-sub">Candle Room</span></span>
+          <span class="rc-desc">초를 눌러 불을 켜고 끄며, 흔들리는 불빛 곁에서 쉬어 가는 방 <span class="en-sub">Light and blow out candles by a quiet window</span></span>
+        </a>
+        <a class="room-card c-wish" href="#wish">
+          <span class="rc-icon" aria-hidden="true">🏮</span>
+          <span class="rc-title">소원의 뜰 <span class="en-sub">Wishing Garden</span></span>
+          <span class="rc-desc">소원을 적어 풍등으로 띄우고, 두 손 모아 기도하고, 돌탑을 쌓는 작은 기도 공간 <span class="en-sub">Send a lantern, pray, stack a cairn</span></span>
+        </a>
+        <a class="room-card c-self" href="#self">
+          <span class="rc-icon" aria-hidden="true">🫧</span>
+          <span class="rc-title">나를 찾는 명상 <span class="en-sub">Finding Me</span></span>
+          <span class="rc-desc">빛과 함께 숨 쉬며 나에게 질문을 건네는 3·5·10분 안내 명상 <span class="en-sub">A guided 3–10 minute breathing meditation</span></span>
+        </a>
+        <a class="room-card c-walk" href="#walk">
+          <span class="rc-icon" aria-hidden="true">🌲</span>
+          <span class="rc-title">숲길 산책 <span class="en-sub">Forest Walk</span></span>
+          <span class="rc-desc">새소리·바람·시냇물을 들으며 걷는 숲길. 아침부터 밤까지 시간대를 고를 수 있어요 <span class="en-sub">Birdsong, wind and a stream — from dawn to night</span></span>
+        </a>
+        <a class="room-card c-ocean" href="#ocean">
+          <span class="rc-icon" aria-hidden="true">🐢</span>
+          <span class="rc-title">푸른 바다 <span class="en-sub">Ocean Swim</span></span>
+          <span class="rc-desc">맑은 바닷속에서 물고기 떼, 해파리, 바다거북, 고래와 함께 헤엄치기 <span class="en-sub">Swim with fish, jellyfish, turtles and whales</span></span>
+        </a>
+      </nav>
+
+      <section class="notes small">
+        <p>🎧 이어폰이나 헤드폰으로 들으면 더 좋아요. 모든 장면과 소리는 이용자의 브라우저 안에서 만들어지며, 적은 소원은 어디에도 전송되지 않습니다.
+          <span class="en-sub">Headphones recommended. All visuals and sounds are generated in your browser; your wishes are never sent anywhere.</span></p>
+        <p id="ios-note" hidden>iPhone·iPad에서는 무음 스위치가 켜져 있으면 소리가 나지 않을 수 있어요.
+          <span class="en-sub">On iPhone/iPad, turn off silent mode to hear sound.</span></p>
+        <p>더 긴 명상·수면 타이머와 자연의 소리 믹서는 <a href="../meditate/">Meditate</a>에서 이용할 수 있어요.
+          <span class="en-sub">For longer sessions, sleep timers and a sound mixer, visit Meditate.</span></p>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== 공간 (전체 화면 캔버스) ===== -->
+  <section id="room" class="room" hidden>
+    <canvas id="stage" aria-hidden="true"></canvas>
+
+    <header class="room-bar">
+      <a href="#" class="rb-btn rb-back" aria-label="쉼터로 돌아가기">← <span class="hide-xs">쉼터</span></a>
+      <h1 id="room-title" class="rb-title"></h1>
+      <button id="sound-btn" class="rb-btn" type="button" aria-label="소리">🔈 <span class="hide-xs">소리 켜기</span></button>
+      <input id="vol" class="rb-vol" type="range" min="0" max="1" step="0.01" aria-label="볼륨 · Volume">
+      <button id="fs-btn" class="rb-btn" type="button" aria-label="전체 화면" title="전체 화면 · Fullscreen" hidden>⛶</button>
+      <button id="bare-btn" class="rb-btn" type="button" aria-pressed="false" aria-label="화면만 보기" title="버튼 숨기고 화면만 보기 · Hide controls">👁</button>
+    </header>
+
+    <p id="room-msg" class="room-msg" aria-live="polite"></p>
+
+    <!-- 1. 촛불의 방 -->
+    <div class="panel" data-room="candle" hidden>
+      <div class="dock">
+        <p class="hint">초를 눌러 불을 켜고 꺼요 <span class="en-sub">Tap a candle to light it or blow it out</span></p>
+        <div class="row">
+          <span class="pill js-count" title="켜진 초 · Lit">0 / 7</span>
+          <button type="button" class="btn primary js-all-on">🕯️ 모두 켜기 <span class="en-sub">Light all</span></button>
+          <button type="button" class="btn ghost js-all-off">모두 끄기 <span class="en-sub">Blow out</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 소원의 뜰 -->
+    <div class="panel" data-room="wish" hidden>
+      <div class="dock">
+        <form class="wish-form js-form" autocomplete="off">
+          <input class="js-wish" type="text" maxlength="80" placeholder="소원을 적어 보세요 · Your wish" aria-label="소원 · Wish" enterkeyhint="send">
+          <button class="btn primary" type="submit">🏮 띄우기 <span class="en-sub">Release</span></button>
+        </form>
+        <div class="row">
+          <button type="button" class="btn js-pray">🙏 두 손 모으기 <span class="en-sub">Hold to pray</span></button>
+          <button type="button" class="btn ghost js-stone">🪨 돌 얹기 <span class="en-sub">Add a stone</span></button>
+          <label class="check"><input type="checkbox" class="js-keep"> 이 기기에 간직하기 <span class="en-sub">Keep on this device</span></label>
+        </div>
+        <details class="kept">
+          <summary>간직한 소원 <span class="js-kept-count"></span> <span class="en-sub">My wishes</span></summary>
+          <ul class="js-kept"></ul>
+          <button type="button" class="btn small ghost js-clear" hidden>모두 지우기 <span class="en-sub">Delete all</span></button>
+        </details>
+        <p class="fine">적은 소원은 서버로 전송되지 않아요. 간직하기를 켜면 이 기기(브라우저)에만 저장돼요. <span class="en-sub">Wishes are never sent anywhere.</span></p>
+      </div>
+    </div>
+
+    <!-- 3. 나를 찾는 명상 -->
+    <div class="panel" data-room="self" hidden>
+      <div class="self-breath js-breath" aria-live="polite"></div>
+      <p class="self-prompt js-prompt" aria-live="polite"></p>
+      <div class="dock">
+        <div class="only-idle">
+          <div class="row">
+            <div class="seg" role="group" aria-label="명상 시간 · Duration">
+              <button type="button" data-mins="3">3분</button>
+              <button type="button" data-mins="5">5분</button>
+              <button type="button" data-mins="10">10분</button>
+            </div>
+            <label class="field">배경 소리 <span class="en-sub">Sound</span>
+              <select class="js-amb">
+                <option value="none">고요 · Silence</option>
+                <option value="stream">시냇물 · Stream</option>
+                <option value="rain">빗소리 · Rain</option>
+                <option value="waves">파도 · Waves</option>
+                <option value="wind">바람 · Wind</option>
+                <option value="fire">모닥불 · Campfire</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" class="js-cues"> 호흡 신호음 <span class="en-sub">Breath cues</span></label>
+          </div>
+          <button type="button" class="btn primary wide js-start">시작하기 <span class="en-sub">Begin</span></button>
+        </div>
+        <div class="only-run row">
+          <span class="pill js-time">0:00</span>
+          <span class="muted small">들이쉬기 4 · 멈춤 2 · 내쉬기 6 <span class="en-sub">In 4 · Hold 2 · Out 6</span></span>
+          <button type="button" class="btn ghost js-stop">그만하기 <span class="en-sub">End</span></button>
+        </div>
+        <div class="only-done row">
+          <button type="button" class="btn primary js-again">다시 하기 <span class="en-sub">Again</span></button>
+          <a class="btn ghost" href="../meditate/">더 긴 명상 <span class="en-sub">Meditate →</span></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 숲길 산책 -->
+    <div class="panel" data-room="walk" hidden>
+      <div class="dock top">
+        <div class="seg" role="group" aria-label="시간대 · Time of day">
+          <button type="button" data-time="morning">🌅 아침</button>
+          <button type="button" data-time="day">☀️ 한낮</button>
+          <button type="button" data-time="sunset">🌇 노을</button>
+          <button type="button" data-time="night">🌙 밤</button>
+        </div>
+        <div class="row">
+          <div class="seg" role="group" aria-label="걸음 · Pace">
+            <button type="button" data-speed="stop">멈춤</button>
+            <button type="button" data-speed="slow">천천히</button>
+            <button type="button" data-speed="walk">걷기</button>
+          </div>
+          <label class="check"><input type="checkbox" class="js-feet"> 발소리 <span class="en-sub">Steps</span></label>
+          <span class="pill js-stat"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. 푸른 바다 -->
+    <div class="panel" data-room="ocean" hidden>
+      <div class="dock top">
+        <div class="row">
+          <span class="pill js-depth">수심</span>
+          <button type="button" class="btn small js-up" aria-label="위로 · Up">⬆ 위로</button>
+          <button type="button" class="btn small js-down" aria-label="아래로 · Down">⬇ 아래로</button>
+          <label class="check"><input type="checkbox" class="js-auto"> 자동 유영 <span class="en-sub">Auto drift</span></label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script type="module" src="rest.js?v=1"></script>
+</body>
+
+</html>

@@ -28,6 +28,7 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 | `/visualizer/` | **쇼츠 영상 제작 Visualizer** — 음원 + 9:16 배경(이미지/영상 슬라이드쇼) + 스펙트럼 → MP4 추출(1080p~4K). PWA | `visualizer/` |
 | `/lofi/` | **Lofi Visualizer** — 음원 플레이리스트 + 16:9 배경(이미지/반복 영상) + Lofi 효과 → 1~3시간 유튜브용 MP4 **오프라인 렌더링**, 유튜브 챕터 생성 | `lofi/` |
 | `/meditate/` | **Meditate(명상)** — 자연의 소리 믹서(브라우저 합성), 생성형 앰비언트·스템 재조합·앨범 음원, 명상/슬립 타이머·벨, 가이드 명상, 호흡 가이드, 야간 모드, 프리셋·공유 링크, 캘린더 알림. PWA | `meditate/` |
+| `/rest/` | **Rest(쉼터)** — 5개 공간: 촛불의 방·소원의 뜰(풍등·기도·돌탑)·나를 찾는 명상·숲길 산책·푸른 바다(수영). 전체 화면 캔버스 + 브라우저 합성 사운드, 주소 `#candle`·`#wish`·`#self`·`#walk`·`#ocean` | `rest/` |
 | `/mastering/` | **음원 Mastering** — 라우드니스(BS.1770/EBU R128)·트루피크 분석, 무드/레퍼런스 기반 자동 마스터링, A/B 비교, WAV·리포트 저장 | `mastering/` |
 | `/admin.html` | 관리자: 앨범·트랙·가사·음원·커버, 창작 노트 편집기, 영상 관리, 방명록·구독자 관리 | `admin.html`, `admin.js` |
 | `/api/tracks` | `audioUrl` 있는 곡 목록 JSON (CORS `*`, 외부 게임 등에서 사용) | `functions/api/tracks.js` |
@@ -80,6 +81,18 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 - 설정 localStorage `rebroni-meditate-settings`, 내 프리셋 `rebroni-meditate-presets`. 공유 링크는 `#src=…&n=rain:60,…`.
 - 캐시 버스팅: `index.html`의 `meditate.css?v=`·`meditate.js?v=`, 모듈 import의 `audio-engine.js?v=`·`music.js?v=`,
   **`sw.js`의 `SHELL` 목록과 `VERSION`도 함께** 올린다.
+
+### Rest 쉼터 (`rest/`)
+- ES 모듈 3개: `rest.js`(입구·해시 라우팅·소리 버튼·화면 꺼짐 방지·설정 저장), `scenes.js`(공간 5개의 캔버스 장면 클래스),
+  `sound.js`(`RestSound` — **`../meditate/audio-engine.js?v=3`의 `Engine`을 재사용**하고 바닷속·고래·발소리·성냥·입김·물방울·돌 소리만 덧붙임).
+  Meditate의 `audio-engine.js` 버전을 올리면 `sound.js`의 import도 함께 맞춘다.
+- 장면 공통 인터페이스: `enter/leave/resize/draw(g, t, dt)/down/move/up/key/mix()`. `mix()`는 `{ 소리id: 0..1 }` → `sound.setMix`.
+  좌표는 CSS px(DPR 변환은 `rest.js`). 정적인 배경 요소는 `hash()`로 위치를 정해 매 프레임 같은 모양으로 그린다(저장 없음).
+- 휴대폰 부담: `shadowBlur`/`filter` 대신 미리 만든 glow 스프라이트(`lighter` 합성). 소원의 뜰 배경(하늘·산·호수)은 크기 바뀔 때만 오프스크린에 그린다.
+- 아래쪽 조작판(`.dock`)에 가리지 않게 촛불·소원 장면은 `app.dockTop()` 기준으로 배치. 숲길·바다는 조작판이 위쪽(`.dock.top`).
+- 소원은 **서버로 보내지 않는다**. [이 기기에 간직하기]를 켤 때만 localStorage `rebroni-rest-wishes`(최대 50개). 설정은 `rebroni-rest-settings`.
+  소원을 공유(다른 사람에게 보이기)하는 기능을 넣으려면 Firestore 규칙·관리(신고/삭제)·개인정보 처리방침을 함께 설계해야 한다.
+- 서비스 워커 없음(PWA 아님). 캐시 버스팅: `index.html`의 `rest.css?v=`·`rest.js?v=`, `rest.js` 안의 `scenes.js?v=`·`sound.js?v=`.
 
 ### Mastering (`mastering/`)
 - `dsp.js`(순수 JS 신호처리, `window.RDSP`)를 메인 스레드와 `worker.js`(`importScripts("dsp.js?v=1")`)가 함께 사용.
