@@ -306,6 +306,43 @@ R2 버킷 공개 설정·별도 도메인·CORS 설정이 필요 없습니다.
   넘으면 Workers Paid($5/월)로 올리거나 R2 버킷에 사용자 지정 도메인을 연결하는 방식으로 바꿀 수 있습니다.
 - `/api/tracks`(외부 게임용)는 저장소와 상관없이 `audioUrl`을 그대로 돌려주며, `/media/…`도 CORS `*`로 열려 있어 그대로 재생됩니다.
 
+## 16. 온라인 법당 (Realtime Database + 익명 로그인)
+
+`/temple/`(상단 메뉴 **Temple**) — 여러 사람이 캐릭터로 법당을 함께 거니는 기능. 접속자 위치는 짧은 간격으로 오가므로
+Firestore가 아닌 **Realtime Database**를 씁니다. 아래 설정 전에는 페이지가 **혼자 모드**로 동작합니다(오류 없음).
+
+### 운영자 설정 (최초 1회 · git push만으로는 반영되지 않음)
+
+1. Firebase Console → **빌드 → Realtime Database → 데이터베이스 만들기**
+   - 위치: **싱가포르(asia-southeast1)** 권장 (한국에서 가장 가까움)
+   - 보안 규칙: **잠금 모드로 시작**
+2. 데이터 탭 맨 위의 주소를 확인합니다.
+   - `https://rebroni-music-web-default-rtdb.asia-southeast1.firebasedatabase.app` 이면 그대로 두면 됩니다.
+   - 다른 주소라면 `firebase-config.js`의 `firebaseConfig`에 `databaseURL: "그 주소"`를 추가하고 push.
+3. **규칙** 탭 → 저장소 루트의 `database.rules.json` 내용을 그대로 붙여넣고 **게시**
+4. **빌드 → Authentication → Sign-in method → 익명(Anonymous)** → 사용 설정 → 저장
+5. 확인: `https://music.rebroni.com/temple/` 입장 → 오른쪽 위가 **🪷 1명 함께**로 바뀌면 연결 성공
+   (계속 "혼자 모드"면 브라우저 콘솔의 `[temple]` 경고를 확인)
+
+### 저장되는 데이터 (`database.rules.json`이 형식을 강제)
+
+| 경로 | 내용 | 유지 |
+|---|---|---|
+| `temple/players/{uid}` | `n` 이름 번호(정해진 낱말 조합), `c` 캐릭터, `x,y,d` 위치·방향, `a` 동작, `s,sn` 인사말 번호, `e,en` 효과(절·범종·목탁), `t` 서버 시각 | 접속 중에만 (연결이 끊기면 자동 삭제) |
+| `temple/lanterns/{0~59}` | 연등 `u` 단 사람 uid, `c` 색, `t` 시각 | 24시간 (지나면 누구나 지우거나 덮어쓸 수 있음) |
+| `temple/stats/{YYYY-MM-DD}/bows` | 그날 모두가 올린 절 수 (1씩만 증가 가능) | 누적 |
+
+- 자유 입력이 없습니다. 닉네임·인사말은 번호만 저장하므로 욕설·광고 관리가 필요 없습니다.
+- 연등은 한 사람이 하루 3개까지(페이지에서 제한).
+- 개발 확인: `/temple/?net=local` — 서버 없이 **같은 브라우저의 탭끼리** 동기화(여러 탭을 열어 여러 명처럼 시험).
+
+### 한도와 비용 (Spark 무료 요금제)
+
+- **동시 접속 100명**, 다운로드 10GB/월, 저장 1GB. 동시 접속이 100명을 넘으면 새 접속이 대기하므로 Blaze(종량제)로 바꿔야 합니다.
+- 걷는 동안 초당 약 6회 위치를 보내고, 다른 사람 모두에게 전달됩니다. 접속자가 많아지면 다운로드량이 빠르게 늘어나니
+  Firebase Console → Realtime Database → **사용량** 탭을 가끔 확인하세요.
+- 익명 로그인 계정이 Authentication 목록에 쌓입니다(무료, 이용에 지장 없음).
+
 ## 이후 운영 방법 (새 앨범 발매 시)
 
 1. admin.html 접속 → **+ 새 앨범** → 폼 입력
