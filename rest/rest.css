@@ -123,6 +123,7 @@ a { color: var(--accent); }
 .c-walk::before { background: radial-gradient(circle at 78% 22%, rgba(255, 240, 200, .9), rgba(255, 220, 160, .3) 12%, transparent 30%), linear-gradient(180deg, #9cc4e6 0%, #f7dcc0 45%, #6a9a70 46%, #3d6e46 70%, #c8ae84 71%, #b89c74 82%, #2c4a30 83%); }
 .c-ocean::before { background: radial-gradient(ellipse at 30% 0%, rgba(220, 250, 255, .55), transparent 40%), linear-gradient(105deg, transparent 40%, rgba(210, 245, 255, .16) 45%, transparent 52%), linear-gradient(180deg, #5cc8e0, #1a70b0 55%, #0a3164); }
 
+.c-temple::before { background: radial-gradient(circle at 74% 34%, rgba(255, 220, 140, .85), rgba(240, 170, 80, .3) 14%, transparent 34%), linear-gradient(180deg, transparent 52%, rgba(46, 107, 82, .9) 52% 55%, transparent 55%), linear-gradient(180deg, #3f4651 0 52%, #d6ccb2 56%, #b8874f); }
 .c-walk::after, .c-ocean::after { background: linear-gradient(180deg, transparent 15%, rgba(0, 0, 0, .68)); }
 
 .notes { margin-top: 26px; padding: 16px 18px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }

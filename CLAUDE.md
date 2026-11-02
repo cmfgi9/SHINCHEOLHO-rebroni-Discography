@@ -29,6 +29,7 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 | `/lofi/` | **Lofi Visualizer** — 음원 플레이리스트 + 16:9 배경(이미지/반복 영상) + Lofi 효과 → 1~3시간 유튜브용 MP4 **오프라인 렌더링**, 유튜브 챕터 생성 | `lofi/` |
 | `/meditate/` | **Meditate(명상)** — 자연의 소리 믹서(브라우저 합성), 생성형 앰비언트·스템 재조합·앨범 음원, 명상/슬립 타이머·벨, 가이드 명상, 호흡 가이드, 야간 모드, 프리셋·공유 링크, 캘린더 알림. PWA | `meditate/` |
 | `/rest/` | **Rest(쉼터)** — 5개 공간: 촛불의 방·소원의 뜰(풍등·기도·돌탑)·나를 찾는 명상·숲길 산책·푸른 바다(수영). 전체 화면 캔버스 + 브라우저 합성 사운드, 주소 `#candle`·`#wish`·`#self`·`#walk`·`#ocean` | `rest/` |
+| `/temple/` | **온라인 법당** — 여러 사람이 기본 캐릭터로 절 마당·대웅전을 거닐며 합장·절(108배)·범종·목탁·좌복·연등 달기. 자유 채팅 없음(정해진 인사말만). 실시간 동기화는 Firebase **Realtime Database** + 익명 로그인 | `temple/`, `database.rules.json` |
 | `/mastering/` | **음원 Mastering** — 라우드니스(BS.1770/EBU R128)·트루피크 분석, 무드/레퍼런스 기반 자동 마스터링, A/B 비교, WAV·리포트 저장 | `mastering/` |
 | `/admin.html` | 관리자: 앨범·트랙·가사·음원·커버, 창작 노트 편집기, 영상 관리, 방명록·구독자 관리 | `admin.html`, `admin.js` |
 | `/api/tracks` | `audioUrl` 있는 곡 목록 JSON (CORS `*`, 외부 게임 등에서 사용) | `functions/api/tracks.js` |
@@ -94,6 +95,19 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
   소원을 공유(다른 사람에게 보이기)하는 기능을 넣으려면 Firestore 규칙·관리(신고/삭제)·개인정보 처리방침을 함께 설계해야 한다.
 - 서비스 워커 없음(PWA 아님). 캐시 버스팅: `index.html`의 `rest.css?v=`·`rest.js?v=`, `rest.js` 안의 `scenes.js?v=`·`sound.js?v=`.
 
+### 온라인 법당 (`temple/`)
+- ES 모듈: `temple.js`(입장·이동·동작·말풍선·소리·카메라), `world.js`(지도·충돌·캐릭터·건물 그리기, 2D 탑다운), `net.js`(`FirebaseNet`·`LocalNet`).
+  소리는 `../meditate/audio-engine.js?v=3`의 `Engine`(범종·목탁·싱잉볼·자연의 소리) 재사용.
+- **자유 입력을 받지 않는다**: 닉네임은 `NAME_A × NAME_B` 번호, 인사말은 `PHRASES` 번호만 전송. 문구를 늘리면 `database.rules.json`의 범위(`s` 0~7, `n` 0~255)도 함께.
+  캐릭터를 늘리면 `c` 범위, 동작·효과를 늘리면 `a`·`e` 허용 값도 함께 바꾼다.
+- 데이터: `temple/players/{uid}`(onDisconnect 삭제), `temple/lanterns/{slot}`(24시간), `temple/stats/{KST 날짜}/bows`(+1만 허용).
+  **`database.rules.json`은 push로 반영되지 않는다** — Firebase Console → Realtime Database → 규칙에서 게시. 절차는 `FIREBASE-SETUP.md` 16.
+- 연결 실패(데이터베이스 미생성·익명 로그인 꺼짐·네트워크) 시 9초 뒤 **혼자 모드**(`LocalNet`)로 계속 동작. `?net=local`은 같은 브라우저 탭끼리 동기화(개발 확인용).
+- Realtime Database 주소: `firebase-config.js`의 `databaseURL`이 있으면 그것, 없으면 `net.js`의 싱가포르 기본 주소.
+- 지도 크기·배치는 `world.js` 상단 상수. 연등 자리(`SLOTS`, 현재 60개)는 규칙의 슬롯 번호 두 자리(0~99) 안에서.
+- 설정 localStorage `rebroni-temple-profile`(캐릭터·이름·소리), 오늘 절 수 `rebroni-temple-bows`.
+- 캐시 버스팅: `index.html`의 `temple.css?v=`·`temple.js?v=`, `temple.js` 안의 `world.js?v=`·`net.js?v=`.
+
 ### Mastering (`mastering/`)
 - `dsp.js`(순수 JS 신호처리, `window.RDSP`)를 메인 스레드와 `worker.js`(`importScripts("dsp.js?v=1")`)가 함께 사용.
   무거운 분석·처리는 Worker에서 실행.
@@ -126,6 +140,7 @@ python -m http.server 8000
 | `guestbook/{id}` | 방명록 (비밀번호 해시로 셀프 soft delete) | 공개 / 누구나 작성 |
 | `subscribers/{email}` | 뉴스레터 구독자 (문서 ID = 이메일) | 관리자 / 누구나 등록·해지 |
 | `admins/{uid}` | 존재하면 관리자 (콘솔에서만 추가) | 본인 / 불가 |
+| RTDB `temple/…` | 온라인 법당 접속자·연등·절 수 (위 '온라인 법당' 참고, 규칙 `database.rules.json`) | 공개 / 익명 로그인 본인만 |
 | `meditate/{autoId}` | 명상 콘텐츠: `kind(guided\|stem), title, titleEn, description, url, path, role, set, duration, order, published, …` | `published`만 공개 / 관리자 |
 | Storage `tracks/`, `journal/`, `meditate/`, 커버 | 음원, 노트 첨부(사진·음원 스케치), 명상 콘텐츠(R2 미연결 시), 커버 이미지 | 공개 / 관리자 |
 | R2 `tracks/`, `meditate/` | R2 연결 시 음원 저장소. `audioPath`/`path`가 `r2:`로 시작 | 공개(`/media/`) / 관리자(`/api/media`) |
@@ -155,8 +170,8 @@ python -m http.server 8000
   - 모듈 import에도 `?v=`가 붙은 곳이 있음: `youtube.js?v=`, `journal-format.js?v=` — 고치면 import하는 파일들도 갱신
   - `visualizer/`·`meditate/`는 위 각 항목 참고 (sw.js 포함), `mastering/`은 `index.html`과 `worker.js`의 `dsp.js?v=`
   - 주의: `data-service.js`, `firebase-config.js`는 `?v=` 없이 import됨
-- **Firebase SDK 버전**은 Firebase를 쓰는 모든 파일(`data-service.js`, `community.js`, `admin.js`, `videos.js`, `journal.js`, `meditate/meditate.js`)에서 같은 값(`10.12.2`)을 유지한다.
-- **보안 규칙 변경은 git push만으로 반영되지 않는다.** `firestore.rules` / `storage.rules`를 고치면
+- **Firebase SDK 버전**은 Firebase를 쓰는 모든 파일(`data-service.js`, `community.js`, `admin.js`, `videos.js`, `journal.js`, `meditate/meditate.js`, `temple/net.js`)에서 같은 값(`10.12.2`)을 유지한다.
+- **보안 규칙 변경은 git push만으로 반영되지 않는다.** `firestore.rules` / `storage.rules` / `database.rules.json`을 고치면
   Firebase Console에서 직접 재게시해야 하고, `cors.json`은 `gsutil cors set`으로 적용해야 한다.
   변경 시 사용자에게 이 수동 단계를 반드시 안내하고, `FIREBASE-SETUP.md`에도 절차를 추가한다.
 - **개인정보 처리방침 동기화**: 개인정보를 새로 수집·저장하거나 외부 서비스(제3자/국외 이전)를 추가·변경하는 기능이면

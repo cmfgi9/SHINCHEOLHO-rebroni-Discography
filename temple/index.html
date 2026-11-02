@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>온라인 법당 · Rebroni Temple</title>
+  <meta name="description" content="Rebroni Universe의 온라인 법당 — 캐릭터로 절 마당과 대웅전을 거닐며 합장·절·108배, 범종·목탁, 연등 달기를 함께하는 공간. 설치·가입 없이 브라우저에서.">
+  <meta name="theme-color" content="#1b1f2a">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <meta property="og:title" content="온라인 법당 · Rebroni Temple">
+  <meta property="og:description" content="함께 거니는 온라인 법당 · Walk, bow and hang lanterns together in an online temple">
+  <meta property="og:image" content="https://music.rebroni.com/album4-journey-serenity.jpg">
+  <meta property="og:url" content="https://music.rebroni.com/temple/">
+  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주세요 (temple.js 안의 world.js?v=, net.js?v= 도 함께) -->
+  <link rel="stylesheet" href="temple.css?v=1">
+</head>
+
+<body>
+  <canvas id="stage" aria-label="법당 마당과 대웅전 지도"></canvas>
+
+  <header class="bar">
+    <a href="../rest/" class="b" aria-label="쉼터로 돌아가기">← <span class="hide-xs">쉼터</span></a>
+    <h1>온라인 법당 <span class="en-sub">Online Temple</span></h1>
+    <span id="status" class="pill" data-kind="idle" aria-live="polite"></span>
+    <button id="night-btn" class="b" type="button" aria-label="낮·밤 바꾸기 · Day/Night" title="낮·밤 바꾸기">🌙</button>
+    <button id="sound-btn" class="b" type="button" aria-label="소리">🔈</button>
+  </header>
+
+  <!-- 입장 -->
+  <div id="join" class="join">
+    <div class="join-card">
+      <p class="eyebrow">Rebroni Universe</p>
+      <h2>온라인 법당에 오신 것을 환영합니다 <span class="en-sub">Welcome to the online temple</span></h2>
+      <p class="lead">캐릭터를 고르고 들어가면, 지금 함께 있는 사람들과 마당을 거닐고 합장하고 절을 올릴 수 있어요.
+        <span class="en-sub">Pick a character and walk, bow and hang lanterns with others who are here now.</span></p>
+      <div id="char-list" class="chars" role="group" aria-label="캐릭터 선택 · Character"></div>
+      <div class="name-row">
+        <span class="muted">이름 <span class="en-sub">Name</span></span>
+        <strong id="my-name"></strong>
+        <button id="reroll" class="btn small ghost" type="button" aria-label="다른 이름 · Another name">🔄 다른 이름</button>
+      </div>
+      <button id="enter-btn" class="btn primary wide" type="button">🙏 입장하기 <span class="en-sub">Enter</span></button>
+      <p class="fine">가입 없이 이용해요. 이름은 정해진 낱말로만 만들어지고, 자유 채팅 없이 정해진 인사말만 주고받아요.
+        접속해 있는 동안 캐릭터·이름·위치가 다른 접속자에게 보이며, 나가면 지워져요. 자세한 내용은 <a href="../privacy.html">개인정보 처리방침</a>을 참고해 주세요.
+        <span class="en-sub">No sign-up. Names come from preset words and only preset greetings can be shared.</span></p>
+    </div>
+  </div>
+
+  <!-- 조작 -->
+  <div id="hud" class="hud" hidden>
+    <span id="bows" class="pill bows"></span>
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <div class="dock">
+      <div id="ctx" class="ctx-row"></div>
+      <div class="row">
+        <button id="hap-btn" class="btn" type="button" aria-pressed="false" title="합장 (H)">🙏 합장 <span class="en-sub">Palms</span></button>
+        <button id="bow-btn" class="btn" type="button" title="절하기 (B)">🙇 절하기 <span class="en-sub">Bow</span></button>
+        <button id="say-btn" class="btn" type="button" title="인사 (1~8)">💬 인사 <span class="en-sub">Greet</span></button>
+      </div>
+      <div id="say-pop" class="pop" hidden></div>
+      <div id="lantern-pop" class="pop lantern-pop" hidden></div>
+    </div>
+    <p class="keys-hint">이동: 방향키·WASD 또는 화면 누르기 · B 절 · H 합장 · E 가까운 것 · 1~8 인사</p>
+  </div>
+
+  <script type="module" src="temple.js?v=2"></script>
+</body>
+
+</html>
