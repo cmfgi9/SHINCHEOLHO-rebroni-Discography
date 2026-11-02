@@ -68,9 +68,12 @@ function updateAmbience(force) {
 
 // ---------- 상태 ----------
 const me = {
-  x: SPAWN.x + (Math.random() - 0.5) * 60, y: SPAWN.y, d: 3, a: "idle",
+  x: SPAWN.x, y: SPAWN.y, d: 3, a: "idle",
   s: -1, sn: 0, e: "", en: 0, phase: 0, bowAt: -9, sayAt: -9, sitOn: -1
 };
+// 입장 위치: 일주문 안쪽 넓은 곳에 흩어 놓아 여러 사람이 한자리에 겹치지 않게
+[me.x, me.y] = collide(SPAWN.x + (Math.random() - 0.5) * 300, SPAWN.y - 70 + Math.random() * 90);
+const labelOff = new Map(); // 이름표를 위로 비켜 놓은 거리 (부드럽게 움직이도록 기억)
 const remotes = new Map(); // uid → { p(data), rx, ry, phase, sn, en, sayAt, bowAt }
 let net = null, online = false, joined = false, ready = false;
 let night = (() => { const h = new Date().getHours(); return h >= 19 || h < 6; })();
@@ -547,39 +550,73 @@ function frame(now) {
   if (night) drawNight(g, view, t, lanternMap);
 
   // 이름·말풍선 (화면 좌표로 선명하게)
+  // 가까이 선 사람끼리 이름표가 겹치면 뒤쪽 사람의 이름표를 위로 비켜 쌓는다
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const label = (x, y, name, mine, sayIdx, sayAt, ci, hidden) => {
-    if (hidden) return;
-    const sx = (x - cam.x) * zoom, sy = (y - cam.y) * zoom - 52 * zoom * (CHARS[ci]?.s || 1) - 6;
+  const NAME_FONT = "600 12px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+  const SAY_FONT = "500 13px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+  const hiddenByRoof = (x, y) => (inHall(x, y) && fadeHall > 0.5) || (inBell(x, y) && fadeBell > 0.5 && !meInBell);
+  const tags = [];
+  const addTag = (id, x, y, name, mine, sayIdx, sayAt, ci) => {
+    const sx = (x - cam.x) * zoom, head = (y - cam.y) * zoom - 52 * zoom * (CHARS[ci]?.s || 1);
+    const sy = head - 6;
     if (sx < -100 || sx > W + 100 || sy < -60 || sy > H + 40) return;
-    g.font = "600 12px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-    g.textAlign = "center";
-    g.textBaseline = "middle";
-    const tw = g.measureText(name).width + 12;
-    g.fillStyle = mine ? "rgba(240,184,120,0.92)" : "rgba(20,22,30,0.55)";
-    pill(g, sx - tw / 2, sy - 9, tw, 18, 9);
-    g.fillStyle = mine ? "#1a1006" : "#f4f1ea";
-    g.fillText(name, sx, sy + 0.5);
-    if (sayIdx >= 0 && t - sayAt < SAY_SECS) {
-      const a = Math.min(1, (SAY_SECS - (t - sayAt)) / 0.6);
-      const txt = PHRASES[sayIdx]?.[0] || "";
-      g.font = "500 13px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-      const bw = g.measureText(txt).width + 18, by = sy - 30;
+    g.font = NAME_FONT;
+    const w = g.measureText(name).width + 12;
+    const talking = sayIdx >= 0 && t - sayAt < SAY_SECS;
+    let bw = 0, txt = "";
+    if (talking) { txt = PHRASES[sayIdx]?.[0] || ""; g.font = SAY_FONT; bw = g.measureText(txt).width + 18; }
+    tags.push({ id, sx, sy, head, w: Math.max(w, bw), nw: w, bw, txt, name, mine, sayAt, talking, up: talking ? 42 : 9 });
+  };
+  for (const [uid, r] of remotes) {
+    if (net && r.p.t && net.now() - r.p.t > 90000) continue;
+    if (hiddenByRoof(r.rx, r.ry)) continue;
+    addTag(uid, r.rx, r.ry, nameOf(r.p.n), false, r.p.s, r.sayAt, r.p.c);
+  }
+  if (joined) addTag("me", me.x, me.y, nameOf(profile.n), true, me.s, me.sayAt, profile.c);
+  // 내 이름표 먼저, 그다음 화면 아래쪽(앞에 선) 사람부터 자리를 잡는다
+  tags.sort((a, b) => (b.mine - a.mine) || (b.sy - a.sy));
+  const placed = [];
+  for (const tg of tags) {
+    let y = tg.sy;
+    for (let k = 0; k < 12; k++) {
+      const hit = placed.find((o) => Math.abs(o.sx - tg.sx) < (o.w + tg.w) / 2 + 4 && y - tg.up < o.y + 9 + 3 && y + 9 > o.y - o.up - 3);
+      if (!hit) break;
+      y = hit.y - hit.up - 3 - 9;
+    }
+    const prev = labelOff.get(tg.id) ?? 0, want = tg.sy - y;
+    const off = prev + (want - prev) * Math.min(1, dt * 10);
+    labelOff.set(tg.id, off);
+    tg.y = tg.sy - off;
+    placed.push({ sx: tg.sx, w: tg.w, y: tg.sy - want, up: tg.up });
+  }
+  for (const id of [...labelOff.keys()]) if (!tags.some((x) => x.id === id)) labelOff.delete(id);
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  for (const tg of tags) {
+    const { sx, y } = tg;
+    if (tg.sy - y > 10) { // 비켜 놓은 이름표는 머리까지 가는 가는 선으로 잇는다
+      g.strokeStyle = tg.mine ? "rgba(240,184,120,0.7)" : "rgba(244,241,234,0.5)";
+      g.lineWidth = 1;
+      g.beginPath(); g.moveTo(sx, y + 9); g.lineTo(sx, tg.head - 2); g.stroke();
+    }
+    g.font = NAME_FONT;
+    g.fillStyle = tg.mine ? "rgba(240,184,120,0.92)" : "rgba(20,22,30,0.62)";
+    pill(g, sx - tg.nw / 2, y - 9, tg.nw, 18, 9);
+    g.fillStyle = tg.mine ? "#1a1006" : "#f4f1ea";
+    g.fillText(tg.name, sx, y + 0.5);
+    if (tg.talking) {
+      const a = Math.min(1, (SAY_SECS - (t - tg.sayAt)) / 0.6);
+      const by = y - 30;
+      g.font = SAY_FONT;
       g.globalAlpha = a;
       g.fillStyle = "rgba(255,253,246,0.96)";
-      pill(g, sx - bw / 2, by - 12, bw, 24, 10);
+      pill(g, sx - tg.bw / 2, by - 12, tg.bw, 24, 10);
       g.beginPath(); g.moveTo(sx - 5, by + 11); g.lineTo(sx + 5, by + 11); g.lineTo(sx, by + 17); g.closePath(); g.fill();
       g.fillStyle = "#2a2420";
-      g.fillText(txt, sx, by + 0.5);
+      g.fillText(tg.txt, sx, by + 0.5);
       g.globalAlpha = 1;
     }
-  };
-  const hiddenByRoof = (x, y) => (inHall(x, y) && fadeHall > 0.5) || (inBell(x, y) && fadeBell > 0.5 && !meInBell);
-  for (const r of remotes.values()) {
-    if (net && r.p.t && net.now() - r.p.t > 90000) continue;
-    label(r.rx, r.ry, nameOf(r.p.n), false, r.p.s, r.sayAt, r.p.c, hiddenByRoof(r.rx, r.ry));
   }
-  if (joined) label(me.x, me.y, nameOf(profile.n), true, me.s, me.sayAt, profile.c, false);
 }
 function pill(g2, x, y, w, h, r) {
   g2.beginPath();
