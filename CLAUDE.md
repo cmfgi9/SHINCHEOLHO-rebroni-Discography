@@ -195,3 +195,6 @@ python -m http.server 8000
 
 - **VectorCraft MCP** (`vectorcraft`): 앨범 커버·아이콘·OG 이미지·비주얼라이저 배경 등 벡터 그래픽 제작/내보내기에 사용 가능.
   읽기·쓰기 허용 경로는 `E:\Claude-Cowork` 이하이므로 이 저장소에 바로 저장할 수 있다.
+- **ppt-master 스킬** (https://github.com/hugohe3/ppt-master, MIT): **파워포인트(PPT/PPTX)·슬라이드 문서 작업을 할 때만** 참조한다.
+  이 저장소에는 넣지 않는다(파일 1.3만 개·79MB이고 루트 전체가 공개 배포되기 때문). 필요할 때 로컬 Claude Code에서
+  `/plugin marketplace add hugohe3/ppt-master` → `/plugin install ppt-master@ppt-master`로 설치하고, 설치 폴더에서 `pip install -r requirements.txt`.
