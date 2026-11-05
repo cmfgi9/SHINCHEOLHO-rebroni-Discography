@@ -195,3 +195,10 @@ python -m http.server 8000
 
 - **VectorCraft MCP** (`vectorcraft`): 앨범 커버·아이콘·OG 이미지·비주얼라이저 배경 등 벡터 그래픽 제작/내보내기에 사용 가능.
   읽기·쓰기 허용 경로는 `E:\Claude-Cowork` 이하이므로 이 저장소에 바로 저장할 수 있다.
+- **ppt-master 스킬** (https://github.com/hugohe3/ppt-master, MIT): **파워포인트(PPT/PPTX)·슬라이드 문서 작업을 할 때만** 참조한다.
+  이 저장소에는 넣지 않는다(파일 1.3만 개·79MB이고 루트 전체가 공개 배포되기 때문). 필요할 때 로컬 Claude Code에서
+  `/plugin marketplace add hugohe3/ppt-master` → `/plugin install ppt-master@ppt-master`로 설치하고, 설치 폴더에서 `pip install -r requirements.txt`.
+- **AI Website Cloner Template** (https://github.com/JCodesMore/ai-website-cloner-template, MIT): **웹사이트 복제·참조 작업을 할 때만** 참고한다.
+  URL을 Next.js 16(Node 24+) 앱으로 다시 만드는 별도 템플릿이라 이 저장소(빌드 없는 정적 사이트)에는 넣지 않는다.
+  별도 폴더/저장소에서 `npm install` 후 `/clone-website <URL>`로 사용하고, 결과는 레이아웃·동작 참고용으로 보고 이 사이트 방식(HTML+CSS+바닐라 JS)으로 다시 구현한다.
+  같은 용도의 `clone-website` 스킬이 세션에 켜져 있으면 그것을 먼저 쓴다. 다른 사이트의 글·이미지·로고·브랜드 디자인은 그대로 가져오지 않는다(저작권·상표).
