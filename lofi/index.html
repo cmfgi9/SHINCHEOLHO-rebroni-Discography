@@ -163,6 +163,24 @@
           <div class="seg" id="viz-style">
             <button data-v="bars" class="on">막대</button><button data-v="wave">파형</button><button data-v="vinyl">LP 턴테이블</button><button data-v="none">없음</button>
           </div>
+          <div id="vinyl-opts" class="sub-opts" hidden>
+            <label class="drop" for="cover-input">
+              <strong>LP에 앨범 커버 넣기 · Album cover</strong>
+              <span>정사각형 JPG · PNG (3000×3000 등) · 동그랗게 잘려 레코드와 함께 돌아요</span>
+            </label>
+            <input id="cover-input" type="file" accept="image/*" hidden>
+            <div class="row">
+              <button id="cover-clear" class="btn ghost small">커버 제거</button>
+              <span id="cover-info" class="muted small"></span>
+            </div>
+            <div class="seg" id="vinyl-art">
+              <button data-v="label" class="on">가운데 라벨</button><button data-v="disc">판 전체 (픽처 디스크)</button>
+            </div>
+            <span>회전 속도 · Speed</span>
+            <div class="seg" id="vinyl-speed">
+              <button data-v="0.5">0.5×</button><button data-v="1" class="on">1× 기본</button><button data-v="2">2×</button><button data-v="3">3× (실제 LP)</button>
+            </div>
+          </div>
         </div>
         <label class="field">강도 · Sensitivity <output id="sens-out">100%</output>
           <input id="sens" type="range" min="0.4" max="2" step="0.05" value="1"></label>
@@ -235,7 +253,7 @@
   <audio id="audio" preload="auto"></audio>
   <video id="bg-video" muted loop playsinline preload="auto"></video>
 
-  <script src="lofi.js?v=4"></script>
+  <script src="lofi.js?v=6"></script>
 </body>
 
 </html>
