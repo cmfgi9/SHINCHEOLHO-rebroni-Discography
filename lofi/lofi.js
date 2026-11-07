@@ -17,7 +17,7 @@
   // ---------- 설정 (localStorage) ----------
   const DEFAULTS = {
     lengthMode: "time", target: 0, wholeSets: false, repeatCount: 3, shuffleRepeat: false, gap: 2, edgeFade: 1.5,
-    showLyrics: true, lyricsPos: "bottom", lyricsSize: "md",
+    showLyrics: true, lyricsPos: "bottom", lyricsSize: "md", vinylArt: "label",
     dim: 0.2, tint: "warm", vizStyle: "bars", sens: 1, accent: "#ffd6a5",
     title: "", artist: "SHINCHEOLHO-rebroni", font: "mono", showTitle: true, showNow: true,
     grain: 0.35, vignette: 0.5, rain: false, dust: true, snow: false, scanlines: false, breathe: true,
@@ -386,6 +386,26 @@
     $("#bg-info").textContent = "";
   }
 
+  // ---------- LP 앨범 커버 ----------
+  // 큰 이미지(3000×3000 등)는 장면마다 필요한 크기의 동그란 그림으로 한 번만 줄여 두고, 프레임마다 그것만 돌려 그림
+  const cover = { id: 0, img: null, url: null, name: "" };
+  function setCover(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      clearCover();
+      Object.assign(cover, { id: cover.id + 1, img, url, name: file.name });
+      $("#cover-info").textContent = `🖼 ${img.naturalWidth}×${img.naturalHeight}` + (Math.abs(img.naturalWidth - img.naturalHeight) > 2 ? " · 정사각형이 아니면 가운데만 쓰여요" : "");
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); alert("이미지를 불러올 수 없습니다. (HEIC 등은 JPG/PNG로 변환해 주세요)"); };
+    img.src = url;
+  }
+  function clearCover() {
+    if (cover.url) URL.revokeObjectURL(cover.url);
+    Object.assign(cover, { img: null, url: null, name: "" });
+    $("#cover-info").textContent = "";
+  }
+
   // ---------- 스펙트럼 ----------
   const FFT_SIZE = 2048, MIN_DB = -90, MAX_DB = -15;
 
@@ -474,7 +494,7 @@
 
   function createScene(canvas) {
     const ctx = canvas.getContext("2d", { alpha: false });
-    const cache = { bgKey: "", bg: null, vigKey: "", vig: null, scanKey: "", scan: null, grain: null };
+    const cache = { bgKey: "", bg: null, vigKey: "", vig: null, scanKey: "", scan: null, grain: null, coverKey: "", cover: null };
     const mk = (w, h) => (typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(w, h) : Object.assign(document.createElement("canvas"), { width: w, height: h }));
 
     // 그레인 무늬 (256×256 타일 4종)
@@ -639,6 +659,21 @@
       if (ctx.roundRect) ctx.roundRect(x, y, w, h, [r, r, 0, 0]); else ctx.rect(x, y, w, h);
     }
 
+    // 앨범 커버를 지름 d의 원으로 잘라 둔 캐시 (정사각형이 아니면 가운데 정사각형 사용)
+    function coverDisc(d) {
+      d = Math.max(2, Math.round(d));
+      const key = cover.id + "|" + d;
+      if (cache.coverKey !== key) {
+        const c = mk(d, d), g = c.getContext("2d");
+        const iw = cover.img.naturalWidth, ih = cover.img.naturalHeight, side = Math.min(iw, ih);
+        g.imageSmoothingQuality = "high";
+        g.beginPath(); g.arc(d / 2, d / 2, d / 2, 0, Math.PI * 2); g.clip();
+        g.drawImage(cover.img, (iw - side) / 2, (ih - side) / 2, side, side, 0, 0, d, d);
+        cache.coverKey = key; cache.cover = c;
+      }
+      return cache.cover;
+    }
+
     function drawViz(t, bands, W, H, K) {
       const col = cfg.accent;
       if (cfg.vizStyle === "bars") {
@@ -696,8 +731,27 @@
         sheen.addColorStop(0.35, "rgba(255,255,255,0)"); sheen.addColorStop(0.5, "rgba(255,255,255,0.10)"); sheen.addColorStop(0.65, "rgba(255,255,255,0)");
         ctx.fillStyle = sheen; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
         ctx.rotate(ang);
-        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(0, 0, R * 0.34, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.beginPath(); ctx.arc(0, -R * 0.2, R * 0.05, 0, Math.PI * 2); ctx.fill();
+        if (cover.img && cfg.vinylArt === "disc") {
+          // 픽처 디스크: 판 전체에 커버, 위에 옅은 홈과 반사광
+          const rr = R * 0.96, c = coverDisc(rr * 2);
+          ctx.drawImage(c, -rr, -rr, rr * 2, rr * 2);
+          ctx.strokeStyle = "rgba(0,0,0,0.16)"; ctx.lineWidth = 1 * K;
+          for (let r = R * 0.42; r < R * 0.95; r += 9 * K) { ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke(); }
+          ctx.rotate(-ang);
+          ctx.fillStyle = sheen; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+          ctx.rotate(ang);
+        } else if (cover.img) {
+          // 가운데 라벨에 커버
+          const rr = R * 0.34, c = coverDisc(rr * 2);
+          ctx.drawImage(c, -rr, -rr, rr * 2, rr * 2);
+          ctx.strokeStyle = "rgba(0,0,0,0.45)"; ctx.lineWidth = 2 * K;
+          ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.stroke();
+        } else {
+          ctx.fillStyle = col; ctx.beginPath(); ctx.arc(0, 0, R * 0.34, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.beginPath(); ctx.arc(0, -R * 0.2, R * 0.05, 0, Math.PI * 2); ctx.fill();
+        }
+        // 가운데 구멍
+        ctx.fillStyle = "#e8e2d8"; ctx.beginPath(); ctx.arc(0, 0, R * 0.045, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(0, 0, R * 0.035, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       }
@@ -1171,6 +1225,7 @@
     zone.addEventListener("drop", (e) => {
       e.preventDefault(); zone.classList.remove("dragover");
       if (zone.htmlFor === "audio-input") addTracks(e.dataTransfer.files);
+      else if (zone.htmlFor === "cover-input") setCover(e.dataTransfer.files[0]);
       else if (e.dataTransfer.files[0]) setBackground(e.dataTransfer.files[0]);
     });
   });
@@ -1212,7 +1267,10 @@
     else if (e.key === "Backspace") { e.preventDefault(); syncUndo(); }
   });
 
-  const SEGS = [["length-mode", "lengthMode"], ["target", "target", Number], ["lyrics-pos", "lyricsPos"], ["lyrics-size", "lyricsSize"], ["tint", "tint"], ["viz-style", "vizStyle"], ["font", "font"], ["res", "res", Number], ["fps", "fps", Number], ["quality", "quality"]];
+  $("#cover-input").addEventListener("change", (e) => { setCover(e.target.files[0]); e.target.value = ""; });
+  $("#cover-clear").addEventListener("click", clearCover);
+
+  const SEGS = [["vinyl-art", "vinylArt"], ["length-mode", "lengthMode"], ["target", "target", Number], ["lyrics-pos", "lyricsPos"], ["lyrics-size", "lyricsSize"], ["tint", "tint"], ["viz-style", "vizStyle"], ["font", "font"], ["res", "res", Number], ["fps", "fps", Number], ["quality", "quality"]];
   SEGS.forEach(([id, key, parse = (v) => v]) => $$(`#${id} button`).forEach((b) => b.addEventListener("click", () => {
     if (rendering) return;
     cfg[key] = parse(b.dataset.v); syncUI(); save(); refreshList();
@@ -1236,6 +1294,7 @@
     RANGES.forEach(([id, key, fmt]) => { $("#" + id).value = cfg[key]; $("#" + id + "-out").textContent = fmt(cfg[key]); });
     CHECKS.forEach(([id, key]) => { $("#" + id).checked = cfg[key]; });
     $("#accent").value = cfg.accent; $("#title-text").value = cfg.title; $("#artist-text").value = cfg.artist;
+    $("#vinyl-opts").hidden = cfg.vizStyle !== "vinyl";
     $("#time-opts").hidden = cfg.lengthMode === "count";
     $("#count-opts").hidden = cfg.lengthMode !== "count";
   }
