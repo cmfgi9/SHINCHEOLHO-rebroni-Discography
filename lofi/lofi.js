@@ -17,7 +17,7 @@
   // ---------- 설정 (localStorage) ----------
   const DEFAULTS = {
     lengthMode: "time", target: 0, wholeSets: false, repeatCount: 3, shuffleRepeat: false, gap: 2, edgeFade: 1.5,
-    showLyrics: true, lyricsPos: "bottom", lyricsSize: "md", vinylArt: "label",
+    showLyrics: true, lyricsPos: "bottom", lyricsSize: "md", vinylArt: "label", vinylSpeed: 1,
     dim: 0.2, tint: "warm", vizStyle: "bars", sens: 1, accent: "#ffd6a5",
     title: "", artist: "SHINCHEOLHO-rebroni", font: "mono", showTitle: true, showNow: true,
     grain: 0.35, vignette: 0.5, rain: false, dust: true, snow: false, scanlines: false, breathe: true,
@@ -386,6 +386,8 @@
     $("#bg-info").textContent = "";
   }
 
+  const VINYL_BASE_RPM = 33.3 / 3;
+
   // ---------- LP 앨범 커버 ----------
   // 큰 이미지(3000×3000 등)는 장면마다 필요한 크기의 동그란 그림으로 한 번만 줄여 두고, 프레임마다 그것만 돌려 그림
   const cover = { id: 0, img: null, url: null, name: "" };
@@ -717,8 +719,8 @@
         }
         ctx.strokeStyle = rgba(col, 0.85); ctx.lineWidth = 4 * K; ctx.lineCap = "round";
         ctx.stroke();
-        // 레코드판 (33⅓rpm으로 회전)
-        const ang = t * Math.PI * 2 * (33.3 / 60);
+        // 레코드판: 기본은 천천히 (1× = 약 11rpm, 3× = 실제 LP 33⅓rpm). 시간 t만으로 각도를 정해 미리보기 = 결과
+        const ang = t * Math.PI * 2 * ((VINYL_BASE_RPM * cfg.vinylSpeed) / 60);
         ctx.save();
         ctx.translate(cx, cy);
         ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 30 * K;
@@ -1270,7 +1272,7 @@
   $("#cover-input").addEventListener("change", (e) => { setCover(e.target.files[0]); e.target.value = ""; });
   $("#cover-clear").addEventListener("click", clearCover);
 
-  const SEGS = [["vinyl-art", "vinylArt"], ["length-mode", "lengthMode"], ["target", "target", Number], ["lyrics-pos", "lyricsPos"], ["lyrics-size", "lyricsSize"], ["tint", "tint"], ["viz-style", "vizStyle"], ["font", "font"], ["res", "res", Number], ["fps", "fps", Number], ["quality", "quality"]];
+  const SEGS = [["vinyl-art", "vinylArt"], ["vinyl-speed", "vinylSpeed", Number], ["length-mode", "lengthMode"], ["target", "target", Number], ["lyrics-pos", "lyricsPos"], ["lyrics-size", "lyricsSize"], ["tint", "tint"], ["viz-style", "vizStyle"], ["font", "font"], ["res", "res", Number], ["fps", "fps", Number], ["quality", "quality"]];
   SEGS.forEach(([id, key, parse = (v) => v]) => $$(`#${id} button`).forEach((b) => b.addEventListener("click", () => {
     if (rendering) return;
     cfg[key] = parse(b.dataset.v); syncUI(); save(); refreshList();
