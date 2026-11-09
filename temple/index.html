@@ -8,12 +8,14 @@
   <meta name="description" content="Rebroni Universe의 온라인 법당 — 캐릭터로 절 마당과 대웅전을 거닐며 합장·절·108배, 범종·목탁, 연등 달기를 함께하는 공간. 설치·가입 없이 브라우저에서.">
   <meta name="theme-color" content="#1b1f2a">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <meta property="og:title" content="온라인 법당 · Rebroni Temple">
   <meta property="og:description" content="함께 거니는 온라인 법당 · Walk, bow and hang lanterns together in an online temple">
   <meta property="og:image" content="https://music.rebroni.com/album4-journey-serenity.jpg">
   <meta property="og:url" content="https://music.rebroni.com/temple/">
-  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주세요 (temple.js 안의 world.js?v=, net.js?v= 도 함께) -->
-  <link rel="stylesheet" href="temple.css?v=1">
+  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주세요 (temple.js 안의 world.js?v=·net.js?v=·practice.js?v=, practice.js 안의 content.js?v=, 그리고 sw.js의 SHELL·VERSION도 함께) -->
+  <link rel="stylesheet" href="temple.css?v=2">
 </head>
 
 <body>
@@ -21,10 +23,11 @@
 
   <header class="bar">
     <a href="../rest/" class="b" aria-label="쉼터로 돌아가기">← <span class="hide-xs">쉼터</span></a>
-    <h1>온라인 법당 <span class="en-sub">Online Temple</span></h1>
+    <h1><span class="hide-xs">온라인 </span>법당 <span class="en-sub">Online Temple</span></h1>
     <span id="status" class="pill" data-kind="idle" aria-live="polite"></span>
     <button id="night-btn" class="b" type="button" aria-label="낮·밤 바꾸기 · Day/Night" title="낮·밤 바꾸기">🌙</button>
     <button id="sound-btn" class="b" type="button" aria-label="소리">🔈</button>
+    <button id="settings-btn" class="b" type="button" aria-label="소리 설정 · Sound settings" title="소리 설정">⚙️</button>
   </header>
 
   <!-- 입장 -->
@@ -49,7 +52,11 @@
 
   <!-- 조작 -->
   <div id="hud" class="hud" hidden>
-    <span id="bows" class="pill bows"></span>
+    <div class="hud-left">
+      <span id="bows" class="pill"></span>
+      <button id="tasks-pill" class="pill pill-btn" type="button" title="오늘의 수행 · Today's practice">✅ 오늘의 수행 0/4</button>
+      <button id="music-pill" class="pill pill-btn music" type="button" hidden></button>
+    </div>
     <div id="toast" class="toast" aria-live="polite"></div>
     <div class="dock">
       <div id="ctx" class="ctx-row"></div>
@@ -57,14 +64,108 @@
         <button id="hap-btn" class="btn" type="button" aria-pressed="false" title="합장 (H)">🙏 합장 <span class="en-sub">Palms</span></button>
         <button id="bow-btn" class="btn" type="button" title="절하기 (B)">🙇 절하기 <span class="en-sub">Bow</span></button>
         <button id="say-btn" class="btn" type="button" title="인사 (1~8)">💬 인사 <span class="en-sub">Greet</span></button>
+        <button id="practice-btn" class="btn" type="button" title="수행 메뉴">📿 수행 <span class="en-sub">Practice</span></button>
       </div>
       <div id="say-pop" class="pop" hidden></div>
       <div id="lantern-pop" class="pop lantern-pop" hidden></div>
     </div>
+    <!-- 예불 순서 (주보처럼 위쪽에) -->
+    <section id="yebul" class="yebul" hidden aria-label="예불 순서 · Service">
+      <div class="y-head">
+        <span class="y-kicker">📋 예불 · <span id="y-step"></span></span>
+        <span id="y-dots" class="y-dots" aria-hidden="true"></span>
+        <button type="button" class="y-close" id="y-close" aria-label="예불 닫기 · Close">✕</button>
+      </div>
+      <h3 id="y-title" class="y-title"></h3>
+      <div id="y-body"></div>
+      <div id="y-actions" class="row y-actions"></div>
+      <div id="y-nav" class="row y-nav"></div>
+    </section>
+
     <p class="keys-hint">이동: 방향키·WASD 또는 화면 누르기 · B 절 · H 합장 · E 가까운 것 · 1~8 인사</p>
   </div>
 
-  <script type="module" src="temple.js?v=2"></script>
+  <div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+
+  <!-- 수행 메뉴 -->
+  <section id="practice-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="ps-title" hidden>
+    <div class="sheet-head"><h2 id="ps-title">📿 수행 <span class="en-sub">Practice</span></h2><button type="button" class="x" data-close aria-label="닫기 · Close">✕</button></div>
+    <div class="menu-grid">
+      <button type="button" class="tile" data-menu="yebul"><span class="ic">📋</span><strong>예불 드리기</strong><small>삼귀의 · 입정 · 법문 · 발원 · 사홍서원</small></button>
+      <button type="button" class="tile" data-menu="med"><span class="ic">🕊️</span><strong>1분 명상</strong><small>숨을 따라 잠시 고요히</small></button>
+      <button type="button" class="tile" data-menu="beopgu"><span class="ic">📜</span><strong>오늘의 법구</strong><small>마음에 새길 한 구절</small></button>
+      <button type="button" class="tile" data-menu="vow"><span class="ic">📝</span><strong>발원 노트</strong><small>이 기기에만 간직</small></button>
+      <button type="button" class="tile" data-menu="tasks"><span class="ic">✅</span><strong>오늘의 수행 <span id="menu-tasks-count"></span></strong><small>매일 새로 시작</small></button>
+      <button type="button" class="tile" data-menu="guide"><span class="ic">❓</span><strong>처음 오신 분 안내</strong><small>이동 · 동작 · 장소</small></button>
+      <button type="button" class="tile" data-menu="settings"><span class="ic">⚙️</span><strong>소리 설정</strong><small>환경음 · 효과음 · 배경 음악</small></button>
+      <button type="button" class="tile" data-menu="install" hidden><span class="ic">📲</span><strong>앱으로 설치</strong><small>홈 화면에 추가</small></button>
+    </div>
+  </section>
+
+  <!-- 1분 명상 -->
+  <section id="med-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="med-title" hidden>
+    <div class="sheet-head"><h2 id="med-title">🕊️ 1분 명상 <span class="en-sub">One-minute meditation</span></h2><button type="button" class="x" data-close aria-label="닫기 · Close">✕</button></div>
+    <p class="sheet-lead">잠시 눈을 쉬고, 원이 커지면 들이쉬고 작아지면 내쉬어요. 캐릭터도 그 자리에 앉아 함께 명상해요.</p>
+    <div class="med-wrap"><div id="med-circle" class="med-circle"><span id="med-phase">준비</span></div></div>
+    <p id="med-time" class="med-time">01:00</p>
+    <div class="row"><button type="button" id="med-start" class="btn primary">▶ 시작</button></div>
+  </section>
+
+  <!-- 오늘의 법구 -->
+  <section id="beopgu-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="bg-title" hidden>
+    <div class="sheet-head"><h2 id="bg-title">📜 오늘의 법구 <span class="en-sub">Verse for today</span></h2><button type="button" class="x" data-close aria-label="닫기 · Close">✕</button></div>
+    <div class="verse">
+      <p id="bg-ref" class="verse-ref"></p>
+      <p id="bg-text" class="verse-text"></p>
+      <p id="bg-reflect" class="verse-reflect"></p>
+    </div>
+    <div class="row">
+      <button type="button" id="bg-read" class="btn">🔊 읽어 주세요</button>
+      <button type="button" id="bg-next" class="btn">↻ 다른 법구</button>
+    </div>
+    <p class="fine">법구경 게송의 뜻을 바탕으로 직접 풀어 쓴 묵상 글이에요(번역본 인용 아님).</p>
+  </section>
+
+  <!-- 발원 노트 -->
+  <section id="vow-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="vow-title" hidden>
+    <div class="sheet-head"><h2 id="vow-title">📝 발원 노트 <span class="en-sub">My vows</span></h2><button type="button" class="x" data-close aria-label="닫기 · Close">✕</button></div>
+    <form id="vow-form" class="vow-form">
+      <textarea id="vow-text" maxlength="140" rows="3" placeholder="마음에 품은 바람을 적어 보세요 · Write a wish of your heart" aria-label="발원 · Vow"></textarea>
+      <button type="submit" class="btn primary">🙏 간직하기</button>
+    </form>
+    <p class="fine">🔒 발원 노트는 이 기기(브라우저)에만 저장되고 어디에도 보내지 않아요.</p>
+    <ul id="vow-list" class="vow-list"></ul>
+    <button type="button" id="vow-clear" class="btn small ghost" hidden>모두 지우기 <span class="en-sub">Delete all</span></button>
+  </section>
+
+  <!-- 오늘의 수행 -->
+  <section id="tasks-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="tk-title" hidden>
+    <div class="sheet-head"><h2 id="tk-title">✅ 오늘의 수행 <span class="en-sub">Today's practice</span></h2><button type="button" class="x" data-close aria-label="닫기 · Close">✕</button></div>
+    <ul id="tasks-list" class="tasks-list"></ul>
+    <p id="tasks-msg" class="fine"></p>
+  </section>
+
+  <!-- 소리 설정 -->
+  <section id="settings-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="st-title" hidden>
+    <div class="sheet-head"><h2 id="st-title">⚙️ 소리 설정 <span class="en-sub">Sound</span></h2><button type="button" class="x" data-close aria-label="닫기 · Close">✕</button></div>
+    <div class="set-row"><div><strong>전체 소리</strong><small>All sound</small></div><button type="button" id="set-sound" class="btn small"></button></div>
+    <label class="set-row"><div><strong>환경음</strong><small>바람 · 새소리 · 풀벌레 · 물소리</small></div><input type="range" id="set-amb" min="0" max="1" step="0.01"></label>
+    <label class="set-row"><div><strong>효과음</strong><small>범종 · 목탁 · 싱잉볼</small></div><input type="range" id="set-fx" min="0" max="1" step="0.01"></label>
+    <div class="set-row"><div><strong>배경 음악</strong><small>레브로니 앨범 곡 · SHINCHEOLHO-rebroni</small></div><button type="button" id="set-music" class="btn small toggle" aria-pressed="true">켜짐</button></div>
+    <label class="set-row"><div><small>배경 음악 크기</small></div><input type="range" id="set-mus" min="0" max="1" step="0.01"></label>
+    <div class="set-now"><span id="set-now"></span><button type="button" id="set-next" class="btn small ghost">다음 곡 ⏭</button></div>
+    <div class="set-row"><div><strong>소리 내어 읽기</strong><small>예불 · 법문 · 법구를 기기의 음성으로</small></div><button type="button" id="set-tts" class="btn small toggle" aria-pressed="true">켜짐</button></div>
+    <p id="set-tts-note" class="fine"></p>
+  </section>
+
+  <!-- 처음 오신 분 안내 -->
+  <section id="guide-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="gd-title" hidden>
+    <div class="sheet-head"><h2 id="gd-title">❓ 처음 오신 분 안내 <span class="en-sub">Welcome guide</span></h2><button type="button" class="x" data-close aria-label="닫기 · Close">✕</button></div>
+    <ul id="guide-list" class="guide-list"></ul>
+    <div class="row"><button type="button" id="guide-yebul" class="btn primary">📋 함께 예불 드리기</button><button type="button" class="btn ghost" data-close>둘러볼게요</button></div>
+  </section>
+
+  <script type="module" src="temple.js?v=3"></script>
 </body>
 
 </html>

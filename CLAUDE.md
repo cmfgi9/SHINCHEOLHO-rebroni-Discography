@@ -29,7 +29,7 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 | `/lofi/` | **Lofi Visualizer** — 음원 플레이리스트 + 16:9 배경(이미지/반복 영상) + Lofi 효과 → 1~3시간 유튜브용 MP4 **오프라인 렌더링**, 유튜브 챕터 생성 | `lofi/` |
 | `/meditate/` | **Meditate(명상)** — 자연의 소리 믹서(브라우저 합성), 생성형 앰비언트·스템 재조합·앨범 음원, 명상/슬립 타이머·벨, 가이드 명상, 호흡 가이드, 야간 모드, 프리셋·공유 링크, 캘린더 알림. PWA | `meditate/` |
 | `/rest/` | **Rest(쉼터)** — 5개 공간: 촛불의 방·소원의 뜰(풍등·기도·돌탑)·나를 찾는 명상·숲길 산책·푸른 바다(수영). 전체 화면 캔버스 + 브라우저 합성 사운드, 주소 `#candle`·`#wish`·`#self`·`#walk`·`#ocean` | `rest/` |
-| `/temple/` | **온라인 법당** — 여러 사람이 기본 캐릭터로 절 마당·대웅전을 거닐며 합장·절(108배)·범종·목탁·좌복·연등 달기. 자유 채팅 없음(정해진 인사말만). 실시간 동기화는 Firebase **Realtime Database** + 익명 로그인 | `temple/`, `database.rules.json` |
+| `/temple/` | **온라인 법당** — 여러 사람이 기본 캐릭터로 절 마당·대웅전을 거닐며 합장·절(108배)·범종·목탁·좌복·연등 달기. 안내 스님·법사 스님(NPC), 📿 수행 메뉴(예불 순서 따라 하기·1분 명상·오늘의 법구·발원 노트·오늘의 수행·소리 설정), 레브로니 앨범 배경 음악. 자유 채팅 없음(정해진 인사말만). 실시간 동기화는 Firebase **Realtime Database** + 익명 로그인. PWA | `temple/`, `database.rules.json` |
 | `/mastering/` | **음원 Mastering** — 라우드니스(BS.1770/EBU R128)·트루피크 분석, 무드/레퍼런스 기반 자동 마스터링, A/B 비교, WAV·리포트 저장 | `mastering/` |
 | `/admin.html` | 관리자: 앨범·트랙·가사·음원·커버, 창작 노트 편집기, 영상 관리, 방명록·구독자 관리 | `admin.html`, `admin.js` |
 | `/api/tracks` | `audioUrl` 있는 곡 목록 JSON (CORS `*`, 외부 게임 등에서 사용) | `functions/api/tracks.js` |
@@ -96,8 +96,13 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 - 서비스 워커 없음(PWA 아님). 캐시 버스팅: `index.html`의 `rest.css?v=`·`rest.js?v=`, `rest.js` 안의 `scenes.js?v=`·`sound.js?v=`.
 
 ### 온라인 법당 (`temple/`)
-- ES 모듈: `temple.js`(입장·이동·동작·말풍선·소리·카메라), `world.js`(지도·충돌·캐릭터·건물 그리기, 2D 탑다운), `net.js`(`FirebaseNet`·`LocalNet`).
-  소리는 `../meditate/audio-engine.js?v=3`의 `Engine`(범종·목탁·싱잉볼·자연의 소리) 재사용.
+- ES 모듈: `temple.js`(입장·이동·동작·말풍선·소리·카메라·NPC·배경 음악·연결), `world.js`(지도·충돌·캐릭터·건물 그리기, 2D 탑다운),
+  `net.js`(`FirebaseNet`·`LocalNet`), `practice.js`(수행 메뉴·예불 순서·1분 명상·법구·발원 노트·오늘의 수행·소리 설정·안내 창),
+  `content.js`(예불 순서·법문·법구·발원 예시·과제·안내 글 — 글만 고칠 때는 이 파일만).
+  소리는 `../meditate/audio-engine.js?v=3`의 `Engine`(범종·목탁·싱잉볼·자연의 소리), 배경 음악은 `../meditate/music.js?v=3`의 `AlbumPlayer`(`loadAlbums()`의 `audioUrl` 곡, 무작위·크로스페이드) 재사용.
+  소리 설정은 엔진 버스별 볼륨: 환경음 `natureBus`, 효과음 `bellBus`·`cueBus`, 배경 음악 `musicBus`. 소리 내어 읽기(speechSynthesis) 중에는 `duck`으로 낮춘다.
+- **NPC(안내 스님·법사 스님)는 각자 화면에서만 움직이고 서버로 보내지 않는다.** 캐릭터 정의는 `world.js` `CHARS`의 6번 이후(`PLAYABLE`=6 미만만 고를 수 있음, 규칙 `c` 0~5와 맞춤).
+- 예불 순서는 `content.js`의 `YEBUL` 단계(kind: seat·chant·sit·talk·vow·end). 경전 번역본을 그대로 옮기지 말고, 전통 독송문(한문 음)이나 직접 쓴 글만 넣는다.
 - **자유 입력을 받지 않는다**: 닉네임은 `NAME_A × NAME_B` 번호, 인사말은 `PHRASES` 번호만 전송. 문구를 늘리면 `database.rules.json`의 범위(`s` 0~7, `n` 0~255)도 함께.
   캐릭터를 늘리면 `c` 범위, 동작·효과를 늘리면 `a`·`e` 허용 값도 함께 바꾼다.
 - 데이터: `temple/players/{uid}`(onDisconnect 삭제), `temple/lanterns/{slot}`(24시간), `temple/stats/{KST 날짜}/bows`(+1만 허용).
@@ -105,8 +110,11 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 - 연결 실패(데이터베이스 미생성·익명 로그인 꺼짐·네트워크) 시 9초 뒤 **혼자 모드**(`LocalNet`)로 계속 동작. `?net=local`은 같은 브라우저 탭끼리 동기화(개발 확인용).
 - Realtime Database 주소: `firebase-config.js`의 `databaseURL`이 있으면 그것, 없으면 `net.js`의 싱가포르 기본 주소.
 - 지도 크기·배치는 `world.js` 상단 상수. 연등 자리(`SLOTS`, 현재 60개)는 규칙의 슬롯 번호 두 자리(0~99) 안에서.
-- 설정 localStorage `rebroni-temple-profile`(캐릭터·이름·소리), 오늘 절 수 `rebroni-temple-bows`.
-- 캐시 버스팅: `index.html`의 `temple.css?v=`·`temple.js?v=`, `temple.js` 안의 `world.js?v=`·`net.js?v=`.
+- 설정 localStorage `rebroni-temple-profile`(캐릭터·이름·소리 설정·첫 방문 여부), 오늘 절 수 `rebroni-temple-bows`,
+  발원 노트 `rebroni-temple-vows`(최대 50개, 서버 전송 없음), 오늘의 수행 `rebroni-temple-tasks`(KST 날짜별).
+- PWA: `manifest.webmanifest` + `sw.js`(접두어 `temple-` 캐시만 지움, 네트워크 우선, `/media/`·`/api/`·Range 제외).
+- 캐시 버스팅: `index.html`의 `temple.css?v=`·`temple.js?v=`, `temple.js` 안의 `world.js?v=`·`net.js?v=`·`practice.js?v=`, `practice.js` 안의 `content.js?v=`,
+  **`sw.js`의 `SHELL` 목록과 `VERSION`도 함께** 올린다.
 
 ### Mastering (`mastering/`)
 - `dsp.js`(순수 JS 신호처리, `window.RDSP`)를 메인 스레드와 `worker.js`(`importScripts("dsp.js?v=1")`)가 함께 사용.

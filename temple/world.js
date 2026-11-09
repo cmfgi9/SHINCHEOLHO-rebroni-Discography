@@ -136,8 +136,12 @@ export const CHARS = [
   { ko: "동자승", en: "Little monk", robe: [210, 176, 120], sash: [150, 110, 70], skin: [244, 212, 182], hair: null, s: 0.8 },
   { ko: "청년", en: "Youth", robe: [84, 124, 196], sash: [52, 70, 110], skin: [236, 198, 164], hair: [52, 40, 34], s: 1 },
   { ko: "어르신", en: "Elder", robe: [148, 116, 84], sash: [100, 76, 54], skin: [230, 192, 160], hair: [226, 226, 222], s: 0.96 },
-  { ko: "아이", en: "Child", robe: [250, 204, 84], sash: [230, 120, 90], skin: [248, 214, 186], hair: [66, 48, 34], s: 0.78 }
+  { ko: "아이", en: "Child", robe: [250, 204, 84], sash: [230, 120, 90], skin: [248, 214, 186], hair: [66, 48, 34], s: 0.78 },
+  // 아래는 컴퓨터가 움직이는 스님(NPC) 전용 — 입장 화면에서 고를 수 없고, 규칙상 접속자 캐릭터 번호(c)는 0~5만 허용
+  { ko: "안내 스님", en: "Guide monk", robe: [146, 146, 152], sash: [184, 84, 48], skin: [234, 198, 168], hair: null, s: 1.04, npc: true },
+  { ko: "법사 스님", en: "Dharma teacher", robe: [116, 114, 118], sash: [164, 52, 38], skin: [230, 194, 164], hair: null, s: 1.06, npc: true }
 ];
+export const PLAYABLE = 6;
 
 // dir: 0 아래 · 1 왼쪽 · 2 오른쪽 · 3 위 / act: idle | walk | hap(합장) | bow(절) | sit
 export function drawChar(g, x, y, ci, dir, phase, act, actP) {
