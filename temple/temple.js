@@ -1,12 +1,14 @@
 // 온라인 법당 — 입장·이동·동작·동기화·소리
 // - 자유 채팅 없음: 인사는 정해진 문구(PHRASES)의 번호만 주고받는다. 닉네임도 정해진 낱말 조합(번호)만 쓴다.
 // - 서버(Realtime Database)에 연결하지 못하면 '혼자 모드'(같은 브라우저 탭끼리만)로 계속 동작한다.
+// - 접속자는 법당(방)별로 나뉜다. 연등·오늘의 합계(절·공양·나눔)는 모든 법당이 함께 본다.
 import {
-  WORLD, SPAWN, BELL, MOKTAK, CUSHIONS, SLOTS, CHARS, PLAYABLE, LANTERN_COLORS, LANTERN_NAMES, HALL,
-  collide, inHall, inBell, inCourtyard, drawGround, staticSprites, drawChar, drawRoofs, drawLanternLines, drawNight, drawLotusLantern, POND
-} from "./world.js?v=2";
-import { FirebaseNet, LocalNet, kstDay } from "./net.js?v=1";
-import { initPractice } from "./practice.js?v=1";
+  WORLD, SPAWN, BELL, MOKTAK, CUSHIONS, SEATS, SLOTS, CHARS, PLAYABLE, LANTERN_COLORS, LANTERN_NAMES, HALL, REF, COUNTER, OFFER_TABLE, FOODS, OFFERINGS,
+  collide, inHall, inBell, inRef, inCourtyard, drawGround, staticSprites, drawChar, drawRoofs, drawLanternLines, drawNight, drawLotusLantern, drawOffering, drawFood, POND
+} from "./world.js?v=3";
+import { FirebaseNet, LocalNet, kstDay, pickRoom, ROOM_MAX } from "./net.js?v=2";
+import { initPractice } from "./practice.js?v=2";
+import { initTogether } from "./together.js?v=1";
 import { Engine } from "../meditate/audio-engine.js?v=3";
 import { AlbumPlayer } from "../meditate/music.js?v=3";
 import { loadAlbums } from "../data-service.js";
@@ -23,8 +25,12 @@ const PHRASES = [
   ["평안하세요", "Be well"],
   ["함께 기도해요", "Let's pray together"],
   ["좋은 하루 되세요", "Have a good day"],
-  ["안녕히 가세요", "Goodbye"]
+  ["안녕히 가세요", "Goodbye"],
+  ["잘 먹겠습니다 🍚", "Thank you for the meal"],
+  ["맛있게 드세요", "Enjoy your meal"],
+  ["차 한잔 하세요 🍵", "Have some tea"]
 ];
+const PHRASE_MEAL = 8; // 공양을 들 때 저절로 나오는 인사 (문구를 늘리면 규칙의 s 범위도 함께)
 const SPEED = 135;
 const BOW_SECS = 1.7;
 const SAY_SECS = 5;
@@ -128,7 +134,7 @@ function bell(type, vol) { if (canPlay() && vol > 0.03) engine.bell(type, engine
 let amb = {};
 function updateAmbience(force) {
   if (!canPlay()) return;
-  const hall = inHall(me.x, me.y) ? 0.45 : 1;
+  const hall = inHall(me.x, me.y) || inRef(me.x, me.y) ? 0.45 : 1;
   const pd = Math.hypot((me.x - POND.x) / 1.4, me.y - POND.y);
   const next = night
     ? { crickets: 0.42 * hall, wind: 0.1 * hall, stream: 0.4 * clamp(1 - pd / 420, 0, 1) * hall }
@@ -143,7 +149,8 @@ function updateAmbience(force) {
 // ---------- 상태 ----------
 const me = {
   x: SPAWN.x, y: SPAWN.y, d: 3, a: "idle",
-  s: -1, sn: 0, e: "", en: 0, phase: 0, bowAt: -9, sayAt: -9, sitOn: -1
+  s: -1, sn: 0, e: "", en: 0, phase: 0, bowAt: -9, sayAt: -9, sitOn: -1,
+  item: 0, sendItem: null, g: "" // 들고 있는 음식 · 건네는 동안 잠시 알릴 음식 · 건넬 상대
 };
 // 입장 위치: 일주문 안쪽 넓은 곳에 흩어 놓아 여러 사람이 한자리에 겹치지 않게
 [me.x, me.y] = collide(SPAWN.x + (Math.random() - 0.5) * 300, SPAWN.y - 70 + Math.random() * 90);
@@ -152,15 +159,19 @@ const remotes = new Map(); // uid → { p(data), rx, ry, phase, sn, en, sayAt, b
 let net = null, online = false, joined = false, ready = false;
 let night = (() => { const h = new Date().getHours(); return h >= 19 || h < 6; })();
 let lanternMap = {};
-let fadeHall = 1, fadeBell = 1;
-let state = { bellAt: -99 };
+let fadeHall = 1, fadeBell = 1, fadeRef = 1;
+let state = { bellAt: -99, offer: {}, offerAt: -99 };
+const gifts = []; // 건네는 음식이 날아가는 모습 { kind, fx, fy, to, t0 }
 let target = null, stuckT = 0, steerSide = 1;
 let route = [], routeDone = null; // 대웅전 좌복까지 여러 지점을 거쳐 걸어가기
-let practice = null;
+let practice = null, together = null;
 const keys = new Set();
 let lastSent = 0, lastPayload = "", lastBeat = 0;
 let bellCool = 0, moktakCool = 0;
-let myBows = (() => { const b = load(BOWS_KEY, null); return b && b.day === kstDay(Date.now()) ? b.n | 0 : 0; })();
+// 오늘 내가 올린 절·공양 수 (한국 시간으로 날이 바뀌면 0부터)
+const daily = (() => { const b = load(BOWS_KEY, null); return b && b.day === kstDay(Date.now()) ? b : {}; })();
+let myBows = daily.n | 0, myOffers = daily.o | 0;
+const saveDaily = () => store(BOWS_KEY, { day: kstDay(Date.now()), n: myBows, o: myOffers });
 
 // ---------- 화면 ----------
 const canvas = $("stage");
@@ -220,26 +231,80 @@ async function enter() {
   if (first) npcSay(NPCS[0], "궁금하면 저에게 와서 물어보세요", 6.5);
   music.start();
   setStatus("connecting");
-  const wantLocal = new URLSearchParams(location.search).get("net") === "local";
+  const qs = new URLSearchParams(location.search);
+  const wantLocal = qs.get("net") === "local";
+  const wantRoom = clamp(parseInt(qs.get("room"), 10) || 0, 0, ROOM_MAX);
   net = wantLocal ? new LocalNet() : new FirebaseNet();
+  wire(net);
   try {
     await net.connect();
+    net.listen();
+    const counts = await net.roomCounts().catch(() => ({}));
+    await net.join(pickRoom(counts, wantRoom));
     online = true; // ?net=local(개발 확인용)도 여러 탭이 함께 있는 것으로 표시
   } catch (e) {
-    console.warn("[temple] 서버 연결 실패 → 혼자 모드", e);
+    console.warn("[temple] 서버 연결 실패 → 혼자 모드 (database.rules.json 최신본이 게시됐는지 확인)", e);
+    net.mute();
     net = new LocalNet();
+    wire(net);
     await net.connect();
+    net.listen();
+    await net.join(1);
     online = false;
   }
-  net.on.players = onPlayer;
-  net.on.lanterns = () => rebuildLanterns();
-  net.on.bows = () => updateBows();
-  net.on.status = (ok) => { if (online) setStatus(ok ? "online" : "reconnecting"); };
-  net.listen();
   ready = true;
   setStatus(online ? "online" : "solo");
   sendMe(true);
   updateBows();
+  if (profile.trace !== false) net.markVisit(profile.n, profile.c);
+  // 개발 확인용(?net=local 또는 localhost)에서만: 자동 시험이 캐릭터를 원하는 곳에 세울 수 있게 한다
+  if (wantLocal || location.hostname === "localhost") window.__temple = { me, sync: () => { lastPayload = ""; sendMe(true); syncButtons(true); } };
+  if (online && wantRoom && net.room !== wantRoom) toast(`법당 ${wantRoom}이(가) 가득 차서 법당 ${net.room}(으)로 안내했어요. · Hall ${wantRoom} is full.`);
+}
+
+function wire(n) {
+  n.on.players = onPlayer;
+  n.on.lanterns = () => rebuildLanterns();
+  n.on.stats = onStats;
+  n.on.status = (ok) => {
+    if (!online || !ready) return;
+    setStatus(ok ? "online" : "reconnecting");
+    if (ok) { lastPayload = ""; sendMe(true); }
+  };
+}
+
+// 다른 법당으로 옮기기 (연등·합계는 그대로, 함께 있는 사람만 바뀐다)
+async function switchRoom(n) {
+  if (!ready || !online) return false;
+  if (n === net.room) return true;
+  const prev = net.room;
+  setStatus("connecting");
+  remotes.clear();
+  labelOff.clear();
+  gifts.length = 0;
+  let ok = true;
+  try { await net.join(n); } catch (e) {
+    console.warn("[temple] 법당 옮기기 실패", e);
+    ok = false;
+    try { await net.join(prev); } catch (e2) { /* 무시 */ }
+  }
+  lastPayload = "";
+  setStatus("online");
+  sendMe(true);
+  toast(ok ? `법당 ${n}(으)로 옮겼어요. · Moved to hall ${n}.` : "법당을 옮기지 못했어요. 잠시 뒤에 다시 해 보세요. · Could not move.");
+  return ok;
+}
+
+// 오늘의 합계가 바뀌었을 때 (누군가 공양을 올리면 공양상에 금빛이 피어오른다)
+let offerSum = -1;
+function onStats() {
+  const o = net.stats.offer || {};
+  const sum = Object.values(o).reduce((a, b) => a + (b | 0), 0);
+  if (offerSum >= 0 && sum > offerSum) state.offerAt = performance.now() / 1000;
+  offerSum = sum;
+  state.offer = o;
+  updateBows();
+  together?.refresh();
 }
 
 function setStatus(kind) {
@@ -249,14 +314,14 @@ function setStatus(kind) {
   else if (kind === "reconnecting") el.textContent = "다시 연결 중… · Reconnecting";
   else if (kind === "solo") el.textContent = "혼자 모드 · Solo";
   else updateCount();
-  el.title = kind === "solo" ? "지금은 다른 사람과 연결되지 않았어요. 혼자서 둘러볼 수 있어요." : "";
+  if (kind === "solo") el.title = "지금은 다른 사람과 연결되지 않았어요. 혼자서 둘러볼 수 있어요.";
 }
 function updateCount() {
   const el = $("status");
   if (el.dataset.kind !== "online") return;
   const n = 1 + (net ? net.livePlayers().length : 0);
-  el.textContent = `🪷 ${n}명 함께`;
-  el.title = `지금 법당에 ${n}명이 함께 있어요 · ${n} here`;
+  el.textContent = `🪷 법당 ${net.room} · ${n}명`;
+  el.title = `법당 ${net.room}에 ${n}명이 함께 있어요. 누르면 다른 법당을 고를 수 있어요. · Hall ${net.room}, ${n} here`;
 }
 
 // ---------- 다른 사람 ----------
@@ -276,6 +341,10 @@ function onPlayer(uid, p) {
     if (p.e === "bow") r.bowAt = t;
     else if (p.e === "bell") { state.bellAt = t; bell("temple", Math.max(0.25, 0.85 - d / 1500)); }
     else if (p.e === "moktak") bell("moktak", clamp(0.8 - d / 500, 0, 0.8));
+    else if (p.e === "give" && p.i > 0) {
+      gifts.push({ kind: p.i, fx: r.rx, fy: r.ry, to: p.g, t0: t });
+      if (ready && p.g === net.uid) receiveFood(p.i, p.n);
+    }
   }
   r.p = p;
 }
@@ -286,7 +355,7 @@ function sendMe(force) {
   const now = performance.now();
   const payload = {
     n: profile.n, c: profile.c, x: Math.round(me.x), y: Math.round(me.y), d: me.d,
-    a: me.a, s: me.s, sn: me.sn, e: me.e, en: me.en
+    a: me.a, s: me.s, sn: me.sn, e: me.e, en: me.en, i: me.sendItem ?? me.item, g: me.g
   };
   const key = JSON.stringify(payload);
   if (!force && key === lastPayload && now - lastBeat < 25000) return;
@@ -313,7 +382,7 @@ function doBow() {
   bell("moktak", 0.35);
   emit("bow");
   myBows++;
-  store(BOWS_KEY, { day: kstDay(Date.now()), n: myBows });
+  saveDaily();
   if (ready) net.addBow();
   updateBows();
   if (myBows >= 3) practice?.taskDone("bow3");
@@ -354,7 +423,7 @@ function cancelRoute(ok = false) {
 // 가까운 빈 좌복으로 걸어가 앉기 (대웅전 밖이면 계단·문을 거쳐서)
 function sitNearest() {
   cancelRoute();
-  if (me.a === "sit" && me.sitOn >= 0) return Promise.resolve(true);
+  if (me.a === "sit" && me.sitOn >= 0 && me.sitOn < CUSHIONS.length) return Promise.resolve(true);
   standUp();
   if (me.a === "hap") me.a = "idle";
   const taken = new Set();
@@ -406,13 +475,103 @@ function hitMoktak() {
   emit("moktak");
 }
 function sitDown(i) {
-  const c = CUSHIONS[i];
+  const c = SEATS[i];
   if (!c) return;
-  me.x = c.x; me.y = c.y + 4; me.d = 3; me.a = "sit"; me.sitOn = i;
+  for (const r of remotes.values()) {
+    if (r.p.a === "sit" && Math.hypot(c.x - r.p.x, c.y + 4 - r.p.y) < 16) { toast("이미 다른 분이 앉아 계세요. · That seat is taken."); return; }
+  }
+  cancelRoute();
+  me.x = c.x; me.y = c.y + 4; me.d = c.d; me.a = "sit"; me.sitOn = i;
   target = null;
   sendMe(true);
   syncButtons(true);
 }
+// ---------- 불전 공양 (불단 앞 공양상) ----------
+let offerCool = 0;
+function offer(i) {
+  closePops();
+  unlockSound();
+  const t = performance.now() / 1000;
+  if (t < offerCool) return;
+  if (myOffers >= 12) { toast("오늘은 넉넉히 올리셨어요. 마음만으로도 충분합니다. · That is plenty for today."); return; }
+  const of = OFFERINGS[i];
+  offerCool = t + 2;
+  myOffers++;
+  saveDaily();
+  setHap(true);
+  bell("bowl", 0.45);
+  state.offerAt = t;
+  if (ready) net.addOffer(of.id);
+  practice?.taskDone("offer");
+  toast(`${of.ko} 공양을 올렸어요 🙏 · You offered ${of.en.toLowerCase()}.`);
+}
+
+// ---------- 공양간: 음식 받기 · 나눠 주기 · 공양 들기 ----------
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+function takeFood(k) {
+  closePops();
+  unlockSound();
+  me.item = k;
+  sendMe(true);
+  syncButtons(true);
+  bell("chime", 0.3);
+  npcSay(NPCS[2], pick(["맛있게 드세요 🙏", "천천히 드세요 🍵", "이웃과 나눠 드세요 😊"]));
+  toast(`${FOODS[k].emoji} ${FOODS[k].obj} 받았어요. 자리에 앉아 공양하거나 가까운 이웃에게 나눠 보세요. · You received ${FOODS[k].en}.`);
+}
+// 음식을 건넬 수 있는 가장 가까운 이웃 (접속자 또는 안내·법사 스님)
+function giveTarget() {
+  let best = null, bd = 80;
+  for (const [uid, r] of remotes) {
+    if (net && r.p.t && net.now() - r.p.t > 90000) continue;
+    const d = Math.hypot(r.rx - me.x, r.ry - me.y);
+    if (d < bd) { bd = d; best = { uid, name: nameOf(r.p.n) }; }
+  }
+  for (const n of NPCS.slice(0, 2)) {
+    const d = Math.hypot(n.x - me.x, n.y - me.y);
+    if (d < bd) { bd = d; best = { npc: n, name: n.name }; }
+  }
+  return best;
+}
+function giveFood() {
+  const kind = me.item;
+  if (!kind) return;
+  const tg = giveTarget();
+  if (!tg) { toast("가까이에 이웃이 없어요. 이웃 곁으로 다가가 보세요. · No one is close enough."); return; }
+  unlockSound();
+  const t = performance.now() / 1000;
+  gifts.push({ kind, fx: me.x, fy: me.y, to: tg.npc ? tg.npc.id : tg.uid, t0: t });
+  me.item = 0;
+  if (tg.npc) {
+    npcSay(tg.npc, "고맙습니다 🙏 잘 먹겠습니다", 0.7);
+    sendMe(true);
+  } else {
+    // 받는 사람이 무엇을 받았는지 알 수 있게, 건네는 동안만 음식과 상대를 함께 알린다
+    me.sendItem = kind;
+    me.g = tg.uid;
+    emit("give");
+    if (ready) net.addShare();
+    setTimeout(() => { me.sendItem = null; me.g = ""; sendMe(true); }, 800);
+  }
+  practice?.taskDone("offer");
+  bell("chime", 0.4);
+  toast(`${tg.name}님께 ${FOODS[kind].obj} 나눠 드렸어요. · You shared ${FOODS[kind].en}.`);
+  syncButtons(true);
+}
+function receiveFood(kind, n) {
+  me.item = kind;
+  sendMe(true);
+  syncButtons(true);
+  bell("chime", 0.5);
+  toast(`${FOODS[kind].emoji} ${nameOf(n)}님이 ${FOODS[kind].obj} 나눠 주셨어요. 💬 인사로 고마움을 전해 보세요. · Someone shared ${FOODS[kind].en} with you.`);
+}
+function eatFood() {
+  if (!me.item) return;
+  me.item = 0;
+  say(PHRASE_MEAL);
+  syncButtons(true);
+  toast("이 음식에 깃든 많은 이의 수고를 생각하며 감사히 먹겠습니다. · With gratitude for everyone who made this meal.");
+}
+
 async function hangLantern(color) {
   closePops();
   unlockSound();
@@ -454,8 +613,14 @@ function nearby() {
   if (Math.hypot(me.x - MOKTAK.x, me.y - MOKTAK.y) < 70) out.push("moktak");
   if (me.a === "sit") out.push("stand");
   else {
-    const ci = CUSHIONS.findIndex((c) => Math.hypot(c.x - me.x, c.y - me.y) < 26);
+    const ci = SEATS.findIndex((c) => Math.hypot(c.x - me.x, c.y - me.y) < 26);
     if (ci >= 0) out.push("sit:" + ci);
+  }
+  if (inHall(me.x, me.y) && me.y < OFFER_TABLE.y + 90 && Math.abs(me.x - 700) < 170) out.push("offer");
+  if (inRef(me.x, me.y) && me.y < COUNTER.y + COUNTER.h + 50) out.push("food");
+  if (me.item) {
+    if (giveTarget()) out.push("give");
+    out.push("eat");
   }
   if (inCourtyard(me.x, me.y)) out.push("lantern");
   if (Math.hypot(me.x - NPCS[0].x, me.y - NPCS[0].y) < 85) out.push("ask");
@@ -468,18 +633,24 @@ const CTX = {
   stand: ["일어서기", "Stand up", () => { standUp(); sendMe(true); }],
   lantern: ["🏮 연등 달기", "Hang a lantern", () => openPop("lantern-pop")],
   ask: ["🙏 안내 스님께 묻기", "Ask the guide", () => { npcSay(NPCS[0], "무엇이든 편하게 둘러보세요 🙏", 0); practice.openGuide(); }],
-  yebul: ["📋 함께 예불 드리기", "Join the service", () => practice.openYebul()]
+  yebul: ["📋 함께 예불 드리기", "Join the service", () => practice.openYebul()],
+  offer: ["🪷 공양 올리기", "Make an offering", () => openPop("offer-pop")],
+  food: ["🍚 공양 받기", "Get food", () => openPop("food-pop")],
+  give: ["🤲 나눠 주기", "Share", () => giveFood()],
+  eat: ["🥢 공양 들기", "Eat", () => eatFood()]
 };
 function syncButtons(force) {
   const list = joined ? nearby() : [];
-  const key = list.join(",") + "|" + me.a;
+  const key = list.join(",") + "|" + me.a + "|" + me.item;
   if (!force && key === ctxKey) return;
   ctxKey = key;
   const box = $("ctx");
   box.innerHTML = "";
   for (const k of list) {
     const [id, arg] = k.split(":");
-    const def = id === "sit" ? ["🧘 좌복에 앉기", "Sit", () => sitDown(Number(arg))] : CTX[id];
+    const def = id === "sit"
+      ? [SEATS[Number(arg)].kind === "table" ? "🧘 자리에 앉기" : "🧘 좌복에 앉기", "Sit", () => sitDown(Number(arg))]
+      : CTX[id];
     const b = document.createElement("button");
     b.type = "button";
     b.className = "btn ctx";
@@ -512,6 +683,28 @@ LANTERN_COLORS.forEach((c, i) => {
   b.setAttribute("aria-label", `${LANTERN_NAMES[i][0]} 연등 · ${LANTERN_NAMES[i][1]} lantern`);
   b.addEventListener("click", () => hangLantern(i));
   $("lantern-pop").append(b);
+});
+OFFERINGS.forEach((of, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "pop-item lantern-item";
+  const cv = document.createElement("canvas");
+  cv.width = 44; cv.height = 44;
+  drawOffering(cv.getContext("2d"), of.id, 22, 36, 2, 0);
+  b.append(cv, Object.assign(document.createElement("span"), { textContent: of.ko }));
+  b.setAttribute("aria-label", `${of.ko} 공양 · Offer ${of.en}`);
+  b.addEventListener("click", () => offer(i));
+  $("offer-pop").append(b);
+});
+FOODS.forEach((f, k) => {
+  if (!f) return;
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "pop-item lantern-item";
+  b.append(Object.assign(document.createElement("span"), { className: "big-emoji", textContent: f.emoji }), Object.assign(document.createElement("span"), { textContent: f.ko }));
+  b.setAttribute("aria-label", `${f.ko} · ${f.en}`);
+  b.addEventListener("click", () => takeFood(k));
+  $("food-pop").append(b);
 });
 function openPop(id) {
   const el = $(id);
@@ -643,12 +836,18 @@ function updateRemotes(dt) {
 // ---------- 스님 (컴퓨터가 움직이는 안내 캐릭터 · 각자 화면에만 있고 서버로 보내지 않음) ----------
 const NPCS = [
   { id: "npc-guide", name: "안내 스님", c: PLAYABLE, x: 815, y: 1400, d: 0, home: 0, a: "hap", phase: 0, bowAt: -9, say: "", sayAt: -9, greeted: false },
-  { id: "npc-master", name: "법사 스님", c: PLAYABLE + 1, x: 520, y: 392, d: 0, home: 0, a: "idle", phase: 0, bowAt: -9, say: "", sayAt: -9, greeted: false }
+  { id: "npc-master", name: "법사 스님", c: PLAYABLE + 1, x: 520, y: 392, d: 0, home: 0, a: "idle", phase: 0, bowAt: -9, say: "", sayAt: -9, greeted: false },
+  { id: "npc-cook", name: "공양주 보살", c: PLAYABLE + 2, x: REF.x + REF.w / 2, y: COUNTER.y - 8, d: 0, home: 0, a: "idle", phase: 0, bowAt: -9, say: "", sayAt: -9, greeted: false }
 ];
 function npcSay(n, text, delay = 0) { n.say = text; n.sayAt = performance.now() / 1000 + delay; }
 let npcLead = "idle"; // 예불 중 법사 스님이 함께하는 동작
 function updateNpcs(dt, t) {
-  const [guide, master] = NPCS;
+  const [guide, master, cook] = NPCS;
+  // 공양주 보살: 공양간에 들어오면 반긴다
+  const inR = joined && inRef(me.x, me.y);
+  if (inR && !cook.greeted) { cook.greeted = true; npcSay(cook, "어서 오세요, 공양 들고 가세요 🍚"); }
+  if (!inR) cook.greeted = false;
+  cook.a = inR && me.y < COUNTER.y + COUNTER.h + 50 ? "hap" : "idle";
   // 안내 스님: 가까이 오면 바라보고 합장, 처음 다가오면 인사
   const gd = Math.hypot(me.x - guide.x, me.y - guide.y);
   if (joined && gd < 130) {
@@ -657,7 +856,7 @@ function updateNpcs(dt, t) {
     guide.a = gd < 80 ? "hap" : "idle";
     if (!guide.greeted && gd < 80 && t - guide.sayAt > SAY_SECS) {
       guide.greeted = true;
-      npcSay(guide, "반갑습니다 🙏 대웅전에서 함께 예불 드려요");
+      npcSay(guide, pick(["반갑습니다 🙏 대웅전에서 함께 예불 드려요", "동쪽 공양간에서 차 한잔 하고 가세요 🍵", "불단 앞 공양상에 공양을 올려 보세요 🪷"]));
     }
   } else { guide.d = 0; guide.a = "hap"; if (gd > 260) guide.greeted = false; }
   // 법사 스님: 예불 중에는 함께 합장·절·입정, 평소에는 불단 옆에서 맞이
@@ -694,7 +893,9 @@ practice = initPractice({
   setHap,
   setMeditating,
   sitNearest,
-  isSitting: () => me.a === "sit" && me.sitOn >= 0,
+  isSitting: () => me.a === "sit" && me.sitOn >= 0 && me.sitOn < CUSHIONS.length,
+  openTraces: () => together.openTraces(),
+  openRooms: () => together.openRooms(),
   inHall: () => inHall(me.x, me.y),
   npc: (kind) => {
     npcLead = kind;
@@ -710,6 +911,24 @@ practice = initPractice({
   }
 });
 practice.setInstallable(false);
+
+// ---------- 함께하는 기능 연결 (법당 고르기 · 오늘의 흔적) ----------
+together = initTogether({
+  profile,
+  saveProfile: () => store(PROFILE_KEY, profile),
+  openSheet: practice.openSheet,
+  closeSheets: practice.closeSheets,
+  toast,
+  nameOf,
+  net: () => net,
+  ready: () => ready,
+  online: () => online,
+  switchRoom,
+  myBows: () => myBows,
+  lanternCount: () => Object.keys(lanternMap).length
+});
+$("status").addEventListener("click", () => together.openRooms());
+$("bows").addEventListener("click", () => together.openTraces());
 addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; practice.setInstallable(true); });
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
   addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
@@ -744,22 +963,46 @@ function frame(now) {
 
   const items = staticSprites(view);
   const actP = (bowAt, sit) => ({ p: (t - bowAt) / BOW_SECS, sit });
+  // 들고 있는 음식은 손 옆에
+  const held = (gg, x, y, ci, d, kind, sit) => {
+    if (!kind) return;
+    const sc = CHARS[ci]?.s || 1;
+    drawFood(gg, kind, x + (d === 1 ? -12 : 12) * sc, y - (sit ? 11 : 17) * sc, 13);
+  };
   const charAct = (a, bowAt) => (t - bowAt < BOW_SECS ? "bow" : a);
   for (const [uid, r] of remotes) {
     const p = r.p;
     if (net && p.t && net.now() - p.t > 90000) continue;
-    items.push({ y: r.ry, draw: (gg) => drawChar(gg, r.rx, r.ry, p.c, p.d, r.phase, r.moving && p.a !== "sit" ? "walk" : charAct(p.a, r.bowAt), actP(r.bowAt, p.a === "sit")) });
+    items.push({ y: r.ry, draw: (gg) => {
+      drawChar(gg, r.rx, r.ry, p.c, p.d, r.phase, r.moving && p.a !== "sit" ? "walk" : charAct(p.a, r.bowAt), actP(r.bowAt, p.a === "sit"));
+      held(gg, r.rx, r.ry, p.c, p.d, p.i, p.a === "sit");
+    } });
   }
-  if (joined) items.push({ y: me.y, draw: (gg) => drawChar(gg, me.x, me.y, profile.c, me.d, me.phase, charAct(me.a, me.bowAt), actP(me.bowAt, me.a === "sit")) });
+  if (joined) items.push({ y: me.y, draw: (gg) => {
+    drawChar(gg, me.x, me.y, profile.c, me.d, me.phase, charAct(me.a, me.bowAt), actP(me.bowAt, me.a === "sit"));
+    held(gg, me.x, me.y, profile.c, me.d, me.item, me.a === "sit");
+  } });
   for (const n of NPCS) items.push({ y: n.y, draw: (gg) => drawChar(gg, n.x, n.y, n.c, n.d, n.phase, charAct(n.a, n.bowAt), actP(n.bowAt, n.a === "sit")) });
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.draw(g, t, night, state);
 
+  // 건네는 음식이 포물선을 그리며 날아간다
+  for (let k = gifts.length - 1; k >= 0; k--) {
+    const gf = gifts[k], age = t - gf.t0;
+    if (age > 0.9) { gifts.splice(k, 1); continue; }
+    const npc = NPCS.find((n) => n.id === gf.to), rm = remotes.get(gf.to);
+    const to = npc ? npc : rm ? { x: rm.rx, y: rm.ry } : ready && gf.to === net.uid ? me : null;
+    if (!to) continue;
+    const u = Math.max(0, age / 0.9), e2 = u * u * (3 - 2 * u);
+    drawFood(g, gf.kind, gf.fx + (to.x - gf.fx) * e2, gf.fy + (to.y - gf.fy) * e2 - 22 - Math.sin(u * Math.PI) * 26, 15);
+  }
+
   drawLanternLines(g, t, lanternMap, night);
-  const meInHall = joined && inHall(me.x, me.y), meInBell = joined && inBell(me.x, me.y);
+  const meInHall = joined && inHall(me.x, me.y), meInBell = joined && inBell(me.x, me.y), meInRef = joined && inRef(me.x, me.y);
   fadeHall += ((meInHall ? 0.08 : 1) - fadeHall) * Math.min(1, dt * 5);
   fadeBell += ((meInBell ? 0.15 : 1) - fadeBell) * Math.min(1, dt * 5);
-  drawRoofs(g, fadeHall, fadeBell);
+  fadeRef += ((meInRef ? 0.08 : 1) - fadeRef) * Math.min(1, dt * 5);
+  drawRoofs(g, fadeHall, fadeBell, fadeRef, t);
   if (night) drawNight(g, view, t, lanternMap);
 
   // 이름·말풍선 (화면 좌표로 선명하게)
@@ -767,7 +1010,7 @@ function frame(now) {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   const NAME_FONT = "600 12px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
   const SAY_FONT = "500 13px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-  const hiddenByRoof = (x, y) => (inHall(x, y) && fadeHall > 0.5) || (inBell(x, y) && fadeBell > 0.5 && !meInBell);
+  const hiddenByRoof = (x, y) => (inHall(x, y) && fadeHall > 0.5) || (inRef(x, y) && fadeRef > 0.5) || (inBell(x, y) && fadeBell > 0.5 && !meInBell);
   const tags = [];
   // say: 인사말 번호(접속자) 또는 글(스님 NPC) · kind: me | npc | other
   const addTag = (id, x, y, name, kind, say, sayAt, ci) => {
