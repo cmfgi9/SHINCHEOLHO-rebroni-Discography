@@ -377,7 +377,8 @@ Firestore가 아닌 **Realtime Database**를 씁니다. 아래 설정 전에는 
 ```
 albums (컬렉션)
  └─ {albumId} 문서: ordinal, title, artist, label, upload, release, upc,
-                    cover, links{spotify_album, apple_album, youtube_album},
+                    cover, links{spotify_album, apple_album, youtube_album,
+                                 melon_album, genie_album, bugs_album, flo_album},
                     concept{ko, en}, story{ko, en},
                     tracks[{no, title, isrc, links{...}, lyrics{ko, en},
                             audioUrl, audioPath, unlisted}]
