@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Lip Sync | Rebroni Music</title>
+  <meta name="description" content="캐릭터 이미지와 입 모양 이미지, 음원, SRT 가사로 캐릭터가 노래하는 립싱크 영상을 브라우저에서 만드는 도구">
+  <meta name="theme-color" content="#0b0b12">
+  <link rel="icon" href="../visualizer/icon.svg" type="image/svg+xml">
+  <!-- 스타일은 비주얼라이저와 공유하고 lipsync.css로 덧붙임 -->
+  <link rel="stylesheet" href="../visualizer/viz.css?v=4">
+  <link rel="stylesheet" href="lipsync.css?v=1">
+</head>
+
+<body>
+  <header class="topbar">
+    <a href="../" class="back" aria-label="Discography로 돌아가기">←</a>
+    <h1>Lip Sync <span class="en-sub">노래하는 캐릭터 · Singing character</span></h1>
+    <span id="env-badge" class="badge"></span>
+  </header>
+
+  <main class="layout lip" id="layout">
+    <section class="stage-wrap">
+      <div class="stage" id="stage-box">
+        <canvas id="stage" width="720" height="1280" aria-label="립싱크 미리보기"></canvas>
+        <div id="render-overlay" class="rec-overlay" hidden>
+          <div class="rec-dot"></div>
+          <div id="render-text">렌더링 준비 중…</div>
+          <div class="rec-bar"><div id="render-progress"></div></div>
+          <div id="render-eta" class="small"></div>
+          <button id="render-cancel" class="btn ghost small">취소 (Cancel)</button>
+        </div>
+      </div>
+
+      <div class="player">
+        <button id="play-btn" class="round main" aria-label="재생" disabled>▶</button>
+        <div class="seek">
+          <input id="seek" type="range" min="0" max="0" step="0.01" value="0" aria-label="재생 위치" disabled>
+          <div class="time"><span id="cur">0:00</span><span id="now-title" class="now-title">캐릭터 이미지와 음원을 넣으세요 · Add image &amp; audio</span><span id="dur">0:00</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="char" role="tab">🖼 캐릭터</button>
+        <button class="tab" data-tab="song" role="tab">🎤 음원·가사</button>
+        <button class="tab" data-tab="move" role="tab">✨ 움직임</button>
+        <button class="tab" data-tab="render" role="tab">🎬 렌더링</button>
+      </nav>
+
+      <!-- 캐릭터 -->
+      <div class="tabpane active" data-pane="char">
+        <label class="drop" for="multi-input" id="multi-drop">
+          <strong>이미지 넣기 (여러 장 가능) · Add images</strong>
+          <span>파일 이름 끝으로 자리를 찾아요: <code>_base</code>(기본) <code>_a</code> <code>_eo</code> <code>_o</code> <code>_u</code> <code>_i</code> <code>_e</code> <code>_blink</code><br>한글도 됩니다: 기본·아·어·오·우·이·에·눈 — 아래 칸을 눌러 하나씩 넣어도 돼요</span>
+        </label>
+        <input id="multi-input" type="file" accept="image/*" multiple hidden>
+
+        <div id="slots" class="slots"></div>
+        <p id="slot-info" class="muted small"></p>
+
+        <details class="help-box">
+          <summary>입 모양 이미지 만드는 법 · How to make mouth images</summary>
+          <ul class="small muted">
+            <li><strong>기본</strong> — 입을 다문 정면 이미지 (ㅁ·ㅂ·ㅍ 발음과 쉬는 구간에 사용)</li>
+            <li><strong>아</strong> — 입을 위아래로 크게 벌림 (ㅏ·ㅑ) · <strong>가장 중요</strong>, 이것만 있어도 동작</li>
+            <li><strong>어</strong> — 세로로 중간쯤 벌림 (ㅓ·ㅕ)</li>
+            <li><strong>오</strong> — 입술을 동그랗게 모음 (ㅗ·ㅛ)</li>
+            <li><strong>우</strong> — 입술을 작게 오므려 내밈 (ㅜ·ㅠ)</li>
+            <li><strong>이</strong> — 옆으로 벌려 이가 살짝 보임 (ㅣ·ㅡ)</li>
+            <li><strong>에</strong> — 옆으로 반쯤 벌림 (ㅔ·ㅐ)</li>
+            <li><strong>눈 감음</strong>(선택) — 눈만 감은 이미지 (눈 깜빡임)</li>
+          </ul>
+          <p class="small muted">모든 이미지는 <strong>기본 이미지와 크기·얼굴 위치가 같아야</strong> 합니다. 기본 이미지에서 입 부분만 고쳐 그리기(인페인팅)로 만들면 가장 잘 맞아요.
+            영상에는 아래에서 정한 <strong>입 영역 안쪽만</strong> 바꿔 끼우므로 머리카락·배경이 조금 달라져도 괜찮습니다. 없는 모양은 가장 비슷한 모양으로 대신합니다.</p>
+        </details>
+
+        <div class="field">
+          <span>영역 맞추기 · Regions <small class="muted">— 고른 뒤 미리보기를 눌러 위치를 옮기세요</small></span>
+          <div class="seg" id="edit-mode">
+            <button data-v="" class="on">끄기</button><button data-v="mouth">👄 입 영역</button><button data-v="eyes">👁 눈 영역</button>
+          </div>
+        </div>
+        <div id="mouth-opts" class="sub-opts">
+          <label class="field">입 영역 가로 · Width <output id="m-rx-out"></output>
+            <input id="m-rx" type="range" min="0.03" max="0.4" step="0.005"></label>
+          <label class="field">입 영역 세로 · Height <output id="m-ry-out"></output>
+            <input id="m-ry" type="range" min="0.015" max="0.3" step="0.005"></label>
+          <label class="field">경계 부드러움 · Feather <output id="m-feather-out"></output>
+            <input id="m-feather" type="range" min="0.05" max="1" step="0.05"></label>
+          <p class="muted small">입을 벌리면 턱도 움직이므로 턱 끝까지 넉넉하게 잡는 편이 자연스럽습니다. 각 칸의 [보기]로 모양이 잘 맞는지 확인하세요.</p>
+        </div>
+        <div id="eyes-opts" class="sub-opts" hidden>
+          <label class="field">눈 영역 가로 · Width <output id="e-rx-out"></output>
+            <input id="e-rx" type="range" min="0.05" max="0.5" step="0.005"></label>
+          <label class="field">눈 영역 세로 · Height <output id="e-ry-out"></output>
+            <input id="e-ry" type="range" min="0.015" max="0.3" step="0.005"></label>
+        </div>
+      </div>
+
+      <!-- 음원·가사 -->
+      <div class="tabpane" data-pane="song">
+        <label class="drop" for="song-input" id="song-drop">
+          <strong>음원과 가사 파일 넣기 · Audio + SRT</strong>
+          <span>음원(WAV · MP3 · M4A · FLAC · OGG)과 가사(.srt · .vtt · .lrc)를 함께 골라도 됩니다</span>
+        </label>
+        <input id="song-input" type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.aac,.ogg,.opus,.srt,.vtt,.lrc,.txt" multiple hidden>
+        <p id="song-info" class="muted small"></p>
+
+        <label class="field">가사 (시간 포함, 고칠 수 있어요) · Lyrics with timing
+          <textarea id="lyrics" class="chapters" rows="9" spellcheck="false" placeholder="1&#10;00:00:12,300 --> 00:00:16,800&#10;첫 번째 가사 줄&#10;&#10;2&#10;00:00:17,000 --> 00:00:21,500&#10;두 번째 가사 줄"></textarea></label>
+        <p id="lyrics-info" class="muted small"></p>
+
+        <label class="field">가사 시간 보정 · Offset <output id="offset-out"></output>
+          <input id="offset" type="range" min="-1.5" max="1.5" step="0.05"></label>
+        <label class="check"><input id="snap" type="checkbox"> 음절을 소리가 시작되는 지점에 맞추기 · Snap to onsets</label>
+        <p class="muted small">SRT에는 줄 단위 시간만 있어서 줄 안의 음절은 고르게 나눈 뒤 소리 변화에 맞춥니다. 줄을 짧게(단어·구절 단위로) 나눌수록 입 모양이 정확해져요.
+          가사가 없으면 음량에 따라 입을 여닫기만 합니다.</p>
+      </div>
+
+      <!-- 움직임 -->
+      <div class="tabpane" data-pane="move">
+        <label class="field">입 모양 전환 · Blend <output id="blend-out"></output>
+          <input id="blend" type="range" min="20" max="160" step="10"></label>
+        <label class="field">음량 반영 · Follow loudness <output id="amp-out"></output>
+          <input id="amp" type="range" min="0" max="1" step="0.05"></label>
+        <label class="field">몸 움직임 · Motion <output id="motion-out"></output>
+          <input id="motion" type="range" min="0" max="1" step="0.05"></label>
+        <label class="check"><input id="blink" type="checkbox"> 눈 깜빡임 (눈 감음 이미지 필요) · Blink</label>
+
+        <div class="field">
+          <span>화면 구도 · Framing</span>
+          <label class="field">확대 · Zoom <output id="zoom-out"></output>
+            <input id="zoom" type="range" min="1" max="2.5" step="0.05"></label>
+          <label class="field">가로 위치 · Pan X <output id="panx-out"></output>
+            <input id="panx" type="range" min="-1" max="1" step="0.02"></label>
+          <label class="field">세로 위치 · Pan Y <output id="pany-out"></output>
+            <input id="pany" type="range" min="-1" max="1" step="0.02"></label>
+        </div>
+
+        <div class="field">
+          <span>자막 · Subtitles</span>
+          <label class="check"><input id="subs" type="checkbox"> 가사 자막 표시 · Show lyrics</label>
+          <label class="field">글자 크기 · Size <output id="subsize-out"></output>
+            <input id="subsize" type="range" min="0.5" max="1.8" step="0.05"></label>
+          <label class="field">세로 위치 · Position <output id="suby-out"></output>
+            <input id="suby" type="range" min="0.08" max="0.95" step="0.01"></label>
+          <div class="row"><label class="color">글자 색 <input id="subcolor" type="color"></label></div>
+        </div>
+      </div>
+
+      <!-- 렌더링 -->
+      <div class="tabpane" data-pane="render">
+        <div class="field">
+          <span>화면 비율 · Aspect</span>
+          <div class="seg" id="aspect">
+            <button data-v="9:16">9:16 쇼츠</button><button data-v="16:9">16:9</button><button data-v="1:1">1:1</button>
+          </div>
+        </div>
+        <div class="field">
+          <span>해상도 · Resolution</span>
+          <div class="seg" id="res">
+            <button data-v="720">720p</button><button data-v="1080">1080p</button>
+          </div>
+        </div>
+        <div class="field">
+          <span>프레임 · FPS</span>
+          <div class="seg" id="fps">
+            <button data-v="24">24</button><button data-v="30">30</button>
+          </div>
+        </div>
+        <div class="field">
+          <span>화질 · Quality</span>
+          <div class="seg" id="quality">
+            <button data-v="std">표준</button><button data-v="high">고화질</button>
+          </div>
+        </div>
+        <p id="render-estimate" class="muted small"></p>
+        <button id="render-btn" class="btn primary" disabled>🎬 MP4 영상 만들기 · Render</button>
+        <p class="muted small">
+          음원·이미지·가사는 이 기기(브라우저) 안에서만 처리되고 어디에도 업로드되지 않습니다.
+          프레임을 한 장씩 그려 인코딩하므로 실제 재생 시간보다 빨리 끝나고 프레임이 빠지지 않습니다 (PC용 Chrome·Edge 권장).
+        </p>
+        <div id="render-result" class="result" hidden>
+          <p id="render-result-text"></p>
+          <a id="render-dl" class="btn primary" download hidden>⬇ 저장</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <audio id="audio" preload="auto"></audio>
+
+  <script src="lipsync.js?v=1"></script>
+</body>
+
+</html>

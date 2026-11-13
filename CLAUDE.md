@@ -27,6 +27,7 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 | `/privacy.html` | **개인정보 처리방침** (시행일·변경 이력 포함) | `privacy.html` |
 | `/visualizer/` | **쇼츠 영상 제작 Visualizer** — 음원 + 9:16 배경(이미지/영상 슬라이드쇼) + 스펙트럼 → MP4 추출(1080p~4K). PWA | `visualizer/` |
 | `/lofi/` | **Lofi Visualizer** — 음원 플레이리스트 + 16:9 배경(이미지/반복 영상) + Lofi 효과 → 1~3시간 유튜브용 MP4 **오프라인 렌더링**, 유튜브 챕터 생성 | `lofi/` |
+| `/lipsync/` | **Lip Sync(립싱크)** — 캐릭터 기본 이미지 + 입 모양 이미지(아·어·오·우·이·에) + 음원 + SRT 가사 → 캐릭터가 노래하는 MP4 **오프라인 렌더링**(9:16·16:9·1:1), 눈 깜빡임·자막 | `lipsync/` |
 | `/meditate/` | **Meditate(명상)** — 자연의 소리 믹서(브라우저 합성), 생성형 앰비언트·스템 재조합·앨범 음원, 명상/슬립 타이머·벨, 가이드 명상, 호흡 가이드, 야간 모드, 프리셋·공유 링크, 캘린더 알림. PWA | `meditate/` |
 | `/rest/` | **Rest(쉼터)** — 5개 공간: 촛불의 방·소원의 뜰(풍등·기도·돌탑)·나를 찾는 명상·숲길 산책·푸른 바다(수영). 전체 화면 캔버스 + 브라우저 합성 사운드, 주소 `#candle`·`#wish`·`#self`·`#walk`·`#ocean` | `rest/` |
 | `/temple/` | **온라인 법당** — 여러 사람이 기본 캐릭터로 절 마당·대웅전·공양간을 거닐며 합장·절(108배)·범종·목탁·좌복·연등 달기, 불전 공양(공양미·초·향·꽃), 공양간 음식 받기·나눠 주기. 안내 스님·법사 스님·공양주 보살(NPC), 📿 수행 메뉴(예불 순서 따라 하기·1분 명상·오늘의 법구·발원 노트·오늘의 수행·소리 설정), 법당 나누기(방 20곳·주소 `?room=N`), 오늘의 흔적(다녀간 이웃·합계), 레브로니 앨범 배경 음악. 자유 채팅 없음(정해진 인사말만). 실시간 동기화는 Firebase **Realtime Database** + 익명 로그인. PWA | `temple/`, `database.rules.json` |
@@ -62,6 +63,19 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 - 배경 영상은 `CanvasSink.canvases()`로 순서대로 읽고 끝나면 다시 처음부터(반복). 디코딩 불가 코덱이면 첫 장면을 정지 배경으로 사용.
 - 글꼴(Nanum Pen Script, IBM Plex Mono)은 `lofi/fonts/`에 **자체 호스팅**(OFL) — 외부 글꼴 서비스로 요청을 보내지 않기 위함.
 - 설정은 localStorage `rebroni-lofi-settings`, 곡별 가사는 `rebroni-lofi-lyrics`(키: `파일이름|크기`, 최대 200곡). 캐시 버스팅: `lofi/index.html`의 `lofi.js?v=`, `lofi.css?v=`, `fonts/fonts.css?v=`.
+
+### Lip Sync (`lipsync/`)
+- 비모듈 IIFE 스크립트(`lipsync.js`). 스타일은 `../visualizer/viz.css`를 공유하고 `lipsync.css`로 덧붙임. 서비스 워커 없음.
+- **입 모양 결정**: 가사 글자 → 음절 단위(`unitsOf`) → 입 모양 구간(`segs`). 한글은 자모 분해(중성 → `JUNG` 표, ㅁ·ㅂ·ㅍ은 입 닫힘),
+  영문은 철자의 모음 묶음 기준 근사. 줄(SRT cue) 안의 음절은 고르게 나눈 뒤 음원의 소리 시작점(`onset`, 100Hz 음량 곡선)에 맞춘다(`snapBounds`).
+  가사가 없으면 음량만으로 [아]를 여닫는다. 없는 입 모양 이미지는 `FALLBACK` 순서로 대신한다.
+- **그리기**: 기본 이미지 위에 입 영역(타원, 가장자리 흐림)만 잘라 낸 조각(`getPatch`)을 비중대로 덧그린다 — 이미지 전체를 바꾸지 않으므로
+  입 모양 이미지의 머리카락·배경이 조금 달라도 깜빡이지 않는다. 영역·이미지가 바뀌면 `patchVer`를 올려 조각을 다시 만든다.
+  눈 깜빡임도 같은 방식(눈 영역 + [눈 감음] 이미지). 모든 이미지는 기본 이미지와 같은 크기·얼굴 위치여야 한다.
+- 장면은 시간 `t`만으로 결정(미리보기 = 결과). 렌더링은 Lofi와 같은 오프라인 방식(`../visualizer/vendor/mediabunny.min.mjs`,
+  `showSaveFilePicker`가 있으면 디스크에 바로 기록, 없으면 메모리 버퍼).
+- 설정은 localStorage `rebroni-lipsync-settings`(영역·움직임·자막·출력 설정만, 이미지·음원·가사는 저장하지 않음).
+  캐시 버스팅: `lipsync/index.html`의 `lipsync.js?v=`, `lipsync.css?v=`.
 
 ### Meditate (`meditate/`)
 - ES 모듈 3개: `audio-engine.js`(AudioContext·버스·자연의 소리/벨/신호음 합성·페이드), `music.js`(GenerativeMusic·StemMusic·AlbumPlayer·VoicePlayer),
@@ -209,7 +223,7 @@ python -m http.server 8000
 - **공개 저장소**다. Firebase 웹 설정(`apiKey` 등)은 공개돼도 되지만, 그 외 토큰·비밀번호·서비스 계정 키는 절대 커밋하지 않는다.
 - `main`으로 push = 즉시 운영 배포. push 전에 로컬에서 동작을 확인한다.
 - `albums.json`과 Firestore 데이터는 자동 동기화되지 않는다. 폴백 데이터가 오래될 수 있음.
-- `visualizer/vendor/mediabunny.min.mjs`는 외부 라이브러리 번들(라이선스 파일 동봉) — 직접 수정하지 않는다. `lofi/`도 이 파일을 import한다.
+- `visualizer/vendor/mediabunny.min.mjs`는 외부 라이브러리 번들(라이선스 파일 동봉) — 직접 수정하지 않는다. `lofi/`·`lipsync/`도 이 파일을 import한다.
 
 ## 관련 도구
 

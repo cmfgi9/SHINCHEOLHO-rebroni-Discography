@@ -1,0 +1,60 @@
+/* Lip Sync: ../visualizer/viz.css 위에 덧붙임 */
+
+.topbar h1 .en-sub { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+
+.layout.lip .player { max-width: none; }
+.stage.r169 { width: 100%; height: auto; aspect-ratio: 16 / 9; }
+.stage.r11 { width: min(100%, 62vh); height: auto; aspect-ratio: 1 / 1; }
+@media (min-width: 860px) {
+  .layout.lip.wide { grid-template-columns: minmax(0, 1.5fr) minmax(330px, 1fr); }
+  .layout.lip.square { grid-template-columns: minmax(0, 1fr) minmax(330px, 1fr); }
+}
+.stage canvas.editing { cursor: crosshair; touch-action: none; }
+
+.drop code { font-size: 11px; padding: 1px 4px; border-radius: 4px; background: rgba(255, 255, 255, .08); }
+
+/* 이미지 칸 */
+.slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.slot {
+  display: grid; gap: 4px; padding: 6px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--panel-2); font-size: 12px; text-align: center;
+}
+.slot.filled { border-color: rgba(109, 255, 176, .45); }
+.slot.forced { border-color: var(--accent); }
+.slot label { display: grid; gap: 4px; cursor: pointer; }
+.slot .thumb {
+  aspect-ratio: 4 / 3; border-radius: 6px; overflow: hidden; background: #000;
+  display: grid; place-items: center; color: var(--muted); font-size: 20px;
+}
+.slot .thumb canvas { width: 100%; height: 100%; display: block; }
+.slot .thumb [hidden] { display: none; }
+.slot .name { color: var(--text); font-weight: 600; }
+.slot .name small { color: var(--muted); font-weight: 400; }
+.slot .slot-btns { display: flex; gap: 4px; }
+.slot .slot-btns button {
+  flex: 1; padding: 4px 0; border-radius: 6px; cursor: pointer; font-size: 11px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+}
+.slot .slot-btns button:disabled { opacity: .3; cursor: default; }
+.slot.forced .see { color: var(--accent); border-color: var(--accent); }
+@media (max-width: 420px) { .slots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.help-box { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.help-box summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.help-box ul { margin: 8px 0; padding-left: 18px; display: grid; gap: 3px; }
+.help-box strong { color: var(--text); }
+
+.sub-opts { display: grid; gap: 8px; }
+.sub-opts[hidden] { display: none; }
+.field .field { color: var(--muted); }
+.field small { font-weight: 400; }
+
+.chapters {
+  width: 100%; resize: vertical;
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+  font: 12px/1.6 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+#render-btn { width: 100%; }
+.rec-overlay .small { color: var(--muted); }
+#render-progress { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
