@@ -35,6 +35,9 @@ function setStatus(id, msg, cls = "") {
 let currentUser = null;
 let editingId = null; // null = 새 앨범
 
+// 국내 스트리밍 서비스 앨범 링크 — albums 문서 links.{키}_album (예: links.melon_album)
+const KR_STREAMING = ["melon", "genie", "bugs", "flo"];
+
 // 업로드 가능한 음원 포맷 → Storage contentType
 const AUDIO_TYPES = {
   mp3: "audio/mpeg",
@@ -317,7 +320,8 @@ $("btn-migrate-r2").addEventListener("click", async e => {
 
 function clearForm() {
   ["f-id", "f-ordinal", "f-upc", "f-title", "f-upload", "f-release", "f-cover",
-    "f-spotify-album", "f-apple-album", "f-youtube-album", "f-concept-ko", "f-concept-en",
+    "f-spotify-album", "f-apple-album", "f-youtube-album", ...KR_STREAMING.map(k => `f-${k}-album`),
+    "f-concept-ko", "f-concept-en",
     "f-story-ko", "f-story-en"]
     .forEach(id => $(id).value = "");
   $("f-artist").value = "SHINCHEOLHO-rebroni";
@@ -340,6 +344,7 @@ function fillForm(a) {
   $("f-spotify-album").value = a.links?.spotify_album || "";
   $("f-apple-album").value = a.links?.apple_album || "";
   $("f-youtube-album").value = a.links?.youtube_album || "";
+  KR_STREAMING.forEach(k => { $(`f-${k}-album`).value = a.links?.[`${k}_album`] || ""; });
   $("f-concept-ko").value = a.concept?.ko || "";
   $("f-concept-en").value = a.concept?.en || "";
   $("f-story-ko").value = a.story?.ko || "";
@@ -568,6 +573,13 @@ function collectForm() {
   if (sa) links.spotify_album = sa;
   if (aa) links.apple_album = aa;
   if (ya) links.youtube_album = ya;
+  KR_STREAMING.forEach(k => {
+    const v = $(`f-${k}-album`).value.trim();
+    if (v) links[`${k}_album`] = v;
+  });
+  for (const v of Object.values(links)) {
+    if (!/^https?:\/\//i.test(v)) throw new Error(`스트리밍 링크는 https:// 로 시작해야 합니다: ${v}`);
+  }
 
   const data = {
     ordinal,

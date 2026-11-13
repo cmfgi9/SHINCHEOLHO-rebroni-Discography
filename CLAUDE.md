@@ -154,7 +154,7 @@ python -m http.server 8000
 
 | 컬렉션/경로 | 내용 | 읽기 / 쓰기 |
 |---|---|---|
-| `albums/{albumId}` | 앨범 + `tracks[]` | 공개 / 관리자 |
+| `albums/{albumId}` | 앨범 + `tracks[]`. 앨범 링크 `links{spotify_album, apple_album, youtube_album, melon_album, genie_album, bugs_album, flo_album}` (입력한 것만 버튼 표시) | 공개 / 관리자 |
 | `notes/{autoId}` | 창작 노트: `title, body, html, media[], date, tags[], albumId, published, createdAt, updatedAt` | `published`만 공개 / 관리자 |
 | `videos/{유튜브ID 11자}` | `youtubeId, title, kind(album\|unreleased\|etc), albumId, track, date, description, isShort, published, …` | `published`만 공개 / 관리자 |
 | `guestbook/{id}` | 방명록 (비밀번호 해시로 셀프 soft delete) | 공개 / 누구나 작성 |

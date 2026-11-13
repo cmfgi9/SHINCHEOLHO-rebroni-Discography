@@ -61,6 +61,15 @@ document.getElementById("fanwall-btn")?.addEventListener("click", e => {
   scrollToId("guestbook");
 });
 
+// 국내 스트리밍 서비스 앨범 링크: [links 키 접두어, 버튼 이름, 마우스를 올렸을 때 영문 안내]
+// admin에서 입력한 서비스만 버튼 표시 (links.melon_album 등)
+const KR_STREAMING = [
+  ["melon", "멜론", "Listen on Melon"],
+  ["genie", "지니", "Listen on Genie"],
+  ["bugs", "벅스", "Listen on Bugs"],
+  ["flo", "FLO", "Listen on FLO"]
+];
+
 function getYouTubeId(url) {
   if (!url) return null;
   try {
@@ -199,6 +208,12 @@ async function main() {
           ${links.spotify_album ? `<a href="${escapeHtml(links.spotify_album)}" target="_blank" rel="noopener" class="tbtn">Spotify</a>` : ""}
           ${links.apple_album ? `<a href="${escapeHtml(links.apple_album)}" target="_blank" rel="noopener" class="tbtn">Apple Music</a>` : ""}
           ${links.youtube_album ? `<a href="${escapeHtml(links.youtube_album)}" target="_blank" rel="noopener" class="tbtn">YouTube</a>` : ""}
+          ${KR_STREAMING.map(([key, label, en]) => {
+            const url = links[`${key}_album`];
+            return url && /^https?:\/\//i.test(url)
+              ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="tbtn" title="${en}">${label}</a>`
+              : "";
+          }).join("")}
           ${albumPlayBtn}
           ${meditateBtn}
         </div>
