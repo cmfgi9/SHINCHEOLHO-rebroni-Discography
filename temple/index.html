@@ -14,8 +14,9 @@
   <meta property="og:description" content="함께 거니는 온라인 법당 · Walk, bow and hang lanterns together in an online temple">
   <meta property="og:image" content="https://music.rebroni.com/album4-journey-serenity.jpg">
   <meta property="og:url" content="https://music.rebroni.com/temple/">
-  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주세요 (temple.js 안의 world.js?v=·net.js?v=·practice.js?v=, practice.js 안의 content.js?v=, 그리고 sw.js의 SHELL·VERSION도 함께) -->
-  <link rel="stylesheet" href="temple.css?v=2">
+  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주세요 (temple.js 안의 world.js?v=·net.js?v=·practice.js?v=·together.js?v=, practice.js 안의 content.js?v=,
+       together.js 안의 net.js?v=·world.js?v=, 그리고 sw.js의 SHELL·VERSION도 함께) -->
+  <link rel="stylesheet" href="temple.css?v=3">
 </head>
 
 <body>
@@ -24,7 +25,7 @@
   <header class="bar">
     <a href="../rest/" class="b" aria-label="쉼터로 돌아가기">← <span class="hide-xs">쉼터</span></a>
     <h1><span class="hide-xs">온라인 </span>법당 <span class="en-sub">Online Temple</span></h1>
-    <span id="status" class="pill" data-kind="idle" aria-live="polite"></span>
+    <button id="status" class="pill pill-btn" type="button" data-kind="idle" aria-live="polite" aria-label="법당 고르기 · Halls"></button>
     <button id="night-btn" class="b" type="button" aria-label="낮·밤 바꾸기 · Day/Night" title="낮·밤 바꾸기">🌙</button>
     <button id="sound-btn" class="b" type="button" aria-label="소리">🔈</button>
     <button id="settings-btn" class="b" type="button" aria-label="소리 설정 · Sound settings" title="소리 설정">⚙️</button>
@@ -53,8 +54,8 @@
   <!-- 조작 -->
   <div id="hud" class="hud" hidden>
     <div class="hud-left">
-      <span id="bows" class="pill"></span>
-      <button id="tasks-pill" class="pill pill-btn" type="button" title="오늘의 수행 · Today's practice">✅ 오늘의 수행 0/4</button>
+      <button id="bows" class="pill pill-btn" type="button"></button>
+      <button id="tasks-pill" class="pill pill-btn" type="button" title="오늘의 수행 · Today's practice">✅ 오늘의 수행 0/5</button>
       <button id="music-pill" class="pill pill-btn music" type="button" hidden></button>
     </div>
     <div id="toast" class="toast" aria-live="polite"></div>
@@ -68,6 +69,8 @@
       </div>
       <div id="say-pop" class="pop" hidden></div>
       <div id="lantern-pop" class="pop lantern-pop" hidden></div>
+      <div id="offer-pop" class="pop four-pop" hidden></div>
+      <div id="food-pop" class="pop four-pop" hidden></div>
     </div>
     <!-- 예불 순서 (주보처럼 위쪽에) -->
     <section id="yebul" class="yebul" hidden aria-label="예불 순서 · Service">
@@ -96,6 +99,8 @@
       <button type="button" class="tile" data-menu="beopgu"><span class="ic">📜</span><strong>오늘의 법구</strong><small>마음에 새길 한 구절</small></button>
       <button type="button" class="tile" data-menu="vow"><span class="ic">📝</span><strong>발원 노트</strong><small>이 기기에만 간직</small></button>
       <button type="button" class="tile" data-menu="tasks"><span class="ic">✅</span><strong>오늘의 수행 <span id="menu-tasks-count"></span></strong><small>매일 새로 시작</small></button>
+      <button type="button" class="tile" data-menu="traces"><span class="ic">👣</span><strong>오늘의 흔적</strong><small>다녀간 이웃 · 공양 · 나눔</small></button>
+      <button type="button" class="tile" data-menu="rooms"><span class="ic">🪷</span><strong>법당 고르기</strong><small>다른 법당으로 · 주소 복사</small></button>
       <button type="button" class="tile" data-menu="guide"><span class="ic">❓</span><strong>처음 오신 분 안내</strong><small>이동 · 동작 · 장소</small></button>
       <button type="button" class="tile" data-menu="settings"><span class="ic">⚙️</span><strong>소리 설정</strong><small>환경음 · 효과음 · 배경 음악</small></button>
       <button type="button" class="tile" data-menu="install" hidden><span class="ic">📲</span><strong>앱으로 설치</strong><small>홈 화면에 추가</small></button>
@@ -165,7 +170,31 @@
     <div class="row"><button type="button" id="guide-yebul" class="btn primary">📋 함께 예불 드리기</button><button type="button" class="btn ghost" data-close>둘러볼게요</button></div>
   </section>
 
-  <script type="module" src="temple.js?v=3"></script>
+  <!-- 법당 고르기 -->
+  <section id="rooms-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="rm-title" hidden>
+    <div class="sheet-head"><h2 id="rm-title">🪷 법당 고르기 <span class="en-sub">Halls</span></h2><button type="button" class="x" data-close aria-label="닫기 · Close">✕</button></div>
+    <p class="sheet-lead">어느 법당에서나 같은 도량을 이용해요. 연등·절·공양은 모든 법당이 함께 나누고, 함께 걷는 이웃만 법당마다 달라요.
+      <span class="en-sub">Every hall is the same temple; only the people you walk with differ.</span></p>
+    <ul id="rooms-list" class="rooms-list"></ul>
+    <div class="row">
+      <button type="button" id="rooms-refresh" class="btn small">↻ 인원 새로고침</button>
+      <button type="button" id="rooms-copy" class="btn small">🔗 이 법당 주소 복사</button>
+    </div>
+    <p id="rooms-note" class="fine"></p>
+  </section>
+
+  <!-- 오늘의 흔적 -->
+  <section id="traces-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="tr-title" hidden>
+    <div class="sheet-head"><h2 id="tr-title">👣 오늘의 흔적 <span class="en-sub">Today's traces</span></h2><button type="button" class="x" data-close aria-label="닫기 · Close">✕</button></div>
+    <ul id="traces-stats" class="traces-stats"></ul>
+    <h3 class="sheet-sub">오늘 다녀간 이웃 <span id="traces-count"></span> <span class="en-sub">Visitors today</span></h3>
+    <div id="traces-names" class="names"></div>
+    <label class="check"><input type="checkbox" id="traces-me"> 내 이름도 남기기 <span class="en-sub">Leave my name too</span></label>
+    <p class="fine">이름은 정해진 낱말로 만든 것이에요. 다녀간 기록(이름·캐릭터·시각)은 이틀 뒤 지워지고, 체크를 끄면 내 기록은 바로 지워져요.</p>
+    <div class="row"><button type="button" id="traces-refresh" class="btn small">↻ 새로고침</button></div>
+  </section>
+
+  <script type="module" src="temple.js?v=4"></script>
 </body>
 
 </html>

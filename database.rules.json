@@ -22,12 +22,58 @@
           "$other": { ".validate": false }
         }
       },
+      "rooms": {
+        "$room": {
+          "players": {
+            ".read": true,
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && $room.matches(/^r[0-9]+$/) && $room.length <= 3",
+              ".validate": "newData.hasChildren(['n', 'c', 'x', 'y', 'd', 'a', 's', 'sn', 'e', 'en', 'i', 'g', 't'])",
+              "n": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 255" },
+              "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
+              "x": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1640" },
+              "y": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1720" },
+              "d": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+              "a": { ".validate": "newData.val() === 'idle' || newData.val() === 'walk' || newData.val() === 'hap' || newData.val() === 'sit'" },
+              "s": { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 10" },
+              "sn": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000" },
+              "e": { ".validate": "newData.val() === '' || newData.val() === 'bow' || newData.val() === 'bell' || newData.val() === 'moktak' || newData.val() === 'give'" },
+              "en": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000" },
+              "i": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4" },
+              "g": { ".validate": "newData.isString() && newData.val().length <= 40 && newData.val().matches(/^[A-Za-z0-9]*$/)" },
+              "t": { ".validate": "newData.val() === now" },
+              "$other": { ".validate": false }
+            }
+          }
+        }
+      },
+      "presence": {
+        ".read": true,
+        "$room": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && $room.matches(/^r[0-9]+$/) && $room.length <= 3",
+            ".validate": "newData.val() === true"
+          }
+        }
+      },
       "lanterns": {
         ".read": true,
         "$slot": {
           ".write": "auth != null && $slot.matches(/^[0-9]+$/) && $slot.length <= 2 && (!data.exists() || data.child('t').val() < now - 86400000 || data.child('u').val() === auth.uid)",
           ".validate": "newData.hasChildren(['u', 'c', 't'])",
           "u": { ".validate": "newData.val() === auth.uid" },
+          "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
+          "t": { ".validate": "newData.val() === now" },
+          "$other": { ".validate": false }
+        }
+      },
+      "visits": {
+        ".read": true,
+        ".indexOn": ["t"],
+        "$uid": {
+          ".write": "auth != null && (auth.uid === $uid || (data.exists() && !newData.exists() && data.child('t').val() < now - 172800000))",
+          ".validate": "newData.hasChildren(['n', 'c', 't'])",
+          "n": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 255" },
           "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
           "t": { ".validate": "newData.val() === now" },
           "$other": { ".validate": false }
@@ -40,6 +86,16 @@
           "bows": {
             ".write": "auth != null",
             ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+          },
+          "shares": {
+            ".write": "auth != null",
+            ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+          },
+          "offer": {
+            "$kind": {
+              ".write": "auth != null && ($kind === 'rice' || $kind === 'candle' || $kind === 'incense' || $kind === 'flower')",
+              ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+            }
           },
           "$other": { ".validate": false }
         }

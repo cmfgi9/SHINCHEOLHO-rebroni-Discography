@@ -150,7 +150,8 @@ export const TASKS = [
   { id: "hap", ko: "🙏 합장하기", en: "Join your palms" },
   { id: "bow3", ko: "🙇 절 세 번 올리기", en: "Bow three times" },
   { id: "greet", ko: "💬 이웃에게 인사하기", en: "Greet someone" },
-  { id: "practice", ko: "📋 예불 또는 🕊️ 1분 명상", en: "Join the service or sit for one minute" }
+  { id: "practice", ko: "📋 예불 또는 🕊️ 1분 명상", en: "Join the service or sit for one minute" },
+  { id: "offer", ko: "🪷 공양 올리기 또는 음식 나누기", en: "Make an offering or share food" }
 ];
 
 // ---------- 처음 오신 분 안내 ----------
@@ -160,6 +161,9 @@ export const GUIDE = [
   ["🏯 대웅전", "안에 들어가면 지붕이 흐려져요. 좌복에 앉고, 목탁을 치고, 법사 스님 곁에서 예불을 드릴 수 있어요.", "Sit on cushions, strike the moktak and join the service."],
   ["🔔 범종각", "범종을 치면 지금 법당에 있는 모든 사람에게 종소리가 들려요.", "The temple bell is heard by everyone here."],
   ["🏮 연등", "마당의 연등 줄 아래에서 연등을 달면 하루 동안 모두에게 보여요(하루 3개까지).", "Lanterns glow for everyone for a day."],
+  ["🪷 공양 올리기", "대웅전 불단 앞 공양상에 공양미·초·향·꽃을 올릴 수 있어요. 오늘 모두가 올린 공양이 공양상에 쌓여 보여요.", "Offer rice, a candle, incense or flowers at the altar."],
+  ["🍚 공양간", "대웅전 동쪽(오른쪽) 공양간에서 밥·차·떡·과일을 받아, 자리에 앉아 들거나 가까운 이웃에게 나눠 줄 수 있어요.", "Get food in the refectory to the east, then eat or share it."],
   ["📿 수행", "아래 📿 수행 메뉴에서 예불·1분 명상·오늘의 법구·발원 노트·오늘의 수행을 만날 수 있어요.", "Find the service, meditation, verses and your vow notes in the practice menu."],
-  ["🔒 안심하세요", "자유 채팅이 없고, 발원 노트는 이 기기에만 저장돼요. 법당에 있는 동안 캐릭터·이름·위치만 다른 사람에게 보여요.", "No free chat; vow notes stay on your device."]
+  ["👣 함께", "위쪽 🪷 법당 표시를 누르면 다른 법당으로 옮기거나 주소를 복사해 친구와 같은 법당에서 만날 수 있어요. 절 수를 누르면 오늘의 흔적(다녀간 이웃·공양·나눔)을 볼 수 있어요.", "Tap the hall badge to switch halls; tap your bow count for today's traces."],
+  ["🔒 안심하세요", "자유 채팅이 없고, 발원 노트는 이 기기에만 저장돼요. 법당에 있는 동안 캐릭터·이름·위치만 다른 사람에게 보여요. 오늘 다녀간 이름은 이틀 뒤 지워지고, 남기지 않을 수도 있어요.", "No free chat; vow notes stay on your device."]
 ];

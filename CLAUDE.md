@@ -29,7 +29,7 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 | `/lofi/` | **Lofi Visualizer** — 음원 플레이리스트 + 16:9 배경(이미지/반복 영상) + Lofi 효과 → 1~3시간 유튜브용 MP4 **오프라인 렌더링**, 유튜브 챕터 생성 | `lofi/` |
 | `/meditate/` | **Meditate(명상)** — 자연의 소리 믹서(브라우저 합성), 생성형 앰비언트·스템 재조합·앨범 음원, 명상/슬립 타이머·벨, 가이드 명상, 호흡 가이드, 야간 모드, 프리셋·공유 링크, 캘린더 알림. PWA | `meditate/` |
 | `/rest/` | **Rest(쉼터)** — 5개 공간: 촛불의 방·소원의 뜰(풍등·기도·돌탑)·나를 찾는 명상·숲길 산책·푸른 바다(수영). 전체 화면 캔버스 + 브라우저 합성 사운드, 주소 `#candle`·`#wish`·`#self`·`#walk`·`#ocean` | `rest/` |
-| `/temple/` | **온라인 법당** — 여러 사람이 기본 캐릭터로 절 마당·대웅전을 거닐며 합장·절(108배)·범종·목탁·좌복·연등 달기. 안내 스님·법사 스님(NPC), 📿 수행 메뉴(예불 순서 따라 하기·1분 명상·오늘의 법구·발원 노트·오늘의 수행·소리 설정), 레브로니 앨범 배경 음악. 자유 채팅 없음(정해진 인사말만). 실시간 동기화는 Firebase **Realtime Database** + 익명 로그인. PWA | `temple/`, `database.rules.json` |
+| `/temple/` | **온라인 법당** — 여러 사람이 기본 캐릭터로 절 마당·대웅전·공양간을 거닐며 합장·절(108배)·범종·목탁·좌복·연등 달기, 불전 공양(공양미·초·향·꽃), 공양간 음식 받기·나눠 주기. 안내 스님·법사 스님·공양주 보살(NPC), 📿 수행 메뉴(예불 순서 따라 하기·1분 명상·오늘의 법구·발원 노트·오늘의 수행·소리 설정), 법당 나누기(방 20곳·주소 `?room=N`), 오늘의 흔적(다녀간 이웃·합계), 레브로니 앨범 배경 음악. 자유 채팅 없음(정해진 인사말만). 실시간 동기화는 Firebase **Realtime Database** + 익명 로그인. PWA | `temple/`, `database.rules.json` |
 | `/mastering/` | **음원 Mastering** — 라우드니스(BS.1770/EBU R128)·트루피크 분석, 무드/레퍼런스 기반 자동 마스터링, A/B 비교, WAV·리포트 저장 | `mastering/` |
 | `/admin.html` | 관리자: 앨범·트랙·가사·음원·커버, 창작 노트 편집기, 영상 관리, 방명록·구독자 관리 | `admin.html`, `admin.js` |
 | `/api/tracks` | `audioUrl` 있는 곡 목록 JSON (CORS `*`, 외부 게임 등에서 사용) | `functions/api/tracks.js` |
@@ -97,23 +97,35 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 
 ### 온라인 법당 (`temple/`)
 - ES 모듈: `temple.js`(입장·이동·동작·말풍선·소리·카메라·NPC·배경 음악·연결), `world.js`(지도·충돌·캐릭터·건물 그리기, 2D 탑다운),
-  `net.js`(`FirebaseNet`·`LocalNet`), `practice.js`(수행 메뉴·예불 순서·1분 명상·법구·발원 노트·오늘의 수행·소리 설정·안내 창),
+  `net.js`(`FirebaseNet`·`LocalNet` — 법당(방)·접속 표시·합계·방문 기록), `together.js`(법당 고르기·오늘의 흔적 창),
+  `practice.js`(수행 메뉴·예불 순서·1분 명상·법구·발원 노트·오늘의 수행·소리 설정·안내 창),
   `content.js`(예불 순서·법문·법구·발원 예시·과제·안내 글 — 글만 고칠 때는 이 파일만).
   소리는 `../meditate/audio-engine.js?v=3`의 `Engine`(범종·목탁·싱잉볼·자연의 소리), 배경 음악은 `../meditate/music.js?v=3`의 `AlbumPlayer`(`loadAlbums()`의 `audioUrl` 곡, 무작위·크로스페이드) 재사용.
   소리 설정은 엔진 버스별 볼륨: 환경음 `natureBus`, 효과음 `bellBus`·`cueBus`, 배경 음악 `musicBus`. 소리 내어 읽기(speechSynthesis) 중에는 `duck`으로 낮춘다.
-- **NPC(안내 스님·법사 스님)는 각자 화면에서만 움직이고 서버로 보내지 않는다.** 캐릭터 정의는 `world.js` `CHARS`의 6번 이후(`PLAYABLE`=6 미만만 고를 수 있음, 규칙 `c` 0~5와 맞춤).
+- **NPC(안내 스님·법사 스님·공양주 보살)는 각자 화면에서만 움직이고 서버로 보내지 않는다.** 캐릭터 정의는 `world.js` `CHARS`의 6번 이후(`PLAYABLE`=6 미만만 고를 수 있음, 규칙 `c` 0~5와 맞춤).
+- **법당 나누기**: 접속자는 `temple/rooms/{rN}/players/{uid}`에, 인원 세기용 표시는 `temple/presence/{rN}/{uid}`에 둔다(둘 다 onDisconnect 삭제, 다시 연결되면 `_arm()`으로 재예약).
+  `ROOM_CAP`(30)·`ROOM_MAX`(20)은 `net.js`. 정원은 화면 안내용이며 규칙으로 강제하지 않는다. 연등·합계·방문 기록은 모든 법당 공통.
+  법당 목록 인원과 방문 기록은 창을 열 때만 `get()`으로 한 번 읽는다(전송량 절약 — 계속 듣는 리스너를 달지 말 것).
+- **공양·공양간**: 불단 앞 공양상(`OFFER_TABLE`)에 올리면 `stats/{날짜}/offer/{rice·candle·incense·flower}` +1, 공양상 그림은 합계로 그린다.
+  공양간(`REF`)에서 받은 음식은 플레이어 데이터 `i`(0~4), 건넬 때는 효과 `e:"give"` + `g`(상대 uid)를 0.8초 동안만 알린다(받는 쪽이 `i`를 읽어 자기 손에 든다).
+  앉는 자리는 `SEATS`(앞쪽 21개는 대웅전 좌복 `CUSHIONS`와 같은 순서, 뒤는 공양간 방석). 월드 크기(`WORLD`)를 바꾸면 규칙의 `x`·`y` 범위도 함께.
 - 예불 순서는 `content.js`의 `YEBUL` 단계(kind: seat·chant·sit·talk·vow·end). 경전 번역본을 그대로 옮기지 말고, 전통 독송문(한문 음)이나 직접 쓴 글만 넣는다.
-- **자유 입력을 받지 않는다**: 닉네임은 `NAME_A × NAME_B` 번호, 인사말은 `PHRASES` 번호만 전송. 문구를 늘리면 `database.rules.json`의 범위(`s` 0~7, `n` 0~255)도 함께.
-  캐릭터를 늘리면 `c` 범위, 동작·효과를 늘리면 `a`·`e` 허용 값도 함께 바꾼다.
-- 데이터: `temple/players/{uid}`(onDisconnect 삭제), `temple/lanterns/{slot}`(24시간), `temple/stats/{KST 날짜}/bows`(+1만 허용).
-  **`database.rules.json`은 push로 반영되지 않는다** — Firebase Console → Realtime Database → 규칙에서 게시. 절차는 `FIREBASE-SETUP.md` 16.
-- 연결 실패(데이터베이스 미생성·익명 로그인 꺼짐·네트워크) 시 9초 뒤 **혼자 모드**(`LocalNet`)로 계속 동작. `?net=local`은 같은 브라우저 탭끼리 동기화(개발 확인용).
+- **자유 입력을 받지 않는다**: 닉네임은 `NAME_A × NAME_B` 번호, 인사말은 `PHRASES` 번호만 전송. 문구를 늘리면 `database.rules.json`의 범위(`s` 0~10, `n` 0~255)도 함께.
+  캐릭터를 늘리면 `c` 범위, 동작·효과를 늘리면 `a`·`e` 허용 값, 음식·공양물을 늘리면 `i` 범위·`offer` 허용 이름도 함께 바꾼다.
+- 데이터: `temple/rooms/{rN}/players/{uid}`·`temple/presence/{rN}/{uid}`(onDisconnect 삭제), `temple/lanterns/{slot}`(24시간),
+  `temple/stats/{KST 날짜}`(`bows`·`shares`·`offer/*`, +1만 허용), `temple/visits/{uid}`(이름 번호·캐릭터·시각, 2일 뒤 누구나 삭제 가능, `.indexOn: t`).
+  `temple/players`는 1단계까지의 화면이 쓰던 경로로 규칙에만 남아 있다.
+  **`database.rules.json`은 push로 반영되지 않는다** — Firebase Console → Realtime Database → 규칙에서 게시(**규칙 먼저, 코드 병합은 그다음**). 절차는 `FIREBASE-SETUP.md` 16.
+- 연결 실패(데이터베이스 미생성·익명 로그인 꺼짐·새 규칙 미게시·네트워크) 시 **혼자 모드**(`LocalNet`)로 계속 동작. `?net=local`은 같은 브라우저 탭끼리 동기화(개발 확인용).
+  `?net=local`이거나 `localhost`일 때만 `window.__temple`로 자동 시험이 캐릭터 위치를 바꿀 수 있다.
+  규칙·접속 코드를 고치면 Firebase 에뮬레이터(auth·database)에 `database.rules.json`을 올리고 진짜 SDK로 확인한다(허용·거부 모두).
 - Realtime Database 주소: `firebase-config.js`의 `databaseURL`이 있으면 그것, 없으면 `net.js`의 싱가포르 기본 주소.
 - 지도 크기·배치는 `world.js` 상단 상수. 연등 자리(`SLOTS`, 현재 60개)는 규칙의 슬롯 번호 두 자리(0~99) 안에서.
-- 설정 localStorage `rebroni-temple-profile`(캐릭터·이름·소리 설정·첫 방문 여부), 오늘 절 수 `rebroni-temple-bows`,
+- 설정 localStorage `rebroni-temple-profile`(캐릭터·이름·소리 설정·첫 방문 여부·다녀간 이름 남기기), 오늘 절·공양 수 `rebroni-temple-bows`,
   발원 노트 `rebroni-temple-vows`(최대 50개, 서버 전송 없음), 오늘의 수행 `rebroni-temple-tasks`(KST 날짜별).
 - PWA: `manifest.webmanifest` + `sw.js`(접두어 `temple-` 캐시만 지움, 네트워크 우선, `/media/`·`/api/`·Range 제외).
-- 캐시 버스팅: `index.html`의 `temple.css?v=`·`temple.js?v=`, `temple.js` 안의 `world.js?v=`·`net.js?v=`·`practice.js?v=`, `practice.js` 안의 `content.js?v=`,
+- 캐시 버스팅: `index.html`의 `temple.css?v=`·`temple.js?v=`, `temple.js` 안의 `world.js?v=`·`net.js?v=`·`practice.js?v=`·`together.js?v=`,
+  `together.js` 안의 `net.js?v=`·`world.js?v=`(temple.js와 같은 숫자여야 모듈이 두 번 실행되지 않는다), `practice.js` 안의 `content.js?v=`,
   **`sw.js`의 `SHELL` 목록과 `VERSION`도 함께** 올린다.
 
 ### Mastering (`mastering/`)
@@ -148,7 +160,7 @@ python -m http.server 8000
 | `guestbook/{id}` | 방명록 (비밀번호 해시로 셀프 soft delete) | 공개 / 누구나 작성 |
 | `subscribers/{email}` | 뉴스레터 구독자 (문서 ID = 이메일) | 관리자 / 누구나 등록·해지 |
 | `admins/{uid}` | 존재하면 관리자 (콘솔에서만 추가) | 본인 / 불가 |
-| RTDB `temple/…` | 온라인 법당 접속자·연등·절 수 (위 '온라인 법당' 참고, 규칙 `database.rules.json`) | 공개 / 익명 로그인 본인만 |
+| RTDB `temple/…` | 온라인 법당 법당별 접속자·접속 표시·연등·오늘의 합계(절·공양·나눔)·방문 기록 (위 '온라인 법당' 참고, 규칙 `database.rules.json`) | 공개 / 익명 로그인 본인만(합계는 +1만) |
 | `meditate/{autoId}` | 명상 콘텐츠: `kind(guided\|stem), title, titleEn, description, url, path, role, set, duration, order, published, …` | `published`만 공개 / 관리자 |
 | Storage `tracks/`, `journal/`, `meditate/`, 커버 | 음원, 노트 첨부(사진·음원 스케치), 명상 콘텐츠(R2 미연결 시), 커버 이미지 | 공개 / 관리자 |
 | R2 `tracks/`, `meditate/` | R2 연결 시 음원 저장소. `audioPath`/`path`가 `r2:`로 시작 | 공개(`/media/`) / 관리자(`/api/media`) |

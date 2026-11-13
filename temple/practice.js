@@ -3,7 +3,7 @@
 // - 서버를 쓰지 않는다. 발원 노트·오늘의 수행은 이 기기(localStorage)에만 저장한다.
 // - 소리 내어 읽기는 브라우저 음성 합성(speechSynthesis)을 쓴다. 읽는 글은 사이트가 정한 글뿐이다.
 // - temple.js가 넘겨주는 api로 캐릭터 동작(절·합장·앉기)·소리·NPC를 움직인다.
-import { YEBUL, TALKS, BEOPGU, VOW_PRESETS, TASKS, GUIDE } from "./content.js?v=1";
+import { YEBUL, TALKS, BEOPGU, VOW_PRESETS, TASKS, GUIDE } from "./content.js?v=2";
 
 const VOWS_KEY = "rebroni-temple-vows";
 const TASKS_KEY = "rebroni-temple-tasks";
@@ -260,6 +260,8 @@ export function initPractice(api) {
     tasks: () => openSheet("tasks-sheet"),
     guide: () => openSheet("guide-sheet"),
     settings: () => { syncSettings(); openSheet("settings-sheet"); },
+    traces: () => api.openTraces(),
+    rooms: () => api.openRooms(),
     install: () => api.install()
   };
   document.querySelectorAll("#practice-sheet [data-menu]").forEach((b) => b.addEventListener("click", () => MENU[b.dataset.menu]()));
@@ -484,6 +486,7 @@ export function initPractice(api) {
     get yebulOpen() { return Y.open; },
     setInstallable(on) { document.querySelectorAll("[data-menu='install']").forEach((b) => { b.hidden = !on; }); },
     refreshSettings: () => { if (!$("settings-sheet").hidden) syncSettings(); },
+    openSheet,
     closeSheets
   };
 }
