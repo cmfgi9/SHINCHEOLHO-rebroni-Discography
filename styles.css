@@ -412,6 +412,37 @@ mark {
   line-height: 1.4;
 }
 
+/* 긴 앨범 소개: 5줄까지만 보여주고 [자세히 보기]로 펼침 (app.js의 setupConceptClamp) */
+.album-concept.clamp:not(.expanded) .ko,
+.album-concept.clamp:not(.expanded) .en {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow: hidden;
+}
+
+/* 한국어 소개가 잘리면 접힌 상태에서는 영어 소개를 숨김 */
+.album-concept.ko-cut:not(.expanded) .en {
+  display: none;
+}
+
+.concept-toggle {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #7dd3fc;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.concept-toggle:hover,
+.concept-toggle:focus-visible {
+  text-decoration: underline;
+}
+
 .links {
   display: flex;
   flex-wrap: wrap;
@@ -1614,6 +1645,10 @@ body.pl-bar-on {
 
 [data-theme="nature"] .album-concept .en {
   color: #56705f;
+}
+
+[data-theme="nature"] .concept-toggle {
+  color: #2f7a4b;
 }
 
 [data-theme="nature"] .track {
