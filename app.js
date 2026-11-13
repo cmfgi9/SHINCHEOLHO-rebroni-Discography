@@ -289,6 +289,54 @@ async function main() {
     }).join("");
   }
 
+  // 앨범 소개(Concept)가 5줄을 넘으면 5줄까지만 보여주고 [자세히 보기]로 펼침.
+  // 한국어가 5줄을 넘으면 접힌 상태에서 영어 소개는 숨기고, 한국어가 짧고 영어만 길면 영어를 5줄로 줄임.
+  // 화면 폭에 따라 줄 수가 달라지므로 실제로 넘칠 때만 버튼을 붙임 (창 크기가 바뀌면 다시 측정)
+  function setupConceptClamp() {
+    document.querySelectorAll(".album-concept").forEach(box => {
+      if (box.classList.contains("expanded")) return; // 펼쳐 둔 소개는 그대로
+      if (!box.offsetParent) return;                    // 검색으로 숨겨진 앨범은 측정 불가 → 다음 기회에
+      const ko = box.querySelector(".ko");
+      const en = box.querySelector(".en");
+      const overflows = el => !!el && el.textContent.trim() !== "" && el.scrollHeight > el.clientHeight + 1;
+
+      box.classList.add("clamp");
+      box.classList.remove("ko-cut");
+      const koCut = overflows(ko);
+      const needed = koCut || overflows(en);
+      box.classList.toggle("clamp", needed);
+      box.classList.toggle("ko-cut", koCut);
+
+      const btn = box.querySelector(".concept-toggle");
+      if (needed && !btn) {
+        box.insertAdjacentHTML("beforeend",
+          '<button type="button" class="concept-toggle" aria-expanded="false">자세히 보기 ▾</button>');
+      } else if (!needed && btn) {
+        btn.remove();
+      }
+    });
+  }
+
+  albumsEl?.addEventListener("click", e => {
+    const btn = e.target.closest(".concept-toggle");
+    if (!btn) return;
+    const box = btn.closest(".album-concept");
+    const expanded = box.classList.toggle("expanded");
+    btn.setAttribute("aria-expanded", String(expanded));
+    btn.textContent = expanded ? "접기 ▴" : "자세히 보기 ▾";
+    // 접을 때 소개 시작 부분이 화면 위로 지나가 있으면 그 자리로 돌아감
+    if (!expanded) {
+      const top = box.getBoundingClientRect().top;
+      if (top < getStickyOffset()) window.scrollBy({ top: top - getStickyOffset() });
+    }
+  });
+
+  let conceptResizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(conceptResizeTimer);
+    conceptResizeTimer = setTimeout(setupConceptClamp, 200);
+  });
+
   function renderQuickLinks() {
     if (!quickLinks) return;
     quickLinks.innerHTML = albums.map(a => {
@@ -373,6 +421,8 @@ async function main() {
 
   renderNav();
   renderAlbums();
+  setupConceptClamp();
+  document.fonts?.ready.then(setupConceptClamp); // 글꼴이 늦게 적용되면 줄 수가 바뀌므로 한 번 더
   renderQuickLinks();
   updateActiveAlbum();
 
