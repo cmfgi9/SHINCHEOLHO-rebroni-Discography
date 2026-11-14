@@ -58,7 +58,7 @@
     eyes: { x: 0.47, y: 0.385, rx: 0.21, ry: 0.04, feather: 0.5 },
     aspect: "9:16", res: 1080, fps: 30, quality: "std",
     zoom: 1, panX: 0, panY: 0,
-    blend: 70, amp: 0.4, motion: 0.4, blink: true,
+    blend: 70, amp: 0.75, motion: 0.4, blink: true,
     offset: 0, snap: true,
     subs: true, subSize: 1, subY: 0.86, subColor: "#ffffff",
   };
@@ -121,12 +121,27 @@
       }
     }
     out.sort((a, b) => a.start - b.start);
+    // 시간이 없는 줄(시작=끝)이 뒤 줄과 같은 시각에 몰려 있으면, 뒤 줄의 구간을 줄 수대로 고르게 나눔
+    let fixed = 0;
+    const zero = (c) => c.end >= 0 && c.end - c.start < 0.05;
+    for (let i = 0; i < out.length; i++) {
+      if (!zero(out[i])) continue;
+      let j = i;
+      while (j < out.length && zero(out[j]) && Math.abs(out[j].start - out[i].start) < 0.05) j++;
+      if (j < out.length && Math.abs(out[j].start - out[i].start) < 0.05 && out[j].end - out[j].start > 0.5) {
+        const s = out[i].start, e = out[j].end, n = j - i + 1;
+        for (let k = i; k <= j; k++) { out[k].start = s + (e - s) * (k - i) / n; out[k].end = s + (e - s) * (k - i + 1) / n; }
+        fixed += n - 1; i = j;
+      }
+    }
     for (let i = 0; i < out.length; i++) {
       const next = i + 1 < out.length ? out[i + 1].start : Infinity;
       if (out[i].end < 0) out[i].end = Math.min(next, out[i].start + 8); // LRC: 다음 줄 전까지
       if (out[i].end > next) out[i].end = next;                          // 겹침 방지
     }
-    return out.filter((c) => c.text && c.end - c.start > 0.05);
+    const res = out.filter((c) => c.text && c.end - c.start > 0.05);
+    res.fixed = fixed;
+    return res;
   }
 
   const EN_V = { a: "A", e: "E", i: "I", o: "O", u: "U", y: "I" };
@@ -171,9 +186,10 @@
       const s = c.start + cfg.offset, e = c.end + cfg.offset;
       if (u.length > 1) u[u.length - 1].w *= 1.6; // 줄의 마지막 음절은 길게 끄는 편
       const total = u.reduce((a, x) => a + x.w, 0);
-      const b = [s];
+      const fr = [0];
       let acc = 0;
-      for (const x of u) { acc += x.w; b.push(s + (e - s) * acc / total); }
+      for (const x of u) { acc += x.w; fr.push(acc / total); }
+      const b = spread(fr, s, e);
       snapBounds(b);
       u.forEach((x, i) => {
         const a = b[i], z = b[i + 1], d = z - a;
@@ -187,6 +203,37 @@
       });
     }
     dirty = true;
+  }
+
+  // 줄 구간 [s, e] 안에서 음절 경계(비율 fr)를 시간으로 바꿈.
+  // 음원이 있으면 소리가 나는 곳에 음절이 몰리도록 음량 누적값을 따라 나눈다(조용한 구간에는 음절을 거의 두지 않음).
+  function spread(fr, s, e) {
+    const lin = fr.map((f) => s + (e - s) * f);
+    if (!cfg.snap || !env) return lin;
+    let i0 = Math.max(0, Math.floor(s * ENV_HZ)), i1 = Math.min(env.length, Math.ceil(e * ENV_HZ));
+    if (i1 - i0 < 4) return lin;
+    // 줄의 앞뒤에 소리가 거의 없는 구간(0.6초 평균 기준)이 길면 잘라 냄 — 마지막 음절을 반주·잔향만 남은 곳까지 끌지 않게
+    const quiet = (k) => { let m = 0; for (let q = k; q < k + 60; q++) m += env[Math.min(i1 - 1, Math.max(i0, q))]; return m / 60 < 0.25; };
+    let a = i0, z = i1;
+    while (a < z - 60 && quiet(a)) a += 5;
+    while (z > a + 60 && quiet(z - 60)) z -= 5;
+    const minLen = Math.min(i1 - i0, 12 * (fr.length - 1)); // 음절당 0.12초는 남김
+    if (z - a >= minLen) {
+      if (a - i0 > 30) { i0 = a; s = i0 / ENV_HZ; }
+      if (i1 - z > 30) { i1 = Math.min(i1, z + 25); e = Math.min(e, i1 / ENV_HZ); }
+    }
+    const cum = new Float32Array(i1 - i0 + 1);
+    for (let i = i0; i < i1; i++) cum[i - i0 + 1] = cum[i - i0] + 0.06 + Math.max(0, env[i] - 0.12);
+    const total = cum[cum.length - 1];
+    let j = 0;
+    return fr.map((f, k) => {
+      if (k === 0) return s;
+      if (k === fr.length - 1) return e;
+      const target = f * total;
+      while (j < cum.length - 2 && cum[j + 1] < target) j++;
+      const t = (i0 + j + (target - cum[j]) / Math.max(1e-6, cum[j + 1] - cum[j])) / ENV_HZ;
+      return Math.min(e, Math.max(s, t));
+    });
   }
 
   // 음절 경계를 가까운 소리 시작점으로 옮김
@@ -225,9 +272,16 @@
     const sorted = Float32Array.from(raw).sort();
     const lo = sorted[Math.floor(n * 0.1)] || 0, hi = Math.max(sorted[Math.floor(n * 0.95)] || 0, lo + 1e-5);
     const e = new Float32Array(n), o = new Float32Array(n);
+    for (let i = 0; i < n; i++) raw[i] = clamp01((raw[i] - lo) / (hi - lo));
+    // 조용한 절에서도 입이 움직이도록 주변 ±2.5초의 최댓값에 견줘 다시 맞춤 (곡 전체에서 아주 작은 소리는 키우지 않음)
+    const BW = 50, nb = Math.ceil(n / BW), blockMax = new Float32Array(nb);
+    for (let i = 0; i < n; i++) { const k = (i / BW) | 0; if (raw[i] > blockMax[k]) blockMax[k] = raw[i]; }
     let s = 0;
     for (let i = 0; i < n; i++) {
-      const v = clamp01((raw[i] - lo) / (hi - lo));
+      const k = (i / BW) | 0;
+      let peak = 0.2;
+      for (let q = Math.max(0, k - 5); q <= Math.min(nb - 1, k + 5); q++) if (blockMax[q] > peak) peak = blockMax[q];
+      const v = Math.min(1, raw[i] / peak);
       raw[i] = v;
       s += (v - s) * (v > s ? 0.6 : 0.15);      // 빠르게 열리고 천천히 닫힘
       e[i] = s;
@@ -260,7 +314,7 @@
     const x = Math.max(0.02, cfg.blend / 1000);
     let lo = 0, hi = segs.length;
     while (lo < hi) { const m = (lo + hi) >> 1; if (segs[m].t1 < t - x) lo = m + 1; else hi = m; }
-    const k = 1 - cfg.amp * (1 - Math.sqrt(envAt(t)));
+    const k = 1 - cfg.amp * (1 - Math.sqrt(clamp01((envAt(t) - 0.03) / 0.3)));
     for (let i = lo; i < segs.length && segs[i].t0 <= t + x; i++) {
       const s = segs[i], id = resolveMap[s.v];
       if (!id) continue;
@@ -616,6 +670,7 @@
     const raw = $("#lyrics").value.trim();
     $("#lyrics-info").textContent = cues.length
       ? `가사 ${cues.length}줄 · 음절 ${sylCount}개 · ${fmtTime(cues[0].start)} ~ ${fmtTime(cues[cues.length - 1].end)}`
+        + (cues.fixed ? ` · ⚠ 시간이 없는 줄 ${cues.fixed}개는 바로 뒤 줄의 구간을 고르게 나눠 배치했습니다(정확히 하려면 시간을 고쳐 주세요).` : "")
       : raw ? "시간 정보를 찾지 못했습니다. SRT(00:00:12,300 --> 00:00:16,800) 또는 LRC([00:12.30]) 형식이어야 합니다." : "";
     updateButtons();
   }
@@ -872,4 +927,5 @@
   }
 
   init();
+  if (location.hostname === "localhost") window.__lipsync = { get segs() { return segs; }, get cues() { return cues; }, envAt };
 })();
