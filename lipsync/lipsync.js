@@ -54,8 +54,8 @@
 
   // ---------- 설정 ----------
   const cfg = {
-    mouth: { x: 0.5, y: 0.6, rx: 0.14, ry: 0.07, feather: 0.5 },
-    eyes: { x: 0.5, y: 0.42, rx: 0.26, ry: 0.06, feather: 0.5 },
+    mouth: { x: 0.47, y: 0.53, rx: 0.17, ry: 0.075, feather: 0.5 },
+    eyes: { x: 0.47, y: 0.385, rx: 0.21, ry: 0.04, feather: 0.5 },
     aspect: "9:16", res: 1080, fps: 30, quality: "std",
     zoom: 1, panX: 0, panY: 0,
     blend: 70, amp: 0.4, motion: 0.4, blink: true,
@@ -289,6 +289,7 @@
     const c = makeCanvas(w, h), g = c.getContext("2d");
     const kx = im.w / b.w, ky = im.h / b.h; // 크기가 다른 이미지는 기본 이미지에 맞춰 늘림
     g.drawImage(im.img, x * kx, y * ky, w * kx, h * ky, 0, 0, w, h);
+    if (id !== "base") matchTone(g, b, x, y, w, h);
     g.globalCompositeOperation = "destination-in";
     g.translate(w / 2, h / 2); g.scale(w / 2, h / 2);
     const gr = g.createRadialGradient(0, 0, Math.max(0, 1 - r.feather), 0, 0, 1);
@@ -296,6 +297,37 @@
     g.fillStyle = gr; g.fillRect(-1, -1, 2, 2);
     p = patches[id] = { ver: patchVer, c, x, y, w, h };
     return p;
+  }
+
+  // 입 모양 이미지를 통째로 다시 생성하면 색감·밝기가 기본 이미지와 조금 달라 조각 테두리가 비친다.
+  // 영역 가장자리 띠(타원 반지름 70~100%)의 평균 색을 기본 이미지와 같게 맞춘다.
+  function matchTone(g, b, x, y, w, h) {
+    let src, ref;
+    try {
+      const c = makeCanvas(w, h), cg = c.getContext("2d", { willReadFrequently: true });
+      cg.drawImage(b.img, x, y, w, h, 0, 0, w, h);
+      ref = cg.getImageData(0, 0, w, h).data;
+      src = g.getImageData(0, 0, w, h);
+    } catch (e) { return; }
+    const d = src.data, sum = [0, 0, 0], sumRef = [0, 0, 0];
+    let n = 0;
+    for (let j = 0; j < h; j += 2) {
+      const ny = (j + 0.5) / h * 2 - 1;
+      for (let i = 0; i < w; i += 2) {
+        const nx = (i + 0.5) / w * 2 - 1, r2 = nx * nx + ny * ny;
+        if (r2 < 0.49 || r2 > 1) continue;
+        const k = (j * w + i) * 4;
+        if (d[k + 3] < 255) continue; // 이미지 밖
+        sum[0] += d[k]; sum[1] += d[k + 1]; sum[2] += d[k + 2];
+        sumRef[0] += ref[k]; sumRef[1] += ref[k + 1]; sumRef[2] += ref[k + 2];
+        n++;
+      }
+    }
+    if (n < 20) return;
+    const gain = [0, 1, 2].map((c) => Math.max(0.7, Math.min(1.4, sumRef[c] / Math.max(1, sum[c]))));
+    if (gain.every((v) => Math.abs(v - 1) < 0.004)) return; // 같은 색감이면 그대로
+    for (let k = 0; k < d.length; k += 4) { d[k] *= gain[0]; d[k + 1] *= gain[1]; d[k + 2] *= gain[2]; }
+    g.putImageData(src, 0, 0);
   }
 
   // 이미지 → 화면 변환 (cover + 확대·위치)
