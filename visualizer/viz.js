@@ -10,7 +10,7 @@
 
   // ---------- 설정 (localStorage에 저장) ----------
   const DEFAULTS = {
-    style: "bars", color1: "#00e5ff", color2: "#ff2bd6", position: "bottom",
+    style: "bars", color1: "#00e5ff", color2: "#ff2bd6", position: "lower", showViz: true,
     size: 1, sens: 1, smooth: 0.8, bands: 64, glow: true,
     artist: "SHINCHEOLHO-rebroni", showText: true, showProgress: true,
     fit: "cover", dim: 0.25, blur: 0, beatZoom: true, bgc1: "#14112a", bgc2: "#03030a",
@@ -33,6 +33,10 @@
     { id: "ring", name: "원형 파형", ico: "◎" },
     { id: "dots", name: "LED 도트", ico: "⠿" },
     { id: "particles", name: "파티클", ico: "✦" },
+    { id: "segments", name: "클래식 EQ", ico: "▤" },
+    { id: "ribbon", name: "리본", ico: "≋" },
+    { id: "pulse", name: "동심원 물결", ico: "◉" },
+    { id: "orbit", name: "원형 도트", ico: "⁘" },
   ];
   const PALETTES = [
     ["#00e5ff", "#ff2bd6"], ["#ffb347", "#ff3d6e"], ["#43e97b", "#38bdf8"], ["#a78bfa", "#f472b6"],
@@ -60,6 +64,11 @@
   const PREVIEW_MAX = 1080;
   if (!RESOLUTIONS[cfg.res]) cfg.res = 1080;
   if (!Array.isArray(cfg.captions)) cfg.captions = [];
+  // 위치가 3단계(위·가운데·아래)였던 예전 설정을 5단계의 같은 자리(중상·중간·중하)로 옮김
+  if (cfg.posV !== 2) {
+    if (cfg.position === "top") cfg.position = "upper"; else if (cfg.position === "bottom") cfg.position = "lower";
+    cfg.posV = 2;
+  }
   let W = 1080, H = 1920, K = 1;
   function setResolution(r) {
     W = RESOLUTIONS[r] ? r : 1080;
@@ -664,17 +673,21 @@
     ctx.shadowColor = color || cfg.color1;
   }
 
-  function centerY() {
-    return cfg.position === "top" ? H * 0.27 : cfg.position === "center" ? H * 0.5 : H * 0.73;
+  // 위치 5단계. half(그림의 세로 절반 크기)를 주면 화면 밖으로 잘리지 않게 안쪽으로 당김
+  const POS_Y = { top: 0.1, upper: 0.27, center: 0.5, lower: 0.73, bottom: 0.9 };
+  function centerY(half = 0) {
+    const y = H * (POS_Y[cfg.position] ?? POS_Y.lower), m = H * 0.02;
+    if ((half + m) * 2 >= H) return H / 2;
+    return Math.max(half + m, Math.min(H - half - m, y));
   }
 
   // ---------- 비주얼라이저 스타일 ----------
   const draw = {};
 
   draw.bars = () => {
-    const n = cfg.bands, cy = centerY();
+    const n = cfg.bands;
     const total = Math.min(W * 0.96, W * 0.86 * cfg.size);
-    const maxH = H * 0.2 * cfg.size;
+    const maxH = H * 0.2 * cfg.size, cy = centerY(maxH / 2);
     const slot = total / n, bw = slot * 0.68;
     const x0 = (W - total) / 2, base = cy + maxH / 2;
     const path = new Path2D(), caps = new Path2D();
@@ -701,9 +714,9 @@
   };
 
   draw.mirror = () => {
-    const n = Math.round(cfg.bands / 2), cy = centerY();
+    const n = Math.round(cfg.bands / 2);
     const total = Math.min(W * 0.96, W * 0.86 * cfg.size);
-    const maxH = H * 0.11 * cfg.size;
+    const maxH = H * 0.11 * cfg.size, cy = centerY(maxH);
     const slot = total / (n * 2), bw = slot * 0.6;
     const path = new Path2D();
     for (let i = 0; i < n; i++) {
@@ -723,7 +736,7 @@
   function radialPoint(cx, cy, r, a) { return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; }
 
   draw.circle = () => {
-    const n = cfg.bands, cx = W / 2, cy = centerY();
+    const n = cfg.bands, cx = W / 2, cy = centerY(W * 0.38 * cfg.size);
     const R = W * 0.2 * cfg.size * (1 + bassEnv * 0.08);
     const L = W * 0.17 * cfg.size;
     const bw = Math.max(2 * K, (Math.PI * R / n) * 0.55);
@@ -750,8 +763,8 @@
   };
 
   draw.wave = () => {
-    const pts = 256, cy = centerY();
-    const amp = H * 0.13 * cfg.size;
+    const pts = 256;
+    const amp = H * 0.13 * cfg.size, cy = centerY(amp);
     const data = getWave(pts);
     const x0 = W * 0.04, w = W * 0.92;
     ctx.lineJoin = "round";
@@ -774,8 +787,8 @@
   };
 
   draw.mountain = () => {
-    const n = cfg.bands, cy = centerY();
-    const maxH = H * 0.2 * cfg.size;
+    const n = cfg.bands;
+    const maxH = H * 0.2 * cfg.size, cy = centerY(maxH / 2);
     const base = cy + maxH / 2;
     // 저음을 가운데로 오도록 좌우 대칭 배열
     const vals = [];
@@ -811,7 +824,7 @@
   };
 
   draw.ring = () => {
-    const pts = 240, cx = W / 2, cy = centerY();
+    const pts = 240, cx = W / 2, cy = centerY(W * 0.38 * cfg.size);
     const R = W * 0.25 * cfg.size * (1 + bassEnv * 0.06);
     const amp = W * 0.12 * cfg.size;
     const data = getWave(pts);
@@ -837,9 +850,9 @@
   };
 
   draw.dots = () => {
-    const cols = Math.min(cfg.bands, 40), rows = 18, cy = centerY();
+    const cols = Math.min(cfg.bands, 40), rows = 18;
     const total = Math.min(W * 0.96, W * 0.86 * cfg.size);
-    const cell = total / cols;
+    const cell = total / cols, cy = centerY(rows * cell / 2);
     const r = cell * 0.32;
     const x0 = (W - total) / 2;
     const top = cy - rows * cell / 2;
@@ -859,7 +872,7 @@
 
   const particles = [];
   draw.particles = () => {
-    const cx = W / 2, cy = centerY();
+    const cx = W / 2, cy = centerY(W * 0.21 * cfg.size);
     const R = W * 0.16 * cfg.size * (1 + bassEnv * 0.3);
     const emit = Math.floor(2 + bassEnv * 10);
     for (let i = 0; i < emit && particles.length < 500; i++) {
@@ -892,9 +905,121 @@
     }
   };
 
+  // 클래식 EQ: 칸칸이 나뉜 막대 + 흰색 피크 칸
+  draw.segments = () => {
+    const cols = Math.min(cfg.bands, 32), rows = 14;
+    const total = Math.min(W * 0.96, W * 0.86 * cfg.size);
+    const maxH = H * 0.2 * cfg.size, cy = centerY(maxH / 2);
+    const slot = total / cols, bw = slot * 0.74, sh = maxH / rows, bh = sh * 0.68;
+    const x0 = (W - total) / 2, base = cy + maxH / 2;
+    const band = (c) => Math.floor(c * cfg.bands / cols);
+    for (let r = 0; r < rows; r++) {
+      const lit = new Path2D(), dim = new Path2D();
+      for (let c = 0; c < cols; c++) {
+        (r < Math.round(bandVals[band(c)] * rows) ? lit : dim).rect(x0 + c * slot + (slot - bw) / 2, base - (r + 1) * sh + (sh - bh) / 2, bw, bh);
+      }
+      ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.fill(dim);
+      glow(true, mix(r / (rows - 1)));
+      ctx.fillStyle = mix(r / (rows - 1)); ctx.fill(lit);
+    }
+    glow(false);
+    const caps = new Path2D();
+    for (let c = 0; c < cols; c++) {
+      const pk = Math.min(rows - 1, Math.round(peaks[band(c)] * rows));
+      if (pk > 0) caps.rect(x0 + c * slot + (slot - bw) / 2, base - (pk + 1) * sh + (sh - bh) / 2, bw, bh);
+    }
+    ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.fill(caps);
+  };
+
+  // 리본: 가운데 선을 기준으로 위아래 대칭인 부드러운 곡선 띠 (저음이 가운데)
+  draw.ribbon = () => {
+    const n = cfg.bands;
+    const maxH = H * 0.1 * cfg.size, cy = centerY(maxH);
+    const x0 = W * 0.03, w = W * 0.94;
+    const vals = [];
+    for (let i = n - 1; i >= 0; i--) vals.push(bandVals[i]);
+    for (let i = 0; i < n; i++) vals.push(bandVals[i]);
+    const m = vals.length, step = w / (m - 1);
+    const env = (i) => Math.sin(i / (m - 1) * Math.PI); // 양 끝을 0으로 모음
+    const shape = (scale) => {
+      const p = new Path2D();
+      const y = (i, dir) => cy + dir * (2 * K + vals[i] * maxH * env(i) * scale);
+      p.moveTo(x0, cy);
+      for (let i = 1; i < m; i++) p.quadraticCurveTo(x0 + (i - 1) * step, y(i - 1, -1), x0 + (i - 0.5) * step, (y(i - 1, -1) + y(i, -1)) / 2);
+      p.lineTo(x0 + w, cy);
+      for (let i = m - 1; i >= 1; i--) p.quadraticCurveTo(x0 + i * step, y(i, 1), x0 + (i - 0.5) * step, (y(i - 1, 1) + y(i, 1)) / 2);
+      p.closePath();
+      return p;
+    };
+    const outer = shape(1);
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = hGrad(x0, x0 + w); ctx.fill(outer);
+    ctx.globalAlpha = 1;
+    glow(true);
+    ctx.lineWidth = 3 * K; ctx.lineJoin = "round";
+    ctx.strokeStyle = hGrad(x0, x0 + w); ctx.stroke(outer);
+    glow(false);
+    ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fill(shape(0.4));
+  };
+
+  // 동심원 물결: 안쪽 원은 저음, 바깥 원은 고음에 맞춰 부풀고 굵어짐
+  draw.pulse = () => {
+    const rings = 7, cx = W / 2, cy = centerY(W * 0.38 * cfg.size);
+    const R0 = W * 0.07 * cfg.size, gap = W * 0.04 * cfg.size;
+    for (let i = 0; i < rings; i++) {
+      // 고리마다 대역 묶음의 평균
+      const lo = Math.floor(i * cfg.bands / rings), hi = Math.max(lo + 1, Math.floor((i + 1) * cfg.bands / rings));
+      let v = 0;
+      for (let b = lo; b < hi; b++) v += bandVals[b];
+      v /= hi - lo;
+      const col = mix(i / (rings - 1));
+      ctx.globalAlpha = 0.35 + v * 0.65;
+      ctx.lineWidth = (2 + v * 16) * K;
+      ctx.strokeStyle = col;
+      glow(v > 0.25, col);
+      ctx.beginPath(); ctx.arc(cx, cy, R0 + i * gap + v * gap * 0.9, 0, Math.PI * 2); ctx.stroke();
+    }
+    glow(true);
+    ctx.globalAlpha = 0.5 + bassEnv * 0.5;
+    ctx.fillStyle = cfg.color1;
+    ctx.beginPath(); ctx.arc(cx, cy, R0 * (0.45 + bassEnv * 0.4), 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    glow(false);
+  };
+
+  // 원형 도트: 원 둘레의 점들이 소리에 따라 바깥으로 튀어 나감 (좌우 대칭)
+  draw.orbit = () => {
+    const n = Math.min(cfg.bands, 48), cx = W / 2, cy = centerY(W * 0.38 * cfg.size);
+    const R = W * 0.19 * cfg.size * (1 + bassEnv * 0.06);
+    const L = W * 0.16 * cfg.size;
+    const pts = [];
+    for (let side = -1; side <= 1; side += 2) {
+      for (let k = 0; k < n; k++) {
+        const i = side < 0 ? k : n - 1 - k; // 아래에서 시작해 한 바퀴 돌도록 순서를 맞춤
+        const v = bandVals[Math.floor(i * cfg.bands / n)];
+        const a = Math.PI / 2 + side * (i + 0.5) / n * Math.PI;
+        pts.push([...radialPoint(cx, cy, R + v * L, a), v, i / n]);
+      }
+    }
+    ctx.lineWidth = 2 * K; ctx.lineJoin = "round";
+    ctx.strokeStyle = mix(0.5, 0.35);
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath(); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.18)";
+    ctx.beginPath(); ctx.arc(cx, cy, R - 8 * K, 0, Math.PI * 2); ctx.stroke();
+    glow(true);
+    for (const [x, y, v, t] of pts) {
+      ctx.fillStyle = mix(t);
+      ctx.beginPath(); ctx.arc(x, y, (3 + v * 9) * K * Math.min(1.4, cfg.size), 0, Math.PI * 2); ctx.fill();
+    }
+    glow(false);
+  };
+
   // ---------- 텍스트 / 진행바 ----------
   function drawOverlay() {
-    const textY = cfg.position === "bottom" ? H * 0.12 : H * 0.84;
+    // EQ가 아래쪽이면 제목은 위에, 그 밖에는 아래에
+    const textY = cfg.position === "bottom" || cfg.position === "lower" ? H * 0.12 : H * 0.84;
     if (cfg.showText) {
       const title = currentTitle(), artist = cfg.artist;
       ctx.textAlign = "center";
@@ -1061,7 +1186,7 @@
     computeBands(cfg.bands);
     ctx.save();
     drawBackground(bassEnv);
-    (draw[cfg.style] || draw.bars)();
+    if (cfg.showViz) (draw[cfg.style] || draw.bars)(); // 숨겨도 비트 줌·제목·진행 바·문구는 그대로
     drawOverlay();
     drawCaptions();
     if (exporting && cfg.fadeVideo) {
@@ -1606,8 +1731,8 @@
     if (key === "bgInterval") { lastSlot = -1; renderBgList(); }
   }));
 
-  [["glow", "glow"], ["show-text", "showText"], ["show-progress", "showProgress"], ["beat-zoom", "beatZoom"], ["ken-burns", "kenBurns"], ["loop-one", "loopOne"], ["fade-video", "fadeVideo"]]
-    .forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); }));
+  [["show-viz", "showViz"], ["glow", "glow"], ["show-text", "showText"], ["show-progress", "showProgress"], ["beat-zoom", "beatZoom"], ["ken-burns", "kenBurns"], ["loop-one", "loopOne"], ["fade-video", "fadeVideo"]]
+    .forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); if (key === "showViz") syncUI(); }));
   [["color1", "color1"], ["color2", "color2"], ["bgc1", "bgc1"], ["bgc2", "bgc2"]]
     .forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => { cfg[key] = e.target.value; syncUI(); save(); }));
   $("#artist-text").addEventListener("input", (e) => { cfg.artist = e.target.value; save(); });
@@ -1625,6 +1750,7 @@
     $("#color1").value = cfg.color1; $("#color2").value = cfg.color2;
     $("#bgc1").value = cfg.bgc1; $("#bgc2").value = cfg.bgc2;
     $("#glow").checked = cfg.glow; $("#show-text").checked = cfg.showText;
+    $("#show-viz").checked = cfg.showViz; $("#style-grid").classList.toggle("off", !cfg.showViz);
     $("#show-progress").checked = cfg.showProgress; $("#beat-zoom").checked = cfg.beatZoom;
     $("#bg-transition").value = cfg.bgTransition;
     $("#ken-burns").checked = cfg.kenBurns;

@@ -19,7 +19,7 @@
   <!-- 쇼츠 문구용 글꼴 (자체 호스팅) -->
   <link rel="stylesheet" href="fonts/fonts.css?v=1">
   <link rel="stylesheet" href="../lofi/fonts/fonts.css?v=1">
-  <link rel="stylesheet" href="captions.css?v=1">
+  <link rel="stylesheet" href="captions.css?v=2">
 </head>
 
 <body>
@@ -80,6 +80,7 @@
 
       <!-- 비주얼 -->
       <div class="tabpane" data-pane="visual">
+        <label class="check"><input id="show-viz" type="checkbox" checked> EQ(비주얼라이저) 표시 · Show visualizer</label>
         <div class="style-grid" id="style-grid"></div>
 
         <div class="field">
@@ -94,7 +95,7 @@
         <div class="field">
           <span>위치</span>
           <div class="seg" id="position">
-            <button data-v="top">위</button><button data-v="center">가운데</button><button data-v="bottom" class="on">아래</button>
+            <button data-v="top">최상단</button><button data-v="upper">중상</button><button data-v="center">중간</button><button data-v="lower" class="on">중하</button><button data-v="bottom">최하단</button>
           </div>
         </div>
 
@@ -274,7 +275,7 @@
   <audio id="audio" preload="auto" playsinline></audio>
   <video id="bg-video" muted loop playsinline preload="auto" hidden></video>
 
-  <script src="viz.js?v=12"></script>
+  <script src="viz.js?v=13"></script>
 </body>
 
 </html>

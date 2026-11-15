@@ -10,3 +10,6 @@
   padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--panel-2); color: var(--text); font-size: 15px; line-height: 1.5;
 }
+
+/* EQ 숨김 중에는 스타일 선택을 흐리게 (선택은 계속 가능) */
+.style-grid.off { opacity: .45; }
