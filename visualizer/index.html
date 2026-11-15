@@ -16,6 +16,10 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <!-- 파일 수정 배포 시 ?v= 숫자를 올려주면 브라우저 캐시가 즉시 갱신됩니다 -->
   <link rel="stylesheet" href="viz.css?v=4">
+  <!-- 쇼츠 문구용 글꼴 (자체 호스팅) -->
+  <link rel="stylesheet" href="fonts/fonts.css?v=1">
+  <link rel="stylesheet" href="../lofi/fonts/fonts.css?v=1">
+  <link rel="stylesheet" href="captions.css?v=2">
 </head>
 
 <body>
@@ -52,10 +56,11 @@
 
     <!-- 컨트롤 패널 -->
     <section class="panel">
-      <nav class="tabs" role="tablist">
+      <nav class="tabs five" role="tablist">
         <button class="tab active" data-tab="audio" role="tab">🎵 음원</button>
         <button class="tab" data-tab="visual" role="tab">📊 비주얼</button>
         <button class="tab" data-tab="bg" role="tab">🖼 배경</button>
+        <button class="tab" data-tab="caption" role="tab">🔤 문구</button>
         <button class="tab" data-tab="export" role="tab">🎬 추출</button>
       </nav>
 
@@ -75,6 +80,7 @@
 
       <!-- 비주얼 -->
       <div class="tabpane" data-pane="visual">
+        <label class="check"><input id="show-viz" type="checkbox" checked> EQ(비주얼라이저) 표시 · Show visualizer</label>
         <div class="style-grid" id="style-grid"></div>
 
         <div class="field">
@@ -89,7 +95,7 @@
         <div class="field">
           <span>위치</span>
           <div class="seg" id="position">
-            <button data-v="top">위</button><button data-v="center">가운데</button><button data-v="bottom" class="on">아래</button>
+            <button data-v="top">최상단</button><button data-v="upper">중상</button><button data-v="center">중간</button><button data-v="lower" class="on">중하</button><button data-v="bottom">최하단</button>
           </div>
         </div>
 
@@ -174,6 +180,49 @@
         </div>
       </div>
 
+      <!-- 쇼츠 문구 -->
+      <div class="tabpane" data-pane="caption">
+        <div class="row">
+          <button id="cap-add" class="btn primary small">＋ 문구 추가 · Add text</button>
+          <span id="cap-info" class="muted small"></span>
+        </div>
+        <ul id="cap-list" class="track-list"></ul>
+        <div id="cap-editor" class="cap-editor" hidden>
+          <textarea id="cap-text" rows="3" placeholder="쇼츠 문구 (Enter로 줄바꿈)"></textarea>
+          <label class="field">글꼴 · Font
+            <select id="cap-font"></select></label>
+          <label class="field">크기 · Size <output id="cap-size-out">90px</output>
+            <input id="cap-size" type="range" min="24" max="220" step="2" value="90"></label>
+          <div class="row">
+            <label class="color">글자색 <input id="cap-color" type="color" value="#ffffff"></label>
+            <label class="color">꾸밈 색 <input id="cap-deco-color" type="color" value="#000000"></label>
+          </div>
+          <div class="field">
+            <span>꾸밈 · Style</span>
+            <div class="seg" id="cap-deco">
+              <button data-v="outline">테두리</button><button data-v="shadow">그림자</button><button data-v="box">배경 상자</button><button data-v="none">없음</button>
+            </div>
+          </div>
+          <div class="field">
+            <span>줄 정렬 · Align</span>
+            <div class="seg" id="cap-align">
+              <button data-v="left">왼쪽</button><button data-v="center">가운데</button><button data-v="right">오른쪽</button>
+            </div>
+          </div>
+          <label class="field">가로 위치 <input id="cap-x" type="range" min="0" max="100" step="1" value="50"></label>
+          <label class="field">세로 위치 <input id="cap-y" type="range" min="0" max="100" step="1" value="30"></label>
+          <p class="muted small">미리보기 화면에서 문구를 손가락(마우스)으로 끌어 옮길 수도 있어요.</p>
+          <div class="field">
+            <span>표시 시간 (추출 구간 시작부터, 초) · 비우면 처음부터 끝까지</span>
+            <div class="row">
+              <label class="color">시작 <input id="cap-from" type="number" min="0" step="0.5" placeholder="0" inputmode="decimal"></label>
+              <label class="color">끝 <input id="cap-to" type="number" min="0" step="0.5" placeholder="끝까지" inputmode="decimal"></label>
+            </div>
+          </div>
+        </div>
+        <p class="muted small">추천: 첫 3초 안에 눈에 띄는 한 줄 (예: 시작 0 · 끝 3). 폰 화면 아래쪽 20%와 오른쪽 끝은 쇼츠 버튼·설명에 가려질 수 있어요.</p>
+      </div>
+
       <!-- 추출 -->
       <div class="tabpane" data-pane="export">
         <div class="field">
@@ -226,7 +275,7 @@
   <audio id="audio" preload="auto" playsinline></audio>
   <video id="bg-video" muted loop playsinline preload="auto" hidden></video>
 
-  <script src="viz.js?v=11"></script>
+  <script src="viz.js?v=13"></script>
 </body>
 
 </html>

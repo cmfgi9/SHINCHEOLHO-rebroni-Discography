@@ -45,7 +45,12 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 ### Visualizer (`visualizer/`)
 - 비모듈 IIFE 스크립트(`viz.js`). Web Audio `AnalyserNode` → 캔버스 합성 → `MediaRecorder` 녹화 →
   `vendor/mediabunny.min.mjs`로 MP4 길이 헤더 보정/재다중화. 2K/4K는 `VideoEncoder` 지원 여부를 확인.
-- 설정은 localStorage `rebroni-visualizer-settings`.
+- 설정은 localStorage `rebroni-visualizer-settings` (쇼츠 문구 `captions[]` 포함, 최대 6개).
+- EQ 스타일 12종(`STYLES` + `draw.*`), 위치 5단계(`POS_Y`: top·upper·center·lower·bottom). 새 스타일은 `centerY(세로 절반 크기)`로 중심을 받아
+  최상단·최하단에서도 화면 밖으로 잘리지 않게 한다. `showViz: false`면 EQ만 숨기고 비트 줌·제목·진행 바·문구는 그대로.
+- 쇼츠 문구(🔤 문구 탭): 문구마다 캔버스에 한 번 그려 캐시(`captionCanvas`) 후 프레임마다 붙임. 시간은 추출 구간 시작 기준.
+  글꼴은 `visualizer/fonts/`(Black Han Sans·Jua·Gowun Batang 700)와 `../lofi/fonts/`(Nanum Pen·IBM Plex Mono)를 **자체 호스팅**.
+  스타일은 공유 파일 `viz.css`가 아니라 `captions.css`에 둔다(Lofi·Mastering 영향 방지).
 - PWA: `sw.js`가 앱 셸을 캐시. **`viz.js`/`viz.css`를 고치면 `index.html`의 `?v=`, `sw.js`의 `SHELL` 목록 `?v=`, `VERSION`을 모두 올린다.**
   캐시 저장소(Cache Storage)는 사이트 전체가 공유하므로, 서비스 워커는 **자기 접두어 캐시만 지운다**
   (Visualizer `viz-…`, Meditate `meditate-…`). 다른 페이지 캐시를 지우는 `k !== VERSION` 같은 조건을 쓰지 말 것.

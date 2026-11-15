@@ -1,0 +1,15 @@
+/* 쇼츠 문구 탭 (viz.css는 Lofi·Mastering과 공유하므로 따로 둠) */
+.tabs.five { grid-template-columns: repeat(5, 1fr); }
+.tabs.five .tab { font-size: 12px; padding-left: 2px; padding-right: 2px; }
+
+#cap-list .name { cursor: pointer; }
+.cap-editor { display: grid; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.cap-editor[hidden] { display: none; }
+#cap-text {
+  width: 100%; resize: vertical; box-sizing: border-box;
+  padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel-2); color: var(--text); font-size: 15px; line-height: 1.5;
+}
+
+/* EQ 숨김 중에는 스타일 선택을 흐리게 (선택은 계속 가능) */
+.style-grid.off { opacity: .45; }

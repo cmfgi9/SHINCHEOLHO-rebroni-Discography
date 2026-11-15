@@ -10,13 +10,14 @@
 
   // ---------- 설정 (localStorage에 저장) ----------
   const DEFAULTS = {
-    style: "bars", color1: "#00e5ff", color2: "#ff2bd6", position: "bottom",
+    style: "bars", color1: "#00e5ff", color2: "#ff2bd6", position: "lower", showViz: true,
     size: 1, sens: 1, smooth: 0.8, bands: 64, glow: true,
     artist: "SHINCHEOLHO-rebroni", showText: true, showProgress: true,
     fit: "cover", dim: 0.25, blur: 0, beatZoom: true, bgc1: "#14112a", bgc2: "#03030a",
     res: 1080, fps: 30, volume: 1, loopOne: false,
     fadeIn: 0.5, fadeOut: 3, fadeVideo: false,
     bgInterval: 5, bgTransition: "fade", bgFade: 1.5, kenBurns: false,
+    captions: [],
   };
   const STORE_KEY = "rebroni-visualizer-settings";
   const cfg = Object.assign({}, DEFAULTS);
@@ -32,6 +33,10 @@
     { id: "ring", name: "원형 파형", ico: "◎" },
     { id: "dots", name: "LED 도트", ico: "⠿" },
     { id: "particles", name: "파티클", ico: "✦" },
+    { id: "segments", name: "클래식 EQ", ico: "▤" },
+    { id: "ribbon", name: "리본", ico: "≋" },
+    { id: "pulse", name: "동심원 물결", ico: "◉" },
+    { id: "orbit", name: "원형 도트", ico: "⁘" },
   ];
   const PALETTES = [
     ["#00e5ff", "#ff2bd6"], ["#ffb347", "#ff3d6e"], ["#43e97b", "#38bdf8"], ["#a78bfa", "#f472b6"],
@@ -58,6 +63,12 @@
   };
   const PREVIEW_MAX = 1080;
   if (!RESOLUTIONS[cfg.res]) cfg.res = 1080;
+  if (!Array.isArray(cfg.captions)) cfg.captions = [];
+  // 위치가 3단계(위·가운데·아래)였던 예전 설정을 5단계의 같은 자리(중상·중간·중하)로 옮김
+  if (cfg.posV !== 2) {
+    if (cfg.position === "top") cfg.position = "upper"; else if (cfg.position === "bottom") cfg.position = "lower";
+    cfg.posV = 2;
+  }
   let W = 1080, H = 1920, K = 1;
   function setResolution(r) {
     W = RESOLUTIONS[r] ? r : 1080;
@@ -662,17 +673,21 @@
     ctx.shadowColor = color || cfg.color1;
   }
 
-  function centerY() {
-    return cfg.position === "top" ? H * 0.27 : cfg.position === "center" ? H * 0.5 : H * 0.73;
+  // 위치 5단계. half(그림의 세로 절반 크기)를 주면 화면 밖으로 잘리지 않게 안쪽으로 당김
+  const POS_Y = { top: 0.1, upper: 0.27, center: 0.5, lower: 0.73, bottom: 0.9 };
+  function centerY(half = 0) {
+    const y = H * (POS_Y[cfg.position] ?? POS_Y.lower), m = H * 0.02;
+    if ((half + m) * 2 >= H) return H / 2;
+    return Math.max(half + m, Math.min(H - half - m, y));
   }
 
   // ---------- 비주얼라이저 스타일 ----------
   const draw = {};
 
   draw.bars = () => {
-    const n = cfg.bands, cy = centerY();
+    const n = cfg.bands;
     const total = Math.min(W * 0.96, W * 0.86 * cfg.size);
-    const maxH = H * 0.2 * cfg.size;
+    const maxH = H * 0.2 * cfg.size, cy = centerY(maxH / 2);
     const slot = total / n, bw = slot * 0.68;
     const x0 = (W - total) / 2, base = cy + maxH / 2;
     const path = new Path2D(), caps = new Path2D();
@@ -699,9 +714,9 @@
   };
 
   draw.mirror = () => {
-    const n = Math.round(cfg.bands / 2), cy = centerY();
+    const n = Math.round(cfg.bands / 2);
     const total = Math.min(W * 0.96, W * 0.86 * cfg.size);
-    const maxH = H * 0.11 * cfg.size;
+    const maxH = H * 0.11 * cfg.size, cy = centerY(maxH);
     const slot = total / (n * 2), bw = slot * 0.6;
     const path = new Path2D();
     for (let i = 0; i < n; i++) {
@@ -721,7 +736,7 @@
   function radialPoint(cx, cy, r, a) { return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; }
 
   draw.circle = () => {
-    const n = cfg.bands, cx = W / 2, cy = centerY();
+    const n = cfg.bands, cx = W / 2, cy = centerY(W * 0.38 * cfg.size);
     const R = W * 0.2 * cfg.size * (1 + bassEnv * 0.08);
     const L = W * 0.17 * cfg.size;
     const bw = Math.max(2 * K, (Math.PI * R / n) * 0.55);
@@ -748,8 +763,8 @@
   };
 
   draw.wave = () => {
-    const pts = 256, cy = centerY();
-    const amp = H * 0.13 * cfg.size;
+    const pts = 256;
+    const amp = H * 0.13 * cfg.size, cy = centerY(amp);
     const data = getWave(pts);
     const x0 = W * 0.04, w = W * 0.92;
     ctx.lineJoin = "round";
@@ -772,8 +787,8 @@
   };
 
   draw.mountain = () => {
-    const n = cfg.bands, cy = centerY();
-    const maxH = H * 0.2 * cfg.size;
+    const n = cfg.bands;
+    const maxH = H * 0.2 * cfg.size, cy = centerY(maxH / 2);
     const base = cy + maxH / 2;
     // 저음을 가운데로 오도록 좌우 대칭 배열
     const vals = [];
@@ -809,7 +824,7 @@
   };
 
   draw.ring = () => {
-    const pts = 240, cx = W / 2, cy = centerY();
+    const pts = 240, cx = W / 2, cy = centerY(W * 0.38 * cfg.size);
     const R = W * 0.25 * cfg.size * (1 + bassEnv * 0.06);
     const amp = W * 0.12 * cfg.size;
     const data = getWave(pts);
@@ -835,9 +850,9 @@
   };
 
   draw.dots = () => {
-    const cols = Math.min(cfg.bands, 40), rows = 18, cy = centerY();
+    const cols = Math.min(cfg.bands, 40), rows = 18;
     const total = Math.min(W * 0.96, W * 0.86 * cfg.size);
-    const cell = total / cols;
+    const cell = total / cols, cy = centerY(rows * cell / 2);
     const r = cell * 0.32;
     const x0 = (W - total) / 2;
     const top = cy - rows * cell / 2;
@@ -857,7 +872,7 @@
 
   const particles = [];
   draw.particles = () => {
-    const cx = W / 2, cy = centerY();
+    const cx = W / 2, cy = centerY(W * 0.21 * cfg.size);
     const R = W * 0.16 * cfg.size * (1 + bassEnv * 0.3);
     const emit = Math.floor(2 + bassEnv * 10);
     for (let i = 0; i < emit && particles.length < 500; i++) {
@@ -890,9 +905,121 @@
     }
   };
 
+  // 클래식 EQ: 칸칸이 나뉜 막대 + 흰색 피크 칸
+  draw.segments = () => {
+    const cols = Math.min(cfg.bands, 32), rows = 14;
+    const total = Math.min(W * 0.96, W * 0.86 * cfg.size);
+    const maxH = H * 0.2 * cfg.size, cy = centerY(maxH / 2);
+    const slot = total / cols, bw = slot * 0.74, sh = maxH / rows, bh = sh * 0.68;
+    const x0 = (W - total) / 2, base = cy + maxH / 2;
+    const band = (c) => Math.floor(c * cfg.bands / cols);
+    for (let r = 0; r < rows; r++) {
+      const lit = new Path2D(), dim = new Path2D();
+      for (let c = 0; c < cols; c++) {
+        (r < Math.round(bandVals[band(c)] * rows) ? lit : dim).rect(x0 + c * slot + (slot - bw) / 2, base - (r + 1) * sh + (sh - bh) / 2, bw, bh);
+      }
+      ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.fill(dim);
+      glow(true, mix(r / (rows - 1)));
+      ctx.fillStyle = mix(r / (rows - 1)); ctx.fill(lit);
+    }
+    glow(false);
+    const caps = new Path2D();
+    for (let c = 0; c < cols; c++) {
+      const pk = Math.min(rows - 1, Math.round(peaks[band(c)] * rows));
+      if (pk > 0) caps.rect(x0 + c * slot + (slot - bw) / 2, base - (pk + 1) * sh + (sh - bh) / 2, bw, bh);
+    }
+    ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.fill(caps);
+  };
+
+  // 리본: 가운데 선을 기준으로 위아래 대칭인 부드러운 곡선 띠 (저음이 가운데)
+  draw.ribbon = () => {
+    const n = cfg.bands;
+    const maxH = H * 0.1 * cfg.size, cy = centerY(maxH);
+    const x0 = W * 0.03, w = W * 0.94;
+    const vals = [];
+    for (let i = n - 1; i >= 0; i--) vals.push(bandVals[i]);
+    for (let i = 0; i < n; i++) vals.push(bandVals[i]);
+    const m = vals.length, step = w / (m - 1);
+    const env = (i) => Math.sin(i / (m - 1) * Math.PI); // 양 끝을 0으로 모음
+    const shape = (scale) => {
+      const p = new Path2D();
+      const y = (i, dir) => cy + dir * (2 * K + vals[i] * maxH * env(i) * scale);
+      p.moveTo(x0, cy);
+      for (let i = 1; i < m; i++) p.quadraticCurveTo(x0 + (i - 1) * step, y(i - 1, -1), x0 + (i - 0.5) * step, (y(i - 1, -1) + y(i, -1)) / 2);
+      p.lineTo(x0 + w, cy);
+      for (let i = m - 1; i >= 1; i--) p.quadraticCurveTo(x0 + i * step, y(i, 1), x0 + (i - 0.5) * step, (y(i - 1, 1) + y(i, 1)) / 2);
+      p.closePath();
+      return p;
+    };
+    const outer = shape(1);
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = hGrad(x0, x0 + w); ctx.fill(outer);
+    ctx.globalAlpha = 1;
+    glow(true);
+    ctx.lineWidth = 3 * K; ctx.lineJoin = "round";
+    ctx.strokeStyle = hGrad(x0, x0 + w); ctx.stroke(outer);
+    glow(false);
+    ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fill(shape(0.4));
+  };
+
+  // 동심원 물결: 안쪽 원은 저음, 바깥 원은 고음에 맞춰 부풀고 굵어짐
+  draw.pulse = () => {
+    const rings = 7, cx = W / 2, cy = centerY(W * 0.38 * cfg.size);
+    const R0 = W * 0.07 * cfg.size, gap = W * 0.04 * cfg.size;
+    for (let i = 0; i < rings; i++) {
+      // 고리마다 대역 묶음의 평균
+      const lo = Math.floor(i * cfg.bands / rings), hi = Math.max(lo + 1, Math.floor((i + 1) * cfg.bands / rings));
+      let v = 0;
+      for (let b = lo; b < hi; b++) v += bandVals[b];
+      v /= hi - lo;
+      const col = mix(i / (rings - 1));
+      ctx.globalAlpha = 0.35 + v * 0.65;
+      ctx.lineWidth = (2 + v * 16) * K;
+      ctx.strokeStyle = col;
+      glow(v > 0.25, col);
+      ctx.beginPath(); ctx.arc(cx, cy, R0 + i * gap + v * gap * 0.9, 0, Math.PI * 2); ctx.stroke();
+    }
+    glow(true);
+    ctx.globalAlpha = 0.5 + bassEnv * 0.5;
+    ctx.fillStyle = cfg.color1;
+    ctx.beginPath(); ctx.arc(cx, cy, R0 * (0.45 + bassEnv * 0.4), 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    glow(false);
+  };
+
+  // 원형 도트: 원 둘레의 점들이 소리에 따라 바깥으로 튀어 나감 (좌우 대칭)
+  draw.orbit = () => {
+    const n = Math.min(cfg.bands, 48), cx = W / 2, cy = centerY(W * 0.38 * cfg.size);
+    const R = W * 0.19 * cfg.size * (1 + bassEnv * 0.06);
+    const L = W * 0.16 * cfg.size;
+    const pts = [];
+    for (let side = -1; side <= 1; side += 2) {
+      for (let k = 0; k < n; k++) {
+        const i = side < 0 ? k : n - 1 - k; // 아래에서 시작해 한 바퀴 돌도록 순서를 맞춤
+        const v = bandVals[Math.floor(i * cfg.bands / n)];
+        const a = Math.PI / 2 + side * (i + 0.5) / n * Math.PI;
+        pts.push([...radialPoint(cx, cy, R + v * L, a), v, i / n]);
+      }
+    }
+    ctx.lineWidth = 2 * K; ctx.lineJoin = "round";
+    ctx.strokeStyle = mix(0.5, 0.35);
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath(); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.18)";
+    ctx.beginPath(); ctx.arc(cx, cy, R - 8 * K, 0, Math.PI * 2); ctx.stroke();
+    glow(true);
+    for (const [x, y, v, t] of pts) {
+      ctx.fillStyle = mix(t);
+      ctx.beginPath(); ctx.arc(x, y, (3 + v * 9) * K * Math.min(1.4, cfg.size), 0, Math.PI * 2); ctx.fill();
+    }
+    glow(false);
+  };
+
   // ---------- 텍스트 / 진행바 ----------
   function drawOverlay() {
-    const textY = cfg.position === "bottom" ? H * 0.12 : H * 0.84;
+    // EQ가 아래쪽이면 제목은 위에, 그 밖에는 아래에
+    const textY = cfg.position === "bottom" || cfg.position === "lower" ? H * 0.12 : H * 0.84;
     if (cfg.showText) {
       const title = currentTitle(), artist = cfg.artist;
       ctx.textAlign = "center";
@@ -932,14 +1059,136 @@
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
 
+  // ---------- 쇼츠 문구 ----------
+  // 문구마다 글꼴·크기·색·꾸밈·위치·표시 시간을 지정. 크기는 1080px 폭 기준 px, 위치(x, y)는 화면 비율(0~1, 문구 가운데)
+  // 시간은 추출 구간 시작 기준(초) — 미리보기도 [추출] 탭의 시작 위치를 기준으로 보여 줘 결과와 같음
+  const CAP_MAX = 6;
+  const CAP_FONTS = {
+    sans: { name: "기본 고딕", family: '-apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif', weight: 800, scale: 1 },
+    black: { name: "굵은 제목 (Black Han Sans)", family: '"Black Han Sans", sans-serif', weight: 400, scale: 1 },
+    jua: { name: "둥근 글씨 (Jua)", family: '"Jua", sans-serif', weight: 400, scale: 1 },
+    batang: { name: "명조 (Gowun Batang)", family: '"Gowun Batang", serif', weight: 700, scale: 1 },
+    hand: { name: "손글씨 (Nanum Pen)", family: '"Nanum Pen Script", cursive', weight: 400, scale: 1.3 },
+    mono: { name: "타자기 (IBM Plex Mono)", family: '"IBM Plex Mono", "Courier New", monospace', weight: 600, scale: 0.9 },
+  };
+  const CAP_DEFAULT = { text: "", font: "black", size: 90, color: "#ffffff", deco: "outline", decoColor: "#000000", align: "center", x: 0.5, y: 0.3, from: "", to: "" };
+  const capFont = (c) => CAP_FONTS[c.font] || CAP_FONTS.sans;
+  const capCache = new WeakMap(); // 문구 → { key, c, w, h } (그림자·테두리까지 한 번만 그린 캔버스)
+  const capBoxes = [];        // 마지막으로 그린 위치 (미리보기에서 끌어 옮기기용)
+  let capSel = -1, fontEpoch = 0;
+  if (document.fonts) document.fonts.addEventListener("loadingdone", () => { fontEpoch++; });
+  function loadCaptionFonts() {
+    if (!document.fonts) return Promise.resolve();
+    return Promise.all(cfg.captions.filter((c) => c.text).map((c) => {
+      const f = capFont(c);
+      return document.fonts.load(`${f.weight} 60px ${f.family}`, c.text).catch(() => {});
+    }));
+  }
+
+  function wrapLines(g, text, maxW) {
+    const out = [];
+    for (const para of String(text).split("\n")) {
+      let cur = "";
+      for (const word of para.split(/(\s+)/)) {
+        if (!word) continue;
+        const t = cur + word;
+        if (cur.trim() && g.measureText(t).width > maxW) { out.push(cur.trimEnd()); cur = word.trimStart(); }
+        else cur = t;
+        // 띄어쓰기 없이 긴 줄은 글자 단위로 나눔
+        while (g.measureText(cur).width > maxW && cur.length > 1) {
+          let i = cur.length - 1;
+          while (i > 1 && g.measureText(cur.slice(0, i)).width > maxW) i--;
+          out.push(cur.slice(0, i)); cur = cur.slice(i);
+        }
+      }
+      out.push(cur.trimEnd());
+    }
+    return out;
+  }
+
+  function captionCanvas(c) {
+    const f = capFont(c);
+    const key = [W, fontEpoch, c.text, c.font, c.size, c.color, c.deco, c.decoColor, c.align].join("|");
+    let e = capCache.get(c);
+    if (e && e.key === key) return e;
+    const size = c.size * K * f.scale, lh = size * 1.22, pad = Math.ceil(size * 0.35);
+    const meas = document.createElement("canvas").getContext("2d");
+    const font = `${f.weight} ${Math.round(size)}px ${f.family}`;
+    meas.font = font;
+    const lines = wrapLines(meas, c.text, W * 0.9);
+    const widths = lines.map((l) => meas.measureText(l).width);
+    const bw = Math.max(1, ...widths), bh = lh * lines.length;
+    const cv = document.createElement("canvas");
+    cv.width = Math.ceil(bw + pad * 2); cv.height = Math.ceil(bh + pad * 2);
+    const g = cv.getContext("2d");
+    g.font = font; g.textBaseline = "middle"; g.lineJoin = "round";
+    const lineX = (w) => pad + (c.align === "left" ? 0 : c.align === "right" ? bw - w : (bw - w) / 2);
+    lines.forEach((l, i) => {
+      const x = lineX(widths[i]), y = pad + lh * i + lh / 2;
+      if (c.deco === "box" && l) {
+        g.fillStyle = hexA(c.decoColor, 0.62);
+        const px = size * 0.22, py = lh * 0.5;
+        g.beginPath(); g.roundRect ? g.roundRect(x - px, y - py, widths[i] + px * 2, py * 2, size * 0.18) : g.rect(x - px, y - py, widths[i] + px * 2, py * 2); g.fill();
+      }
+    });
+    lines.forEach((l, i) => {
+      const x = lineX(widths[i]), y = pad + lh * i + lh / 2;
+      if (c.deco === "shadow") { g.shadowColor = hexA(c.decoColor, 0.75); g.shadowBlur = size * 0.2; g.shadowOffsetY = size * 0.05; }
+      if (c.deco === "outline") { g.strokeStyle = c.decoColor; g.lineWidth = Math.max(2, size * 0.14); g.strokeText(l, x, y); }
+      g.fillStyle = c.color; g.fillText(l, x, y);
+      g.shadowColor = "transparent";
+    });
+    e = { key, c: cv, w: cv.width, h: cv.height, pad, bw, bh };
+    capCache.set(c, e);
+    return e;
+  }
+  function hexA(hex, a) {
+    const n = parseInt(String(hex).slice(1), 16) || 0;
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+  // 문구가 보일 정도 (0~1): 표시 시간 앞뒤로 0.25초 페이드
+  function captionAlpha(c) {
+    const base = exporting ? exStart : (parseFloat($("#ex-start").value) || 0);
+    const t = (audio.currentTime || 0) - base;
+    const from = parseFloat(c.from), to = parseFloat(c.to), F = 0.25;
+    let a = 1;
+    if (isFinite(from) && from > 0) a = Math.min(a, (t - from) / F + 1);
+    if (isFinite(to)) a = Math.min(a, (to - t) / F);
+    return Math.max(0, Math.min(1, a));
+  }
+  function drawCaptions() {
+    capBoxes.length = 0;
+    const editing = !exporting && $(".tab.active")?.dataset.tab === "caption";
+    cfg.captions.forEach((c, i) => {
+      if (!c.text || !c.text.trim()) return;
+      const e = captionCanvas(c);
+      const x = c.x * W - e.w / 2, y = c.y * H - e.h / 2;
+      capBoxes[i] = { x: x + e.pad, y: y + e.pad, w: e.bw, h: e.bh };
+      const a = captionAlpha(c);
+      if (a > 0) {
+        ctx.globalAlpha = a;
+        ctx.drawImage(e.c, x, y);
+        ctx.globalAlpha = 1;
+      }
+      if (editing && i === capSel) {
+        // 편집 중인 문구 표시 (미리보기에만)
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = 3 * K; ctx.setLineDash([12 * K, 8 * K]);
+        ctx.strokeRect(x + e.pad * 0.5, y + e.pad * 0.5, e.w - e.pad, e.h - e.pad);
+        ctx.restore();
+      }
+    });
+  }
+
   // ---------- 렌더 루프 ----------
   function frame() {
     if (analyser) analyser.smoothingTimeConstant = cfg.smooth;
     computeBands(cfg.bands);
     ctx.save();
     drawBackground(bassEnv);
-    (draw[cfg.style] || draw.bars)();
+    if (cfg.showViz) (draw[cfg.style] || draw.bars)(); // 숨겨도 비트 줌·제목·진행 바·문구는 그대로
     drawOverlay();
+    drawCaptions();
     if (exporting && cfg.fadeVideo) {
       const g = fadeLevel();
       if (g < 1) { ctx.fillStyle = `rgba(0,0,0,${1 - g})`; ctx.fillRect(0, 0, W, H); }
@@ -1005,6 +1254,7 @@
     audio.currentTime = exStart;
     await new Promise((r) => { audio.addEventListener("seeked", r, { once: true }); setTimeout(r, 1500); });
 
+    await loadCaptionFonts();
     exW = cfg.res; exH = Math.round(exW * 16 / 9); exFps = cfg.fps;
     if (W !== exW) { setResolution(exW); particles.length = 0; }
     const mime = mimeFor(exW);
@@ -1301,10 +1551,103 @@
 
   // ---------- UI 바인딩 ----------
   function activateTab(name) {
+    canvas.style.touchAction = name === "caption" ? "none" : ""; // 문구 탭에서는 미리보기를 끌어 문구를 옮김
+    if (name === "caption" && capSel < 0 && cfg.captions.length) { capSel = 0; renderCaptionList(); }
     $$(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
     $$(".tabpane").forEach((p) => p.classList.toggle("active", p.dataset.pane === name));
   }
   $$(".tab").forEach((t) => t.addEventListener("click", () => activateTab(t.dataset.tab)));
+
+  // 쇼츠 문구 편집
+  function renderCaptionList() {
+    const ul = $("#cap-list");
+    ul.innerHTML = "";
+    cfg.captions.forEach((c, i) => {
+      const li = document.createElement("li");
+      if (i === capSel) li.className = "on";
+      li.innerHTML = `<span class="name"></span><button class="del" data-act="up" aria-label="위로" ${i === 0 ? "disabled" : ""}>↑</button><button class="del" data-act="down" aria-label="아래로" ${i === cfg.captions.length - 1 ? "disabled" : ""}>↓</button><button class="del" data-act="del" aria-label="삭제">✕</button>`;
+      li.querySelector(".name").textContent = (c.text || "").split("\n")[0] || "(빈 문구)";
+      li.addEventListener("click", (e) => {
+        const act = e.target.closest("button")?.dataset.act;
+        if (act === "del") { cfg.captions.splice(i, 1); capSel = Math.min(capSel, cfg.captions.length - 1); }
+        else if (act === "up" || act === "down") {
+          const j = act === "up" ? i - 1 : i + 1;
+          [cfg.captions[i], cfg.captions[j]] = [cfg.captions[j], cfg.captions[i]]; capSel = j;
+        } else capSel = i;
+        save(); renderCaptionList();
+      });
+      ul.appendChild(li);
+    });
+    $("#cap-add").disabled = cfg.captions.length >= CAP_MAX;
+    $("#cap-info").textContent = `${cfg.captions.length} / ${CAP_MAX}개 · 아래 칸이 위에 겹쳐 그려집니다`;
+    syncCaptionEditor();
+  }
+  function syncCaptionEditor() {
+    const c = cfg.captions[capSel];
+    $("#cap-editor").hidden = !c;
+    if (!c) return;
+    if (document.activeElement !== $("#cap-text")) $("#cap-text").value = c.text;
+    $("#cap-font").value = c.font; $("#cap-color").value = c.color; $("#cap-deco-color").value = c.decoColor;
+    $("#cap-size").value = c.size; $("#cap-size-out").textContent = c.size + "px";
+    $("#cap-x").value = Math.round(c.x * 100); $("#cap-y").value = Math.round(c.y * 100);
+    $("#cap-from").value = c.from; $("#cap-to").value = c.to;
+    $$("#cap-deco button").forEach((b) => b.classList.toggle("on", b.dataset.v === c.deco));
+    $$("#cap-align button").forEach((b) => b.classList.toggle("on", b.dataset.v === c.align));
+  }
+  const capEdit = (fn) => { const c = cfg.captions[capSel]; if (!c) return; fn(c); save(); };
+  Object.entries(CAP_FONTS).forEach(([id, f]) => $("#cap-font").add(new Option(f.name, id)));
+  $("#cap-add").addEventListener("click", () => {
+    if (cfg.captions.length >= CAP_MAX) return;
+    const prev = cfg.captions[capSel];
+    // 새 문구는 앞 문구의 글꼴·색을 이어받고 조금 아래에 놓음
+    const c = Object.assign({}, CAP_DEFAULT, prev ? { font: prev.font, size: prev.size, color: prev.color, deco: prev.deco, decoColor: prev.decoColor, align: prev.align, y: Math.min(0.9, prev.y + 0.08) } : {}, { text: "문구를 입력하세요" });
+    cfg.captions.push(c); capSel = cfg.captions.length - 1;
+    save(); renderCaptionList(); loadCaptionFonts();
+    $("#cap-text").focus(); $("#cap-text").select();
+  });
+  $("#cap-text").addEventListener("input", (e) => { capEdit((c) => { c.text = e.target.value; }); const n = $$("#cap-list .name")[capSel]; if (n) n.textContent = e.target.value.split("\n")[0] || "(빈 문구)"; });
+  $("#cap-text").addEventListener("change", () => loadCaptionFonts());
+  $("#cap-font").addEventListener("change", (e) => { capEdit((c) => { c.font = e.target.value; }); loadCaptionFonts(); });
+  $("#cap-size").addEventListener("input", (e) => { capEdit((c) => { c.size = +e.target.value; }); $("#cap-size-out").textContent = e.target.value + "px"; });
+  $("#cap-color").addEventListener("input", (e) => capEdit((c) => { c.color = e.target.value; }));
+  $("#cap-deco-color").addEventListener("input", (e) => capEdit((c) => { c.decoColor = e.target.value; }));
+  $("#cap-x").addEventListener("input", (e) => capEdit((c) => { c.x = +e.target.value / 100; }));
+  $("#cap-y").addEventListener("input", (e) => capEdit((c) => { c.y = +e.target.value / 100; }));
+  $("#cap-from").addEventListener("input", (e) => capEdit((c) => { c.from = e.target.value; }));
+  $("#cap-to").addEventListener("input", (e) => capEdit((c) => { c.to = e.target.value; }));
+  $$("#cap-deco button").forEach((b) => b.addEventListener("click", () => { capEdit((c) => { c.deco = b.dataset.v; }); syncCaptionEditor(); }));
+  $$("#cap-align button").forEach((b) => b.addEventListener("click", () => { capEdit((c) => { c.align = b.dataset.v; }); syncCaptionEditor(); }));
+
+  // 미리보기에서 문구를 끌어 옮기기 (문구 탭을 연 동안만 — 다른 때는 화면 스크롤을 막지 않음)
+  let capDrag = null;
+  const toCanvas = (e) => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+  canvas.addEventListener("pointerdown", (e) => {
+    if (exporting || $(".tab.active")?.dataset.tab !== "caption") return;
+    const [px, py] = toCanvas(e), m = 20 * K;
+    for (let i = capBoxes.length - 1; i >= 0; i--) {
+      const b = capBoxes[i];
+      if (b && px >= b.x - m && px <= b.x + b.w + m && py >= b.y - m && py <= b.y + b.h + m) {
+        capSel = i; renderCaptionList();
+        const c = cfg.captions[i];
+        capDrag = { id: e.pointerId, dx: c.x * W - px, dy: c.y * H - py };
+        canvas.setPointerCapture(e.pointerId);
+        e.preventDefault();
+        return;
+      }
+    }
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!capDrag || e.pointerId !== capDrag.id) return;
+    const [px, py] = toCanvas(e), c = cfg.captions[capSel];
+    if (!c) return;
+    c.x = Math.max(0, Math.min(1, (px + capDrag.dx) / W));
+    c.y = Math.max(0, Math.min(1, (py + capDrag.dy) / H));
+    $("#cap-x").value = Math.round(c.x * 100); $("#cap-y").value = Math.round(c.y * 100);
+  });
+  const endDrag = (e) => { if (capDrag && e.pointerId === capDrag.id) { capDrag = null; save(); } };
+  canvas.addEventListener("pointerup", endDrag);
+  canvas.addEventListener("pointercancel", endDrag);
+
 
   // 스타일 선택
   const grid = $("#style-grid");
@@ -1388,8 +1731,8 @@
     if (key === "bgInterval") { lastSlot = -1; renderBgList(); }
   }));
 
-  [["glow", "glow"], ["show-text", "showText"], ["show-progress", "showProgress"], ["beat-zoom", "beatZoom"], ["ken-burns", "kenBurns"], ["loop-one", "loopOne"], ["fade-video", "fadeVideo"]]
-    .forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); }));
+  [["show-viz", "showViz"], ["glow", "glow"], ["show-text", "showText"], ["show-progress", "showProgress"], ["beat-zoom", "beatZoom"], ["ken-burns", "kenBurns"], ["loop-one", "loopOne"], ["fade-video", "fadeVideo"]]
+    .forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); if (key === "showViz") syncUI(); }));
   [["color1", "color1"], ["color2", "color2"], ["bgc1", "bgc1"], ["bgc2", "bgc2"]]
     .forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => { cfg[key] = e.target.value; syncUI(); save(); }));
   $("#artist-text").addEventListener("input", (e) => { cfg.artist = e.target.value; save(); });
@@ -1407,6 +1750,7 @@
     $("#color1").value = cfg.color1; $("#color2").value = cfg.color2;
     $("#bgc1").value = cfg.bgc1; $("#bgc2").value = cfg.bgc2;
     $("#glow").checked = cfg.glow; $("#show-text").checked = cfg.showText;
+    $("#show-viz").checked = cfg.showViz; $("#style-grid").classList.toggle("off", !cfg.showViz);
     $("#show-progress").checked = cfg.showProgress; $("#beat-zoom").checked = cfg.beatZoom;
     $("#bg-transition").value = cfg.bgTransition;
     $("#ken-burns").checked = cfg.kenBurns;
@@ -1419,6 +1763,8 @@
     document.documentElement.style.setProperty("--accent-2", cfg.color2);
   }
   syncUI();
+  renderCaptionList();
+  loadCaptionFonts();
 
   // ---------- PWA ----------
   if ("serviceWorker" in navigator && location.protocol === "https:") {
