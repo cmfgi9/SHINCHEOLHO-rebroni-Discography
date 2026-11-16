@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="fonts/fonts.css?v=1">
   <!-- 스타일은 비주얼라이저와 공유하고 lofi.css로 덧붙임 -->
   <link rel="stylesheet" href="../visualizer/viz.css?v=4">
-  <link rel="stylesheet" href="lofi.css?v=3">
+  <link rel="stylesheet" href="lofi.css?v=4">
 </head>
 
 <body>
@@ -141,13 +141,22 @@
       <!-- 화면 -->
       <div class="tabpane" data-pane="look">
         <label class="drop" for="bg-input">
-          <strong>배경 이미지 / 반복 영상 · Background</strong>
-          <span>16:9 권장 · JPG · PNG · WEBP · MP4 · WEBM (영상은 반복 재생)</span>
+          <strong>배경 이미지 / 반복 영상 (여러 개 가능) · Background</strong>
+          <span>16:9 권장 · 이미지만 최대 10장(시간 간격으로 전환) 또는 영상만 최대 5개(곡이 바뀔 때 전환)<br>JPG · PNG · WEBP · MP4 · WEBM</span>
         </label>
-        <input id="bg-input" type="file" accept="image/*,video/*" hidden>
+        <input id="bg-input" type="file" accept="image/*,video/*" multiple hidden>
+        <ul id="bg-list" class="track-list lofi-tracks"></ul>
         <div class="row">
-          <button id="bg-clear" class="btn ghost small">배경 제거</button>
+          <button id="bg-clear" class="btn ghost small">모두 제거</button>
           <span id="bg-info" class="muted small"></span>
+        </div>
+        <div id="slide-opts" class="sub-opts" hidden>
+          <span class="muted small">이미지 전환 간격 · Slide interval</span>
+          <div class="seg" id="bg-interval">
+            <button data-v="30">30초</button><button data-v="60">1분</button><button data-v="120" class="on">2분</button><button data-v="300">5분</button><button data-v="600">10분</button>
+          </div>
+          <label class="field">전환 시간 (크로스페이드) <output id="bg-fade-out">2초</output>
+            <input id="bg-fade" type="range" min="0" max="6" step="0.5" value="2"></label>
         </div>
         <label class="field">어둡게 <output id="dim-out">20%</output>
           <input id="dim" type="range" min="0" max="0.8" step="0.01" value="0.2"></label>
@@ -253,7 +262,7 @@
   <audio id="audio" preload="auto"></audio>
   <video id="bg-video" muted loop playsinline preload="auto"></video>
 
-  <script src="lofi.js?v=6"></script>
+  <script src="lofi.js?v=7"></script>
 </body>
 
 </html>
