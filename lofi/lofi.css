@@ -60,3 +60,10 @@ label.btn.off { opacity: .4; pointer-events: none; }
 
 /* 배경 목록 */
 #bg-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+
+/* 날씨·입자 효과 */
+.fx-list { display: grid; gap: 10px; }
+.fx-item { display: grid; gap: 6px; }
+.fx-item .check { color: var(--text); }
+.fx-lv button { font-size: 12px; padding: 7px 2px; }
+.fx-lv[hidden] { display: none; }

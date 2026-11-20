@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="fonts/fonts.css?v=1">
   <!-- 스타일은 비주얼라이저와 공유하고 lofi.css로 덧붙임 -->
   <link rel="stylesheet" href="../visualizer/viz.css?v=4">
-  <link rel="stylesheet" href="lofi.css?v=4">
+  <link rel="stylesheet" href="lofi.css?v=5">
 </head>
 
 <body>
@@ -215,9 +215,10 @@
           <input id="grain" type="range" min="0" max="1" step="0.05" value="0.35"></label>
         <label class="field">비네팅 · Vignette <output id="vignette-out">50%</output>
           <input id="vignette" type="range" min="0" max="1" step="0.05" value="0.5"></label>
-        <label class="check"><input id="rain" type="checkbox"> 비 내리는 효과 · Rain</label>
-        <label class="check"><input id="dust" type="checkbox" checked> 떠다니는 빛 먼지 · Floating dust</label>
-        <label class="check"><input id="snow" type="checkbox"> 눈 내리는 효과 · Snow</label>
+        <div class="field">
+          <span>날씨·입자 효과 · Particles <span class="muted small">(켜면 세기를 고를 수 있어요)</span></span>
+          <div id="fx-list" class="fx-list"></div>
+        </div>
         <label class="check"><input id="scanlines" type="checkbox"> VHS 주사선 · Scanlines</label>
         <label class="check"><input id="breathe" type="checkbox" checked> 배경 천천히 숨쉬기 (아주 느린 확대·축소)</label>
         <p class="muted small">효과는 화면 전체에 매 프레임 그려지므로, 많이 켤수록 렌더링 시간이 조금 늘어납니다.</p>
@@ -262,7 +263,7 @@
   <audio id="audio" preload="auto"></audio>
   <video id="bg-video" muted loop playsinline preload="auto"></video>
 
-  <script src="lofi.js?v=7"></script>
+  <script src="lofi.js?v=8"></script>
 </body>
 
 </html>
