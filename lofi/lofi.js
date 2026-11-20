@@ -21,6 +21,9 @@
     dim: 0.2, tint: "warm", vizStyle: "bars", sens: 1, accent: "#ffd6a5",
     title: "", artist: "SHINCHEOLHO-rebroni", font: "mono", showTitle: true, showNow: true,
     grain: 0.35, vignette: 0.5, rain: false, dust: true, snow: false, scanlines: false, breathe: true,
+    // 날씨·입자 효과 세기 1~5 (매우 적게 ~ 매우 많이), 새 효과
+    rainLv: 3, dustLv: 3, snowLv: 3, fireflies: false, firefliesLv: 3, petals: false, petalsLv: 3, petalKind: "petal",
+    stars: false, starsLv: 3, drops: false, dropsLv: 3, fog: false, fogLv: 3,
     res: 1080, fps: 24, quality: "std",
   };
   const STORE_KEY = "rebroni-lofi-settings";
@@ -36,6 +39,9 @@
   };
   const fmtSize = (b) => (b >= 1e9 ? (b / 1e9).toFixed(1) + "GB" : Math.round(b / 1e6) + "MB");
   const baseName = (n) => n.replace(/\.[^.]+$/, "");
+  // 효과 세기 5단계 → 개수 배율
+  const FX_LEVELS = [0.25, 0.5, 1, 1.8, 3];
+  const fxAmt = (key) => FX_LEVELS[Math.max(1, Math.min(5, cfg[key + "Lv"] | 0)) - 1] || 1;
   // 결정적 난수 (같은 i,k → 같은 값): 입자 위치를 시간만으로 정하기 위해 사용
   const hash = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
 
@@ -615,6 +621,48 @@
       return (cache.dust = c);
     }
 
+    // 효과용 작은 그림 (한 번만 만들어 두고 drawImage로 찍음)
+    function sprite(name, size, paint) {
+      const k = "spr_" + name;
+      if (cache[k]) return cache[k];
+      const c = mk(size, size), g = c.getContext("2d");
+      paint(g, size);
+      return (cache[k] = c);
+    }
+    const glowSprite = (name, inner, outer) => sprite(name, 48, (g, n) => {
+      const gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+      gr.addColorStop(0, inner); gr.addColorStop(0.18, inner); gr.addColorStop(0.45, outer); gr.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gr; g.fillRect(0, 0, n, n);
+    });
+    // 유리창 물방울: 가장자리는 어둡고 위쪽에 하이라이트
+    const dropSprite = () => sprite("drop", 64, (g, n) => {
+      const c = n / 2;
+      const gr = g.createRadialGradient(c * 1.1, c * 1.2, c * 0.1, c, c, c * 0.95);
+      gr.addColorStop(0, "rgba(255,255,255,0.10)"); gr.addColorStop(0.7, "rgba(255,255,255,0.05)"); gr.addColorStop(0.9, "rgba(0,0,0,0.28)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gr; g.beginPath(); g.arc(c, c, c * 0.95, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "rgba(255,255,255,0.75)"; g.beginPath(); g.ellipse(c * 0.72, c * 0.62, c * 0.16, c * 0.1, -0.6, 0, Math.PI * 2); g.fill();
+    });
+    const fogSprite = () => sprite("fog", 128, (g, n) => {
+      const gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+      gr.addColorStop(0, "rgba(235,235,240,0.55)"); gr.addColorStop(0.5, "rgba(235,235,240,0.25)"); gr.addColorStop(1, "rgba(235,235,240,0)");
+      g.fillStyle = gr; g.fillRect(0, 0, n, n);
+    });
+
+    // 안개 띠: 폭 2W, 양 끝이 이어지도록(옆으로 흘려도 이음매가 없게) 덩어리를 겹쳐 그림
+    function fogStrip(W, H, layer) {
+      const key = [W, H].join("|"), k = "fogStrip" + layer, n = 5;
+      if (cache[k] && cache[k].key === key) return cache[k].c;
+      const sw = W * 2, sh = Math.round(H * 0.5), c = mk(sw, sh), g = c.getContext("2d"), spr = fogSprite();
+      for (let i = 0; i < n * 2; i++) {
+        const w = W * (0.5 + hash(i, 40 + layer) * 0.5), h = Math.min(sh, w * 0.45);
+        const x = hash(i, 41 + layer * 3) * sw - w / 2, y = (sh - h) * hash(i, 43 + layer);
+        g.globalAlpha = (layer ? 0.12 : 0.08) + hash(i, 44 + layer) * 0.1;
+        for (const dx of [-sw, 0, sw]) g.drawImage(spr, x + dx, y, w, h);
+      }
+      cache[k] = { key, c };
+      return c;
+    }
+
     function tintAndDim(g, W, H) {
       if (cfg.tint === "mono") {
         g.save(); g.globalCompositeOperation = "saturation"; g.fillStyle = "#808080"; g.fillRect(0, 0, W, H); g.restore();
@@ -701,11 +749,40 @@
       return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
     }
 
+    // 모든 효과는 시간 t와 번호 i만으로 위치가 정해짐 (미리보기 = 결과, 프레임 사이에 상태를 쌓지 않음)
     function drawParticles(t, W, H, K) {
-      if (cfg.dust) {
-        const spr = dustSprite();
+      const count = (base, key) => Math.max(1, Math.round(base * fxAmt(key)));
+      if (cfg.fog) {
+        // 안개: 미리 그려 둔 긴 띠 2장(먼 안개·가까운 안개)을 서로 다른 속도로 옆으로 흘림.
+        // 세기와 상관없이 프레임마다 그리는 양이 같아 렌더링 속도가 거의 일정함
+        for (let L = 0; L < 2; L++) {
+          const strip = fogStrip(W, H, L), sw = strip.width;
+          const off = (t * (L ? 14 : 6) * K) % sw;
+          const y = H * (L ? 0.56 : 0.42);
+          // 세기는 짙기로 (덩어리 수는 그대로 → 속도 일정)
+          ctx.globalAlpha = [0.3, 0.45, 0.62, 0.8, 1][(cfg.fogLv | 0) - 1] ?? 0.62;
+          ctx.drawImage(strip, -off, y);
+          if (sw - off < W) ctx.drawImage(strip, sw - off, y);
+        }
+        ctx.globalAlpha = 1;
+      }
+      if (cfg.stars) {
+        // 별 반짝임: 화면 위쪽에 작은 별이 천천히 깜빡임
+        const spr = glowSprite("star", "rgba(255,255,255,1)", "rgba(200,215,255,0.35)"), n = count(55, "stars");
         ctx.save();
-        for (let i = 0; i < 46; i++) {
+        for (let i = 0; i < n; i++) {
+          const x = hash(i, 30) * W, y = hash(i, 31) * H * 0.55;
+          const tw = 0.5 + 0.5 * Math.sin(t * (0.4 + hash(i, 32) * 1.6) + i * 5);
+          const r = (2 + hash(i, 33) * 3.5) * K * (0.7 + tw * 0.5);
+          ctx.globalAlpha = 0.15 + tw * 0.75;
+          ctx.drawImage(spr, x - r, y - r, r * 2, r * 2);
+        }
+        ctx.restore();
+      }
+      if (cfg.dust) {
+        const spr = dustSprite(), n = count(46, "dust");
+        ctx.save();
+        for (let i = 0; i < n; i++) {
           const sp = (8 + hash(i, 4) * 14) * K;
           const x = hash(i, 1) * W + Math.sin(t * (0.08 + hash(i, 2) * 0.12) + i) * 50 * K;
           const y = (((hash(i, 3) * H - t * sp) % H) + H) % H;
@@ -716,10 +793,47 @@
         }
         ctx.restore();
       }
+      if (cfg.fireflies) {
+        // 반딧불: 아래쪽 절반에서 느리게 떠돌며 숨 쉬듯 켜졌다 꺼짐
+        const spr = glowSprite("firefly", "rgba(255,255,190,1)", "rgba(200,255,120,0.45)"), n = count(16, "fireflies");
+        ctx.save();
+        for (let i = 0; i < n; i++) {
+          const x = hash(i, 20) * W + Math.sin(t * (0.1 + hash(i, 21) * 0.15) + i * 2) * 120 * K;
+          const y = H * (0.4 + hash(i, 22) * 0.55) + Math.cos(t * (0.08 + hash(i, 23) * 0.12) + i) * 70 * K;
+          const blink = Math.pow(Math.max(0, Math.sin(t * (0.35 + hash(i, 24) * 0.5) + i * 7)), 2);
+          if (blink < 0.02) continue;
+          const r = (9 + hash(i, 25) * 8) * K;
+          ctx.globalAlpha = blink * 0.95;
+          ctx.drawImage(spr, x - r, y - r, r * 2, r * 2);
+        }
+        ctx.restore();
+      }
+      if (cfg.petals) {
+        // 꽃잎·낙엽: 흔들리며 떨어지고, 뒤집히듯 납작해졌다 넓어짐
+        const leaf = cfg.petalKind === "leaf", n = count(28, "petals");
+        const cols = leaf ? ["rgba(214,120,48,0.9)", "rgba(186,72,40,0.9)", "rgba(228,170,60,0.9)", "rgba(140,90,50,0.9)"]
+          : ["rgba(255,196,210,0.9)", "rgba(255,214,224,0.9)", "rgba(250,176,196,0.9)"];
+        for (let i = 0; i < n; i++) {
+          const sp = (35 + hash(i, 50) * 45) * K, size = (leaf ? 13 : 9) * K * (0.7 + hash(i, 51) * 0.7);
+          const y = ((hash(i, 52) * (H + 60 * K) + t * sp) % (H + 60 * K)) - 30 * K;
+          const x = hash(i, 53) * W * 1.1 - W * 0.05 + Math.sin(t * (0.5 + hash(i, 54) * 0.6) + i) * 60 * K + y * 0.08;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(t * (0.6 + hash(i, 55) * 1.2) + i);
+          ctx.scale(1, 0.35 + 0.65 * Math.abs(Math.sin(t * (0.8 + hash(i, 56)) + i)));
+          ctx.fillStyle = cols[Math.floor(hash(i, 57) * cols.length)];
+          ctx.beginPath();
+          if (leaf) { ctx.moveTo(0, -size); ctx.quadraticCurveTo(size * 0.8, 0, 0, size); ctx.quadraticCurveTo(-size * 0.8, 0, 0, -size); }
+          else ctx.ellipse(0, 0, size, size * 0.62, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
       if (cfg.snow) {
+        const n = count(110, "snow");
         ctx.fillStyle = "rgba(255,255,255,0.75)";
         ctx.beginPath();
-        for (let i = 0; i < 110; i++) {
+        for (let i = 0; i < n; i++) {
           const sp = (25 + hash(i, 7) * 45) * K, r = (1.4 + hash(i, 8) * 2.6) * K;
           const y = ((hash(i, 9) * H + t * sp) % (H + 20 * K)) - 10 * K;
           const x = hash(i, 10) * W + Math.sin(t * 0.7 + i) * 30 * K;
@@ -728,16 +842,37 @@
         ctx.fill();
       }
       if (cfg.rain) {
-        ctx.strokeStyle = "rgba(200,220,255,0.28)";
+        const n = count(170, "rain"), lv = cfg.rainLv | 0;
+        ctx.strokeStyle = `rgba(200,220,255,${0.2 + lv * 0.03})`;
         ctx.lineWidth = 1.3 * K;
         ctx.beginPath();
-        for (let i = 0; i < 170; i++) {
+        for (let i = 0; i < n; i++) {
           const sp = (900 + hash(i, 11) * 700) * K, len = (30 + hash(i, 12) * 45) * K;
           const y = ((hash(i, 13) * H + t * sp) % (H + len)) - len;
           const x = hash(i, 14) * W * 1.1 - W * 0.05 + y * 0.12;
           ctx.moveTo(x, y); ctx.lineTo(x + len * 0.12, y + len);
         }
         ctx.stroke();
+      }
+      if (cfg.drops) {
+        // 유리창 물방울: 맺혀 있다가 가끔 아래로 미끄러져 내림. 주기마다 새 자리에 다시 맺힘
+        const spr = dropSprite(), n = count(36, "drops");
+        ctx.save();
+        for (let i = 0; i < n; i++) {
+          const P = 9 + hash(i, 60) * 14, ph = t / P + hash(i, 61), cyc = Math.floor(ph), u = ph - cyc;
+          const x = hash(i * 7 + cyc, 62) * W, y0 = hash(i * 7 + cyc, 63) * H * 0.9;
+          const r = (4 + hash(i * 7 + cyc, 64) * 9) * K;
+          // 주기의 앞 70%는 맺혀 있고, 뒤 30%는 점점 빨라지며 미끄러짐 (큰 방울만)
+          const slide = r > 8 * K && u > 0.7 ? Math.pow((u - 0.7) / 0.3, 2) * H * 0.5 : 0;
+          const y = y0 + slide;
+          ctx.globalAlpha = Math.min(1, u * 8, (1 - u) * 8);
+          ctx.drawImage(spr, x - r, y - r * 1.1, r * 2, r * 2.2);
+          if (slide > 0) { // 지나간 자국
+            ctx.globalAlpha *= 0.35;
+            ctx.drawImage(spr, x - r * 0.3, y0, r * 0.6, slide);
+          }
+        }
+        ctx.restore();
       }
     }
 
@@ -1389,7 +1524,24 @@
   $("#cover-input").addEventListener("change", (e) => { setCover(e.target.files[0]); e.target.value = ""; });
   $("#cover-clear").addEventListener("click", clearCover);
 
-  const SEGS = [["bg-interval", "bgInterval", Number], ["vinyl-art", "vinylArt"], ["vinyl-speed", "vinylSpeed", Number], ["length-mode", "lengthMode"], ["target", "target", Number], ["lyrics-pos", "lyricsPos"], ["lyrics-size", "lyricsSize"], ["tint", "tint"], ["viz-style", "vizStyle"], ["font", "font"], ["res", "res", Number], ["fps", "fps", Number], ["quality", "quality"]];
+  // 날씨·입자 효과 목록: 켜기 + 세기 5단계 (+ 꽃잎/낙엽 종류)
+  const FX = [
+    ["rain", "🌧 비 · Rain"], ["snow", "❄ 눈 · Snow"], ["dust", "✨ 떠다니는 빛 먼지 · Dust"],
+    ["petals", "🌸 꽃잎·낙엽 날림 · Petals / Leaves"], ["fireflies", "🪲 반딧불 · Fireflies"], ["stars", "⭐ 별 반짝임 · Twinkling stars"],
+    ["drops", "💧 유리창 물방울 · Window raindrops"], ["fog", "🌫 안개 · Fog (조금 무거움)"],
+  ];
+  const LV_NAMES = ["매우 적게", "적게", "보통", "많이", "매우 많이"];
+  FX.forEach(([key, name]) => {
+    const box = document.createElement("div");
+    box.className = "fx-item";
+    box.innerHTML = `<label class="check"><input type="checkbox" id="fx-${key}"> ${name}</label>
+      <div class="seg fx-lv" id="${key}-lv">${LV_NAMES.map((n, i) => `<button data-v="${i + 1}">${n}</button>`).join("")}</div>`
+      + (key === "petals" ? `<div class="seg fx-lv" id="petal-kind"><button data-v="petal">🌸 벚꽃잎</button><button data-v="leaf">🍂 낙엽</button></div>` : "");
+    $("#fx-list").appendChild(box);
+    box.querySelector("input").addEventListener("change", (e) => { cfg[key] = e.target.checked; syncUI(); save(); });
+  });
+
+  const SEGS = [...FX.map(([key]) => [key + "-lv", key + "Lv", Number]), ["petal-kind", "petalKind"], ["bg-interval", "bgInterval", Number], ["vinyl-art", "vinylArt"], ["vinyl-speed", "vinylSpeed", Number], ["length-mode", "lengthMode"], ["target", "target", Number], ["lyrics-pos", "lyricsPos"], ["lyrics-size", "lyricsSize"], ["tint", "tint"], ["viz-style", "vizStyle"], ["font", "font"], ["res", "res", Number], ["fps", "fps", Number], ["quality", "quality"]];
   SEGS.forEach(([id, key, parse = (v) => v]) => $$(`#${id} button`).forEach((b) => b.addEventListener("click", () => {
     if (rendering) return;
     cfg[key] = parse(b.dataset.v); syncUI(); save(); refreshList();
@@ -1401,7 +1553,7 @@
     ["grain", "grain", (v) => Math.round(v * 100) + "%"], ["vignette", "vignette", (v) => Math.round(v * 100) + "%"],
   ];
   RANGES.forEach(([id, key]) => $("#" + id).addEventListener("input", (e) => { cfg[key] = +e.target.value; syncUI(); save(); if (key === "gap" || key === "repeatCount") refreshList(); }));
-  const CHECKS = [["shuffle-repeat", "shuffleRepeat"], ["whole-sets", "wholeSets"], ["show-lyrics", "showLyrics"], ["show-title", "showTitle"], ["show-now", "showNow"], ["rain", "rain"], ["dust", "dust"], ["snow", "snow"], ["scanlines", "scanlines"], ["breathe", "breathe"]];
+  const CHECKS = [["shuffle-repeat", "shuffleRepeat"], ["whole-sets", "wholeSets"], ["show-lyrics", "showLyrics"], ["show-title", "showTitle"], ["show-now", "showNow"], ["scanlines", "scanlines"], ["breathe", "breathe"]];
   CHECKS.forEach(([id, key]) => $("#" + id).addEventListener("change", (e) => { cfg[key] = e.target.checked; save(); if (key === "shuffleRepeat" || key === "wholeSets") refreshList(); }));
   $("#accent").addEventListener("input", (e) => { cfg.accent = e.target.value; save(); });
   $("#title-text").addEventListener("input", (e) => { cfg.title = e.target.value; save(); });
@@ -1415,6 +1567,8 @@
     CHECKS.forEach(([id, key]) => { $("#" + id).checked = cfg[key]; });
     $("#accent").value = cfg.accent; $("#title-text").value = cfg.title; $("#artist-text").value = cfg.artist;
     $("#vinyl-opts").hidden = cfg.vizStyle !== "vinyl";
+    FX.forEach(([key]) => { $("#fx-" + key).checked = !!cfg[key]; $("#" + key + "-lv").hidden = !cfg[key]; });
+    $("#petal-kind").hidden = !cfg.petals;
     $("#time-opts").hidden = cfg.lengthMode === "count";
     $("#count-opts").hidden = cfg.lengthMode !== "count";
   }
