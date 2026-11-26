@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>마음 처방전 · Wisdom Cards</title>
+  <meta name="description" content="오늘의 마음 카드 — 《법구경》 423게송의 지혜를 현대어로 풀어 쓴 마음챙김 카드. 오늘의 카드 뽑기, 고민별 처방, AI 마음 문답, 마음 기록·감사 일기">
+  <meta name="theme-color" content="#f3ede1">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <meta property="og:title" content="마음 처방전 · Wisdom Cards">
+  <meta property="og:description" content="오늘 내 마음에 건네는 한 장의 카드 · Daily mindfulness cards from the Dhammapada by Rebroni Music">
+  <meta property="og:image" content="https://music.rebroni.com/album4-journey-serenity.jpg">
+  <meta property="og:url" content="https://music.rebroni.com/wisdom/">
+  <script>
+    try { document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "dark"); }
+    catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
+  </script>
+  <link rel="stylesheet" href="../visualizer/fonts/fonts.css">
+  <!-- 파일 수정 배포 시 ?v= 숫자를 올려주세요 (wisdom.js 안의 verses.js?v= 도 함께) -->
+  <link rel="stylesheet" href="wisdom.css?v=1">
+</head>
+
+<body>
+  <header class="topbar">
+    <a href="../" class="back" aria-label="Discography로 돌아가기">←</a>
+    <h1>마음 처방전 <span class="en-sub">Wisdom Cards</span></h1>
+    <button id="sound-btn" class="iconbtn" aria-label="소리 켜기/끄기" title="소리 (싱잉볼·풍경)">🔔</button>
+    <button id="theme-btn" class="iconbtn" aria-label="테마 전환" title="테마 전환">🌿</button>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="마음 처방전 메뉴">
+    <a href="#today" role="tab" data-tab="today"><span class="ti">🎴 </span><b>오늘의 카드</b><span class="en-sub">Today</span></a>
+    <a href="#mood" role="tab" data-tab="mood"><span class="ti">🌿 </span><b>마음 처방</b><span class="en-sub">By feeling</span></a>
+    <a href="#ask" role="tab" data-tab="ask"><span class="ti">💬 </span><b>마음 문답</b><span class="en-sub">Ask</span></a>
+    <a href="#journal" role="tab" data-tab="journal"><span class="ti">📖 </span><b>마음 기록</b><span class="en-sub">Journal</span></a>
+  </nav>
+
+  <main>
+    <!-- ===== 오늘의 카드 ===== -->
+    <section id="tab-today" class="panel" data-panel="today">
+      <div class="intro">
+        <p class="eyebrow" id="today-date"></p>
+        <h2>오늘, 마음에 건네는 한 장 <span class="en-sub">A card for today</span></h2>
+        <p class="lead">숨을 한 번 고르고, 끌리는 카드를 한 장 골라 보세요. 운명을 맞히는 카드가 아니라, 오늘의 나에게 질문을 건네는 카드예요.
+          <span class="en-sub">Take a breath and pick the card you're drawn to. Not a fortune — a question for today.</span></p>
+      </div>
+      <div id="deck" class="deck" aria-label="카드 고르기"></div>
+      <p id="deck-hint" class="deck-hint">끌리는 카드 한 장을 눌러 주세요 · Tap a card</p>
+      <div id="today-result"></div>
+    </section>
+
+    <!-- ===== 고민별 맞춤 처방 ===== -->
+    <section id="tab-mood" class="panel" data-panel="mood" hidden>
+      <div class="intro">
+        <h2>지금 내 마음은 <span class="en-sub">How are you feeling?</span></h2>
+        <p class="lead">가장 가까운 마음을 고르면, 《법구경》 26품 가운데 그 마음을 다루는 품에서 구절을 골라 드려요.
+          <span class="en-sub">Choose a feeling and receive a verse from the chapter that speaks to it.</span></p>
+      </div>
+      <div id="mood-grid" class="mood-grid"></div>
+      <div id="mood-result"></div>
+    </section>
+
+    <!-- ===== AI 마음 문답 ===== -->
+    <section id="tab-ask" class="panel" data-panel="ask" hidden>
+      <div class="intro">
+        <h2>마음 문답 <span class="en-sub">Talk it through</span></h2>
+        <p class="lead">요즘 마음을 무겁게 하는 일을 편하게 적어 보세요. 연기(원인과 조건)와 마음챙김의 관점에서 공감하고, 어울리는 구절과 오늘의 실천을 처방전처럼 건네 드려요.
+          <span class="en-sub">Write what's on your mind. You'll get empathy, a mindful perspective, a matching verse and one small practice.</span></p>
+      </div>
+      <form id="ask-form" class="ask-form">
+        <textarea id="ask-text" maxlength="600" rows="5" placeholder="예) 팀장님 말 한마디에 하루 종일 화가 가라앉지 않아요. 제가 너무 예민한 걸까요?"></textarea>
+        <div class="ask-meta"><span id="ask-count">0 / 600</span></div>
+        <div id="ask-moods" class="chips" aria-label="마음 상태(선택)"></div>
+        <label class="consent"><input type="checkbox" id="ask-consent">
+          <span>적은 글은 답을 만들기 위해 <b>Anthropic(미국)의 AI 서비스</b>로 전송되며, 이 사이트는 저장하지 않아요. 이름·연락처 등 개인을 알아볼 수 있는 내용은 적지 말아 주세요. <a href="../privacy.html#ai-counsel">자세히</a>
+            <span class="en-sub">Your text is sent to Anthropic (US) to generate a reply and is not stored by this site.</span></span></label>
+        <button type="submit" class="btn primary" id="ask-send">처방 받기 <span class="en-sub">Get a prescription</span></button>
+      </form>
+      <div id="ask-result"></div>
+      <p class="small muted">AI의 답은 마음을 돌아보는 참고일 뿐, 의학적·전문적 상담을 대신하지 않아요. 힘든 마음이 오래가면 가까운 전문가와 이야기해 주세요.
+        <span class="en-sub">AI replies are for reflection only, not professional advice.</span></p>
+    </section>
+
+    <!-- ===== 마음 기록 · 감사 일기 ===== -->
+    <section id="tab-journal" class="panel" data-panel="journal" hidden>
+      <div class="intro">
+        <h2>마음 기록 <span class="en-sub">Mind journal</span></h2>
+        <p class="lead">뽑은 카드와 그날의 생각, 감사한 일을 남겨 두세요. 시간이 지나 돌아보면, 내가 어떤 마음을 지나 왔는지 보여요. 기록은 <b>이 기기에만</b> 저장돼요.
+          <span class="en-sub">Notes stay on this device only.</span></p>
+      </div>
+      <div class="journal-tools">
+        <button class="btn" id="j-new">✍️ 새 기록 <span class="en-sub">New</span></button>
+        <select id="j-filter" aria-label="기록 거르기">
+          <option value="">전체 마음</option>
+        </select>
+        <button class="btn ghost" id="j-export" title="텍스트 파일로 내보내기">⬇ 내보내기</button>
+      </div>
+      <div id="j-stats" class="j-stats"></div>
+      <div id="j-list" class="j-list"></div>
+    </section>
+  </main>
+
+  <!-- 기록 작성 창 -->
+  <dialog id="j-dialog" class="sheet">
+    <form method="dialog" id="j-form">
+      <h3>마음 기록 <span class="en-sub">Write</span></h3>
+      <div id="j-card-preview" class="j-card-preview"></div>
+      <label>오늘의 마음 <span class="en-sub">Feeling</span>
+        <div id="j-moods" class="chips"></div></label>
+      <label>이 구절을 읽고 든 생각 <span class="en-sub">Reflection</span>
+        <textarea id="j-note" rows="4" maxlength="1000" placeholder="떠오르는 생각을 짧게 적어 보세요"></textarea></label>
+      <label>오늘 감사한 일 <span class="en-sub">Gratitude</span>
+        <input id="j-g1" maxlength="120" placeholder="1. ">
+        <input id="j-g2" maxlength="120" placeholder="2. ">
+        <input id="j-g3" maxlength="120" placeholder="3. "></label>
+      <label class="inline"><input type="checkbox" id="j-done"> 오늘의 실천을 해 봤어요 <span class="en-sub">I tried today's practice</span></label>
+      <div class="sheet-actions">
+        <button value="cancel" class="btn ghost">닫기</button>
+        <button value="save" class="btn primary" id="j-save">저장 <span class="en-sub">Save</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <footer class="foot small muted">
+    <p>구절은 《법구경》(Dhammapada) 빨리어 원전의 뜻을 바탕으로 이 사이트에서 직접 현대어로 풀어 쓴 글이며, 지금 <b id="foot-count"></b>을 담았어요. 423게송 전체를 차례로 채워 가는 중이에요.
+      <span class="en-sub">Verses are original modern paraphrases of the Pali Dhammapada.</span></p>
+    <p><a href="../meditate/">Meditate</a> · <a href="../rest/">Rest</a> · <a href="../temple/">Temple</a> · <a href="../privacy.html">개인정보 처리방침</a></p>
+  </footer>
+
+  <script type="module" src="wisdom.js?v=1"></script>
+</body>
+
+</html>

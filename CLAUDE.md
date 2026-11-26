@@ -30,10 +30,12 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 | `/meditate/` | **Meditate(명상)** — 자연의 소리 믹서(브라우저 합성), 생성형 앰비언트·스템 재조합·앨범 음원, 명상/슬립 타이머·벨, 가이드 명상, 호흡 가이드, 야간 모드, 프리셋·공유 링크, 캘린더 알림. PWA | `meditate/` |
 | `/rest/` | **Rest(쉼터)** — 5개 공간: 촛불의 방·소원의 뜰(풍등·기도·돌탑)·나를 찾는 명상·숲길 산책·푸른 바다(수영). 전체 화면 캔버스 + 브라우저 합성 사운드, 주소 `#candle`·`#wish`·`#self`·`#walk`·`#ocean` | `rest/` |
 | `/temple/` | **온라인 법당** — 여러 사람이 기본 캐릭터로 절 마당·대웅전·공양간을 거닐며 합장·절(108배)·범종·목탁·좌복·연등 달기, 불전 공양(공양미·초·향·꽃), 공양간 음식 받기·나눠 주기. 안내 스님·법사 스님·공양주 보살(NPC), 📿 수행 메뉴(예불 순서 따라 하기·1분 명상·오늘의 법구·발원 노트·오늘의 수행·소리 설정), 법당 나누기(방 20곳·주소 `?room=N`), 오늘의 흔적(다녀간 이웃·합계), 레브로니 앨범 배경 음악. 자유 채팅 없음(정해진 인사말만). 실시간 동기화는 Firebase **Realtime Database** + 익명 로그인. PWA | `temple/`, `database.rules.json` |
+| `/wisdom/` | **마음 처방전** — 《법구경》 카드: 오늘의 카드 뽑기(하루 한 장), 고민별 처방(8가지 마음 → 26품 매칭), AI 마음 문답, 마음 기록·감사 일기(기기 저장). 공유 링크 `#card=품-게송` | `wisdom/`, `functions/api/counsel.js` |
 | `/mastering/` | **음원 Mastering** — 라우드니스(BS.1770/EBU R128)·트루피크 분석, 무드/레퍼런스 기반 자동 마스터링, A/B 비교, WAV·리포트 저장 | `mastering/` |
 | `/admin.html` | 관리자: 앨범·트랙·가사·음원·커버, 창작 노트 편집기, 영상 관리, 방명록·구독자 관리 | `admin.html`, `admin.js` |
 | `/api/tracks` | `audioUrl` 있는 곡 목록 JSON (CORS `*`, 외부 게임 등에서 사용) | `functions/api/tracks.js` |
 | `/api/media` | R2 음원 업로드·삭제 (관리자 전용: Firebase ID 토큰 → Firestore `admins/{uid}` 읽기로 확인), `GET`은 R2 연결 여부 | `functions/api/media.js` |
+| `/api/counsel` | 마음 문답 AI(Claude API). `POST {text, mood}` → `{empathy, insight, practice, cardIds, mood, crisis}`, `GET`은 AI 연결 여부. 키 없으면 503 → 화면이 키워드 매칭으로 대체 | `functions/api/counsel.js` |
 | `/media/*` | R2 음원 제공 (`tracks/`, `meditate/`만, Range·CORS `*`) | `functions/media/[[path]].js` |
 
 공용 모듈:
@@ -137,6 +139,21 @@ SHINCHEOLHO-rebroni(Rebroni Music)의 공식 디스코그래피 사이트. 운�
 - 캐시 버스팅: `index.html`의 `temple.css?v=`·`temple.js?v=`, `temple.js` 안의 `world.js?v=`·`net.js?v=`·`practice.js?v=`·`together.js?v=`,
   `together.js` 안의 `net.js?v=`·`world.js?v=`(temple.js와 같은 숫자여야 모듈이 두 번 실행되지 않는다), `practice.js` 안의 `content.js?v=`,
   **`sw.js`의 `SHELL` 목록과 `VERSION`도 함께** 올린다.
+
+### 마음 처방전 (`wisdom/`)
+- ES 모듈: `wisdom.js`(탭 라우팅·카드 뽑기·처방·문답·기록), `verses.js`(26품 메타 `CHAPTERS`·카드·고민 `MOODS`·고민→품 `MOOD_CHAPTERS`).
+  소리는 `../meditate/audio-engine.js?v=3`의 `Engine`(목탁=카드 고르기, 싱잉볼=뒤집기, 틴샤=저장). 서비스 워커 없음.
+- **구절 저작권**: `verses.js`의 구절·해설·실천은 빨리어 원전의 뜻을 바탕으로 **직접 쓴 현대어 풀이**다. 출판 번역본·웹 문장을 옮겨 넣지 말 것.
+  423게송 중 일부만 카드로 있으며, 늘릴 때는 해당 품의 `cards`에 `{ n, t, e, a, m[] }`를 추가(n은 품 범위 안). 카드 id(`품-n`)는 기록·공유 링크가 쓰므로 바꾸지 않는다.
+- 톤: 종교색(교리·신앙 권유·스님)은 덜고 '마음챙김·인생의 지혜' 언어로. 운명을 맞히는 표현 금지.
+- **AI 마음 문답** `functions/api/counsel.js`: Claude API를 `fetch`로 호출(패키지 없음, 모델 `claude-opus-5-5`, structured outputs로 JSON, 카드 id는 enum으로 제한,
+  시스템 프롬프트=카드 목록 전체 + 프롬프트 캐싱, 거절 대체 `fallbacks: "default"` 베타). 키는 Cloudflare Pages → 설정 → 환경 변수에 **암호화된 `ANTHROPIC_API_KEY`**(Production·Preview).
+  Origin 허용 목록·600자 제한·IP당 10분 8회(isolate 메모리, 느슨함). 입력은 저장·로그하지 않는다. 위기 표현(자해 등)은 서버(crisis)·화면(정규식) 양쪽에서 109·1577-0199 안내.
+  `verses.js`를 고치면 함수도 다시 배포되어 카드 목록이 자동 반영된다.
+- 키가 없거나 오류·한도 초과면 화면이 `localCounsel()`(낱말 정규식 → 마음 → 카드)로 대체. 로컬 `python -m http.server`에서는 `/api/counsel`이 404라 항상 대체 모드.
+- 개인정보: 문답 글은 Anthropic(미국) 국외 이전 — `privacy.html` 1·2·5항. 화면에서 전송 안내 체크(`settings.consent`) 후에만 전송.
+- 설정 localStorage `rebroni-wisdom-settings`, 오늘의 카드 `rebroni-wisdom-today`(KST 날짜), 마음 기록 `rebroni-wisdom-journal`(최대 365개).
+- 캐시 버스팅: `index.html`의 `wisdom.css?v=`·`wisdom.js?v=`, `wisdom.js` 안의 `verses.js?v=`.
 
 ### Mastering (`mastering/`)
 - `dsp.js`(순수 JS 신호처리, `window.RDSP`)를 메인 스레드와 `worker.js`(`importScripts("dsp.js?v=1")`)가 함께 사용.
